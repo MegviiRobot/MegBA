@@ -1,0 +1,6 @@
+add_subdirectory(resource)
+add_subdirectory(operator)
+add_subdirectory(problem)
+add_subdirectory(geo)
+add_subdirectory(edge)
+add_subdirectory(vertex)

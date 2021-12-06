@@ -1,0 +1,257 @@
+/**
+* MegBA is Licensed under the Apache License, Version 2.0 (the "License")
+*
+* Copyright (c) 2021 Megvii Inc. All rights reserved.
+*
+**/
+
+#include "Macro.h"
+#include <cuda_runtime.h>
+#include "edge/BaseEdge.h"
+#include "Wrapper.hpp"
+#include <resource/Manager.h>
+#include <thrust/transform.h>
+#include <thrust/device_ptr.h>
+#include <thrust/reduce.h>
+#include <thrust/inner_product.h>
+#include "operator/Thrust_Transform.h"
+#include <Eigen/Sparse>
+
+#if __CUDA_ARCH__ < 600 && defined(__CUDA_ARCH__)
+union AtomicUnion{
+    double d_value;
+    unsigned long long ull_value;
+};
+
+__inline__ __device__ double atomicAdd(double* address, double val) {
+    AtomicUnion old, assumed;
+    old.d_value = *address;
+
+    do {
+        assumed = old;
+        old.ull_value = atomicCAS((unsigned long long *)address,
+                                  assumed.ull_value,
+                                  AtomicUnion{val + assumed.d_value}.ull_value);
+
+        // Note: uses integer comparison to avoid hang in case of NaN (since NaN != NaN)
+    } while (assumed.ull_value != old.ull_value);
+
+    return old.d_value;
+}
+#endif
+
+namespace MegBA {
+    namespace problem {
+        namespace CUDA {
+            template<typename T>
+            __device__ void make_Hpp(const T *Val_smem, const T Val_i,
+                                     const int camera_dim,
+                                     const int Hpp_csrRow_i,
+                                     T *Hpp_csrVal) {
+                for (int i = 0; i < camera_dim; ++i)
+                    atomicAdd(&Hpp_csrVal[Hpp_csrRow_i + i], Val_i * Val_smem[i * blockDim.x + threadIdx.x]);
+            }
+
+            template<typename T>
+            __device__ void make_Hpl(const T *Val_smem, const T Val_i,
+                                     const int relative_position_point,
+                                     const int point_dim, const int camera_dim,
+                                     int Hpl_csrRow, T *Hpl_csrVal) {
+                const int Hpl_csrRow_i = Hpl_csrRow + relative_position_point * point_dim;
+
+                for (int i = 0; i < point_dim; ++i) {
+                    Hpl_csrVal[Hpl_csrRow_i + i] += Val_i * Val_smem[(i + camera_dim) * blockDim.x + threadIdx.x];
+                }
+            }
+
+            template<typename T>
+            __device__ void make_Hlp(const T *Val_smem, const T Val_i,
+                                     const int relative_position_camera,
+                                     const int camera_dim,
+                                     int Hlp_csrRow, T *Hlp_csrVal) {
+                const int Hlp_csrRow_i = Hlp_csrRow + relative_position_camera * camera_dim;
+
+                for (int i = 0; i < camera_dim; ++i) {
+                    Hlp_csrVal[Hlp_csrRow_i + i] += Val_i * Val_smem[i * blockDim.x + threadIdx.x];
+                }
+            }
+
+            template<typename T>
+            __device__ void make_Hll(const T *Val_smem, const T Val_i,
+                                     const int point_dim, const int camera_dim,
+                                     const int Hll_position,
+                                     T *Hll_matrix) {
+
+                for (int i = 0; i < point_dim; ++i)
+                    atomicAdd(&Hll_matrix[Hll_position + i], Val_i * Val_smem[(i + camera_dim) * blockDim.x + threadIdx.x]);
+            }
+
+            template<typename T>
+            __global__ void make_H_schur(const T *const *const Val_ptrs, const T *const *const error_ptrs,
+                                         const int *absolute_position_camera, const int *absolute_position_point,
+                                         const int *relative_position_camera, const int *relative_position_point,
+                                         const int *Hpl_csrRowPtr, const int *Hlp_csrRowPtr,
+                                         const int res_dim,
+                                         const int camera_dim, const int point_dim, const int error_num,
+                                         T *g_camera, T *g_point,
+                                         T *Hpp_csrVal,
+                                         T *Hll_csrVal,
+                                         T *Hpl_csrVal,
+                                         T *Hlp_csrVal) {
+                /*
+                 * make sure that blockDim.x % 32 == 0, if so, there won't be any thread divergence within a wrap.
+                 */
+                const unsigned int tid = threadIdx.x + blockDim.x * blockIdx.x;
+                if (tid >= error_num)
+                    return;
+
+                T* Val_smem = Wrapper::Shared_Memory<T>::get();
+
+                const int absolute_position_point_local = absolute_position_point[tid];
+                const int absolute_position_camera_local = absolute_position_camera[tid];
+                const int relative_position_point_local = relative_position_point[tid];
+                const int relative_position_camera_local = relative_position_camera[tid];
+
+                T sum_g{0.};
+                for (int i = 0; i < res_dim; ++i){
+                    const T Val_i = Val_ptrs[i][error_num * threadIdx.y + tid];
+                    __syncthreads();
+                    Val_smem[threadIdx.y * blockDim.x + threadIdx.x] = Val_i;
+                    __syncthreads();
+
+                    if (threadIdx.y < camera_dim) {
+                        make_Hpp(Val_smem, Val_i,
+                                 camera_dim,
+                                 (absolute_position_camera_local * camera_dim + threadIdx.y) * camera_dim,
+                                 Hpp_csrVal);
+                        make_Hpl(Val_smem, Val_i,
+                                 relative_position_point_local,
+                                 point_dim, camera_dim,
+                                 Hpl_csrRowPtr[absolute_position_camera_local * camera_dim + threadIdx.y],
+                                 Hpl_csrVal);
+                    } else {
+                        make_Hll(Val_smem, Val_i,
+                                 point_dim, camera_dim,
+                                 absolute_position_point_local * (point_dim * point_dim) +
+                                 (threadIdx.y - camera_dim) * point_dim /* Hll_position */,
+                                 Hll_csrVal);
+                        make_Hlp(Val_smem, Val_i,
+                                 relative_position_camera_local,
+                                 camera_dim,
+                                 Hlp_csrRowPtr[absolute_position_point_local * point_dim + threadIdx.y - camera_dim],
+                                 Hlp_csrVal);
+                    }
+                    sum_g += -Val_i * error_ptrs[i][tid];
+                }
+
+                if (threadIdx.y < camera_dim) {
+                    atomicAdd(&g_camera[absolute_position_camera_local * camera_dim + threadIdx.y], sum_g);
+                } else {
+                    atomicAdd(&g_point[absolute_position_point_local * point_dim + threadIdx.y - camera_dim], sum_g);
+                }
+            }
+        }
+    }
+
+    template<typename T, int result_weight = 1, int dest_weight = 0>
+    __global__ void oursGgemvBatched(const T *csrVal, const T *r, int batchSize, T *dx);
+
+    template<typename T>
+    void EdgeVector<T>::make_H_and_g_schur_CUDA(const JVD<T> &Jet_Estimation) {
+        const auto rows = Jet_Estimation.rows(), cols = Jet_Estimation.cols();
+        const double LR = 1.;
+        const auto camera_dim = edges[0].get_Grad_Shape();
+        const auto point_dim = edges[1].get_Grad_Shape();
+        const auto camera_num = num[0];
+        const auto point_num = num[1];
+        const auto Hpp_rows = camera_dim * camera_num;
+        const auto Hll_rows = point_dim * point_num;
+        ASSERT_CUDA_NO_ERROR();
+
+        std::vector<T *>d_g_camera{static_cast<std::size_t>(option_.world_size)};
+        std::vector<T *>d_g_point{static_cast<std::size_t>(option_.world_size)};
+        for (int i = 0; i < option_.world_size; ++i) {
+            cudaSetDevice(i);
+            cudaMemsetAsync(schur_equation_container_[i].g, 0, (Hpp_rows + Hll_rows) * sizeof(T));
+            d_g_camera[i] = &schur_equation_container_[i].g[0];
+            d_g_point[i] = &schur_equation_container_[i].g[Hpp_rows];
+            ASSERT_CUDA_NO_ERROR();
+            cudaMemsetAsync(schur_equation_container_[i].csrVal[0], 0, schur_equation_container_[i].nnz[0] * sizeof(T));
+            cudaMemsetAsync(schur_equation_container_[i].csrVal[1], 0, schur_equation_container_[i].nnz[1] * sizeof(T));
+            cudaMemsetAsync(schur_equation_container_[i].csrVal[2], 0, schur_equation_container_[i].nnz[2] * sizeof(T));
+            cudaMemsetAsync(schur_equation_container_[i].csrVal[3], 0, schur_equation_container_[i].nnz[3] * sizeof(T));
+            ASSERT_CUDA_NO_ERROR();
+        }
+
+        const auto res_dim = rows * cols;
+        std::vector<std::unique_ptr<const T *[]>> total_ptrs{};
+        total_ptrs.reserve(option_.world_size);
+        std::vector<const T **> device_total_ptrs{static_cast<std::size_t>(option_.world_size)};
+
+        std::vector<const T **> val_ptrs{static_cast<std::size_t>(option_.world_size)};
+        std::vector<const T **> device_val_ptrs{static_cast<std::size_t>(option_.world_size)};
+
+        std::vector<const T **> error_ptrs{static_cast<std::size_t>(option_.world_size)};
+        std::vector<const T **> device_error_ptrs{static_cast<std::size_t>(option_.world_size)};
+        for (int device_rank = 0; device_rank < option_.world_size; ++device_rank) {
+            total_ptrs.emplace_back(new const T *[res_dim * (3 + res_dim)]);
+            cudaSetDevice(device_rank);
+            cudaMalloc(&device_total_ptrs[device_rank], res_dim * (3 + res_dim) * sizeof(T *));
+
+            val_ptrs[device_rank] = &total_ptrs[device_rank][0];
+            device_val_ptrs[device_rank] = &device_total_ptrs[device_rank][0];
+
+            error_ptrs[device_rank] = &total_ptrs[device_rank][res_dim];
+            device_error_ptrs[device_rank] = &device_total_ptrs[device_rank][res_dim];
+            for (int i = 0; i < rows; ++i)
+                for (int j = 0; j < cols; ++j) {
+                    const auto &Jet_Estimation_inner = Jet_Estimation(i, j);
+                    val_ptrs[device_rank][j + i * cols] = Jet_Estimation_inner.get_CUDA_Grad_ptr()[device_rank];
+                    error_ptrs[device_rank][j + i * cols] = Jet_Estimation_inner.get_CUDA_Res_ptr()[device_rank];
+                }
+            cudaMemcpyAsync(device_total_ptrs[device_rank], total_ptrs[device_rank].get(), res_dim * 2 * sizeof(T *), cudaMemcpyHostToDevice);
+        }
+
+        if (Jet_information_.rows() != 0 && Jet_information_.cols() != 0) {
+
+        } else {
+            for (int i = 0; i < option_.world_size; ++i) {
+                cudaSetDevice(i);
+                const auto edge_num = Memory_Pool::getElmNum(i);
+                dim3 block(std::min((decltype(edge_num))32, edge_num), camera_dim + point_dim);
+                dim3 grid((edge_num - 1) / block.x + 1);
+                problem::CUDA::make_H_schur<<<grid, block, block.x * block.y * sizeof(T)>>>(
+                        device_val_ptrs[i], device_error_ptrs[i],
+                        schur_position_and_relation_container_[i].absolute_position_camera, schur_position_and_relation_container_[i].absolute_position_point,
+                        schur_position_and_relation_container_[i].relative_position_camera, schur_position_and_relation_container_[i].relative_position_point,
+                        schur_equation_container_[i].csrRowPtr[0], schur_equation_container_[i].csrRowPtr[1],
+                        res_dim,
+                        camera_dim, point_dim, edge_num,
+                        d_g_camera[i], d_g_point[i],
+                        schur_equation_container_[i].csrVal[2],
+                        schur_equation_container_[i].csrVal[3],
+                        schur_equation_container_[i].csrVal[0],
+                        schur_equation_container_[i].csrVal[1]);
+//                PRINT_DMEMORY(schur_equation_container_[i].csrVal[0], 5, T);
+            }
+        }
+        ASSERT_CUDA_NO_ERROR();
+        for (int i = 0; i < option_.world_size; ++i) {
+            cudaSetDevice(i);
+            cudaStreamSynchronize(nullptr);
+            cudaFree(device_total_ptrs[i]);
+        }
+
+        const auto &comms = HandleManager::get_ncclComm();
+        ncclGroupStart();
+        for (int i = 0; i < option_.world_size; ++i) {
+            ncclAllReduce(schur_equation_container_[i].csrVal[2], schur_equation_container_[i].csrVal[2], schur_equation_container_[i].nnz[2], Wrapper::declared_cudaDatatype<T>::nccl_dtype, ncclSum, comms[i], nullptr);
+            ncclAllReduce(schur_equation_container_[i].csrVal[3], schur_equation_container_[i].csrVal[3], schur_equation_container_[i].nnz[3], Wrapper::declared_cudaDatatype<T>::nccl_dtype, ncclSum, comms[i], nullptr);
+            ncclAllReduce(d_g_camera[i], d_g_camera[i], Hpp_rows + Hll_rows, Wrapper::declared_cudaDatatype<T>::nccl_dtype, ncclSum, comms[i], nullptr);
+        }
+        ncclGroupEnd();
+    }
+
+    template class EdgeVector<double>;
+    template class EdgeVector<float>;
+}

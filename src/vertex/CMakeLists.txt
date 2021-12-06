@@ -1,0 +1,1 @@
+cuda_add_library(cuBaseVertex SHARED SE2_Vertex.cu)
