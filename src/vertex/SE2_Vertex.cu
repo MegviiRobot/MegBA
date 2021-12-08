@@ -47,7 +47,7 @@ namespace MegBA {
         se2_inv.translation()(0).InitAs(init_template);
         se2_inv.translation()(1).InitAs(init_template);
 
-        const auto N = init_template.get_Grad_Shape();
+        const auto N = init_template.getGradShape();
 
         for (int i = 0; i < Memory_Pool::getWorldSize(); ++i) {
             cudaSetDevice(i);

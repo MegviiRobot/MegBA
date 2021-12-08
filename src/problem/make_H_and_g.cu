@@ -157,11 +157,11 @@ namespace MegBA {
     __global__ void oursGgemvBatched(const T *csrVal, const T *r, int batchSize, T *dx);
 
     template<typename T>
-    void EdgeVector<T>::make_H_and_g_schur_CUDA(const JVD<T> &Jet_Estimation) {
+    void EdgeVector<T>::buildLinearSystemSchurCUDA(const JVD<T> &Jet_Estimation) {
         const auto rows = Jet_Estimation.rows(), cols = Jet_Estimation.cols();
         const double LR = 1.;
-        const auto camera_dim = edges[0].get_Grad_Shape();
-        const auto point_dim = edges[1].get_Grad_Shape();
+        const auto camera_dim = edges[0].getGradShape();
+        const auto point_dim = edges[1].getGradShape();
         const auto camera_num = num[0];
         const auto point_num = num[1];
         const auto Hpp_rows = camera_dim * camera_num;

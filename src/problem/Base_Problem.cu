@@ -184,11 +184,11 @@ void BaseProblem<T>::SolveLM(int iter, double solver_tol,
   T new_residual_norm = 0;
   T residual_norm = 0;
 
-  edges.backup_da_ptrs();
-  edges.rebind_da_ptrs();
+  edges.backupDaPtrs();
+  edges.rebindDaPtrs();
   JV_backup = edges.forward();
   if (option_.use_schur) {
-    edges.make_H_and_g_schur(JV_backup);
+    edges.buildLinearSystemSchur(JV_backup);
   } else {
     // TODO: implement this
   }
@@ -294,7 +294,7 @@ void BaseProblem<T>::SolveLM(int iter, double solver_tol,
       break;
     } else {
       if (option_.use_schur) {
-        edges.update_schur(schur_delta_x_ptr);
+        edges.updateSchur(schur_delta_x_ptr);
       } else {
         // TODO: implement this
       }
@@ -379,7 +379,7 @@ void BaseProblem<T>::SolveLM(int iter, double solver_tol,
         for (int i = 0; i < JV.size(); ++i)
           JV_backup(i) = JV(i);
         if (option_.use_schur) {
-          edges.make_H_and_g_schur(JV);
+          edges.buildLinearSystemSchur(JV);
         } else {
           // TODO: implement this
         }
@@ -437,7 +437,7 @@ template <typename T> void BaseProblem<T>::BackupLM() {
   } else {
     // TODO: implement this
   }
-  edges.backup_da_ptrs();
+  edges.backupDaPtrs();
 }
 
 template <typename T> void BaseProblem<T>::RollbackLM() {

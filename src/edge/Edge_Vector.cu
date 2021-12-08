@@ -10,9 +10,9 @@
 
 namespace MegBA {
     template<typename T>
-    void EdgeVector<T>::backup_da_ptrs() {
+    void EdgeVector<T>::backupDaPtrs() {
         if (option_.use_schur) {
-            const auto grad_shape = get_Grad_Shape();
+            const auto grad_shape = getGradShape();
             for (int i = 0; i < Memory_Pool::getWorldSize(); ++i) {
                 cudaSetDevice(i);
                 cudaMemcpyAsync(schur_da_ptrs_old[0][i], schur_da_ptrs[0][i], Memory_Pool::getElmNum(i) * grad_shape * sizeof(T), cudaMemcpyDeviceToDevice, schur_stream_LM_memcpy_[i]);
@@ -34,7 +34,7 @@ namespace MegBA {
     }
 
     template<typename T>
-    void EdgeVector<T>::prepare_position_and_relation_data_CUDA() {
+    void EdgeVector<T>::preparePositionAndRelationDataCUDA() {
 
         if (option_.use_schur) {
             std::vector<std::array<int *, 2>> CompressedCsrColInd;
@@ -106,10 +106,10 @@ namespace MegBA {
   }
 
     template<typename T>
-    void EdgeVector<T>::prepare_update_data_CUDA() {
+    void EdgeVector<T>::cudaPrepareUpdateData() {
         if (option_.use_schur) {
             const auto world_size = Memory_Pool::getWorldSize();
-            const auto grad_shape = get_Grad_Shape();
+            const auto grad_shape = getGradShape();
             schur_stream_LM_memcpy_.resize(world_size);
             std::vector<T *> da_ptrs_, da_ptrs_old_;
             da_ptrs_.resize(world_size);
@@ -148,11 +148,11 @@ namespace MegBA {
     }
 
     template<typename T>
-    void EdgeVector<T>::cudaDeallocateResource() {
+    void EdgeVector<T>::deallocateResourceCUDA() {
         if (option_.use_schur) {
             for (int i = 0; i < Memory_Pool::getWorldSize(); ++i) {
                 cudaSetDevice(i);
-                schur_position_and_relation_container_[i].free_CUDA();
+                schur_position_and_relation_container_[i].freeCUDA();
                 cudaFree(schur_da_ptrs[0][i]);
                 cudaFree(schur_da_ptrs[1][i]);
                 cudaFree(schur_da_ptrs_old[0][i]);
@@ -168,7 +168,7 @@ namespace MegBA {
     }
 
     template<typename T>
-    void EdgeVector<T>::Schur_Equation_Container::free_CUDA() {
+    void EdgeVector<T>::SchurEquationContainer::freeCUDA() {
         for (int i = 0; i < 2; ++i)
             cudaFree(csrRowPtr[i]);
         for (int i = 0; i < 4; ++i)
@@ -179,7 +179,7 @@ namespace MegBA {
     }
 
     template<typename T>
-    void EdgeVector<T>::Position_and_Relation_Container::free_CUDA() {
+    void EdgeVector<T>::PositionAndRelationContainer::freeCUDA() {
         cudaFree(relative_position_camera);
         cudaFree(relative_position_point);
         cudaFree(absolute_position_camera);

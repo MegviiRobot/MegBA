@@ -100,7 +100,7 @@ __global__ void RadialDistortionFastGradKernel(
 template <typename T>
 void RadialDistortionImpl(const JV3<T> &point, const JV3<T> &intrinsic,
                           JetVector<T> &out) {
-  const auto N = out.get_Grad_Shape();
+  const auto N = out.getGradShape();
   bool use_fast_grad{true};
   for (int i = 0; i < 3; ++i)
     use_fast_grad &= intrinsic(i).get_Grad_Position() != -1;
@@ -110,7 +110,7 @@ void RadialDistortionImpl(const JV3<T> &point, const JV3<T> &intrinsic,
     const auto nElm = out.get_Elm_Num(i);
     dim3 block_dim(std::min(decltype(nElm)(256), nElm));
     dim3 grid_dim((nElm - 1) / block_dim.x + 1);
-    if (intrinsic(0).get_Grad_Shape() == 0) {
+    if (intrinsic(0).getGradShape() == 0) {
       RadialDistortionNoGradKernel<T><<<grid_dim, block_dim>>>(
           nElm, N, point(0).get_CUDA_Res_ptr()[i],
           point(1).get_CUDA_Res_ptr()[i], point(0).get_CUDA_Grad_ptr()[i],
@@ -149,7 +149,7 @@ template <typename T>
 void RadialDistortionImpl(const JV3<T> &point,
                           const Eigen::Map<const JV3<T>> &intrinsic,
                           JetVector<T> &out) {
-  const auto N = out.get_Grad_Shape();
+  const auto N = out.getGradShape();
   bool use_fast_grad{true};
   for (int i = 0; i < 3; ++i)
     use_fast_grad &= intrinsic(i).get_Grad_Position() != -1;
@@ -159,7 +159,7 @@ void RadialDistortionImpl(const JV3<T> &point,
     const auto nElm = out.get_Elm_Num(i);
     dim3 block_dim(std::min(decltype(nElm)(256), nElm));
     dim3 grid_dim((nElm - 1) / block_dim.x + 1);
-    if (intrinsic(0).get_Grad_Shape() == 0) {
+    if (intrinsic(0).getGradShape() == 0) {
       RadialDistortionNoGradKernel<T><<<grid_dim, block_dim>>>(
           nElm, N, point(0).get_CUDA_Res_ptr()[i],
           point(1).get_CUDA_Res_ptr()[i], point(0).get_CUDA_Grad_ptr()[i],
@@ -198,7 +198,7 @@ template <typename T>
 void RadialDistortionImpl(const JV3<T> &point,
                           const Eigen::Map<const JVD<T>> &intrinsic,
                           JetVector<T> &out) {
-  const auto N = out.get_Grad_Shape();
+  const auto N = out.getGradShape();
   bool use_fast_grad{true};
   for (int i = 0; i < 3; ++i)
     use_fast_grad &= intrinsic(i).get_Grad_Position() != -1;
@@ -208,7 +208,7 @@ void RadialDistortionImpl(const JV3<T> &point,
     const auto nElm = out.get_Elm_Num(i);
     dim3 block_dim(std::min(decltype(nElm)(256), nElm));
     dim3 grid_dim((nElm - 1) / block_dim.x + 1);
-    if (intrinsic(0).get_Grad_Shape() == 0) {
+    if (intrinsic(0).getGradShape() == 0) {
       RadialDistortionNoGradKernel<T><<<grid_dim, block_dim>>>(
           nElm, N, point(0).get_CUDA_Res_ptr()[i],
           point(1).get_CUDA_Res_ptr()[i], point(0).get_CUDA_Grad_ptr()[i],

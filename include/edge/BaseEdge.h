@@ -30,45 +30,41 @@ template <typename T> class BaseEdge : public std::vector<BaseVertex<T> *> {
   Measurement_t measurement_;
   Measurement_t information_;
 
-  Measurement_t &get_Measurement_() { return measurement_; };
+  Measurement_t &getMeasurement_() { return measurement_; };
 
-  const Measurement_t &get_Measurement_() const { return measurement_; };
+  const Measurement_t &getMeasurement_() const { return measurement_; };
 
-  Measurement_t &get_Information_() { return information_; };
+  Measurement_t &getInformation_() { return information_; };
 
-  const Measurement_t &get_Information_() const { return information_; };
+  const Measurement_t &getInformation_() const { return information_; };
 
-  void bind_Edge_Vector(const EdgeVector<T> *EV) {
-    Edge.bind_Edge_Vector(EV);
-  };
+  void bindEdgeVector(const EdgeVector<T> *EV) { Edge.bindEdgeVector(EV); };
 
 public:
   virtual ~BaseEdge() = default;
 
   friend EdgeVector<T>;
 
-  void append_Vertex(BaseVertex<T> &vertex);
+  void appendVertex(BaseVertex<T> &vertex);
 
-  bool exist_Vertex(const BaseVertex<T> &vertex) const {
+  bool existVertex(const BaseVertex<T> &vertex) const {
     return std::find(parent::begin(), parent::end(), &vertex) != parent::end();
   }
 
   virtual JVD<T> forward() = 0;
 
-  void set_Measurement(const Measurement_t &measurement) {
+  void setMeasurement(const Measurement_t &measurement) {
     measurement_ = measurement;
   };
 
-  JVD<T> const &get_Measurement() const {
-    return Edge.get_Measurement();
-  };
+  JVD<T> const &getMeasurement() const { return Edge.getMeasurement(); };
 
-  void set_Information(const Measurement_t &information) {
+  void setInformation(const Measurement_t &information) {
     information_ = information;
   };
 
 protected:
-  const BaseEdgeWrapper<T> &get_Vertices() { return Edge; }
+  const BaseEdgeWrapper<T> &getVertices() { return Edge; }
 };
 
 template <typename T> class EdgeVector {
@@ -109,14 +105,13 @@ private:
   }
 
 public:
-  struct Schur_Equation_Container {
-    explicit Schur_Equation_Container(const device_t &device)
-        : device_(device){};
+  struct SchurEquationContainer {
+    explicit SchurEquationContainer(const device_t &device) : device_(device){};
 
-    Schur_Equation_Container(const Schur_Equation_Container &container)
+    SchurEquationContainer(const SchurEquationContainer &container)
         : device_(container.device_){};
 
-    ~Schur_Equation_Container() { clear(); }
+    ~SchurEquationContainer() { clear(); }
 
     void clear() {
       switch (device_) {
@@ -131,7 +126,7 @@ public:
         break;
       }
       case CUDA_t: {
-        free_CUDA();
+        freeCUDA();
         break;
       }
       }
@@ -149,7 +144,7 @@ public:
       dim[0] = 0;
       dim[1] = 0;
     };
-    void free_CUDA();
+    void freeCUDA();
     const device_t &device_;
     std::array<int *, 2> csrRowPtr{nullptr, nullptr};
     std::array<T *, 4> csrVal{nullptr, nullptr, nullptr, nullptr};
@@ -159,11 +154,11 @@ public:
     std::array<int, 2> dim{0, 0};
   };
 
-  struct Position_and_Relation_Container {
-    explicit Position_and_Relation_Container(const device_t &device)
+  struct PositionAndRelationContainer {
+    explicit PositionAndRelationContainer(const device_t &device)
         : device_(device){};
 
-    ~Position_and_Relation_Container() {
+    ~PositionAndRelationContainer() {
       switch (device_) {
       case CPU_t: {
         free(relative_position_camera);
@@ -174,7 +169,7 @@ public:
         break;
       }
       case CUDA_t: {
-        free_CUDA();
+        freeCUDA();
         break;
       }
       }
@@ -184,7 +179,7 @@ public:
       absolute_position_point = nullptr;
       connection_num_point = nullptr;
     }
-    void free_CUDA();
+    void freeCUDA();
     const device_t &device_;
     int *relative_position_camera{nullptr}, *relative_position_point{nullptr};
     int *absolute_position_camera{nullptr}, *absolute_position_point{nullptr};
@@ -194,9 +189,9 @@ public:
   EdgeVector() = delete;
 
   EdgeVector(const ProblemOption_t &option, const HEntrance_t<T> &H_entrance,
-              const std::vector<SchurHEntrance_t<T>> &schur_H_entrance)
-      : option_{option},
-        schur_H_entrance_{schur_H_entrance}, schur_csrRowPtr(option.world_size) {
+             const std::vector<SchurHEntrance_t<T>> &schur_H_entrance)
+      : option_{option}, schur_H_entrance_{schur_H_entrance},
+        schur_csrRowPtr(option.world_size) {
     schur_equation_container_.reserve(option.world_size);
     for (int i = 0; i < option.world_size; ++i) {
       schur_equation_container_.emplace_back(option.device);
@@ -204,7 +199,7 @@ public:
     }
   };
 
-  void backup_da_ptrs();
+  void backupDaPtrs();
 
   void rollback() {
     if (option_.use_schur) {
@@ -212,86 +207,78 @@ public:
     } else {
       // TODO: implement this
     }
-    rebind_da_ptrs();
-    backup_da_ptrs();
+    rebindDaPtrs();
+    backupDaPtrs();
   };
 
-  std::vector<Vertex_Vector<T>> &get_Edges() { return edges; };
+  std::vector<Vertex_Vector<T>> &getEdges() { return edges; };
 
-  const std::vector<Vertex_Vector<T>> &get_Edges() const { return edges; };
+  const std::vector<Vertex_Vector<T>> &getEdges() const { return edges; };
 
-  JVD<T> &get_Jet_Estimation_i(int i) {
+  JVD<T> &getEstimation(int i) { return edges[i].get_Jet_Estimation(); };
+
+  const JVD<T> &getEstimation(int i) const {
     return edges[i].get_Jet_Estimation();
   };
 
-  const JVD<T> &get_Jet_Estimation_i(int i) const {
-    return edges[i].get_Jet_Estimation();
-  };
+  JVD<T> &getObservation(int i) { return edges[i].get_Jet_Observation(); };
 
-  JVD<T> &get_Jet_Observation_i(int i) {
+  const JVD<T> &getObservation(int i) const {
     return edges[i].get_Jet_Observation();
   };
 
-  const JVD<T> &get_Jet_Observation_i(int i) const {
-    return edges[i].get_Jet_Observation();
-  };
+  JVD<T> &getMeasurement() { return Jet_measurement_; };
 
-  JVD<T> &get_Measurement() { return Jet_measurement_; };
+  const JVD<T> &getMeasurement() const { return Jet_measurement_; };
 
-  const JVD<T> &get_Measurement() const {
-    return Jet_measurement_;
-  };
+  JVD<T> &getInformation() { return Jet_information_; };
 
-  JVD<T> &get_Information() { return Jet_information_; };
+  const JVD<T> &getInformation() const { return Jet_information_; };
 
-  const JVD<T> &get_Information() const {
-    return Jet_information_;
-  };
+  bool tryPushBack(BaseEdge<T> &edge);
 
-  bool try_push_back(BaseEdge<T> &edge);
+  void eraseVertex(const BaseVertex<T> &vertex);
 
-  void erase_Vertex(const BaseVertex<T> &vertex);
+  unsigned int getGradShape() const;
 
-  unsigned int get_Grad_Shape() const;
+  void allocateResourcePre();
 
-  void allocate_resource_pre();
+  void allocateResourcePost();
 
-  void allocate_resource_post();
+  void preparePositionAndRelationDataCUDA();
 
-  void prepare_position_and_relation_data_CUDA();
+  void deallocateResource();
 
-  void DeallocateResource();
+  void deallocateResourceCUDA();
 
-  void cudaDeallocateResource();
+  void makeVertices();
 
-  void make_Vertices();
+  void makeSchurVertices();
 
-  void make_schur_Vertices();
-
-  void prepare_update_data_CUDA();
+  void cudaPrepareUpdateData();
 
   JVD<T> forward();
 
   // TODO: not const now, fix later
-  void bind_Vertices_Set(
+  void bindVerticesSet(
       std::unordered_map<VertexKind_t, std::set<BaseVertex<T> *>> const
           *vertices_set_ptr) {
     vertices_set_ptr_ = vertices_set_ptr;
   };
 
-  void set_Hessian_Shape(unsigned int Hessian_Shape) {
+  void setHessianShape(unsigned int Hessian_Shape) {
     Hessian_shape_ = Hessian_Shape;
   };
 
-  void fit_Device();
+  void fitDevice();
 
-  void make_H_and_g_schur(JVD<T> &Jet_Estimation);
+  void buildLinearSystemSchur(JVD<T> &Jet_Estimation);
 
-  void make_H_and_g_schur_CUDA(const JVD<T> &Jet_Estimation);
+  void buildLinearSystemSchurCUDA(const JVD<T> &Jet_Estimation);
 
-  void update_schur(const std::vector<T *> &delta_x_ptr);
+  void updateSchur(const std::vector<T *> &delta_x_ptr);
 
-  void rebind_da_ptrs() {
+  void rebindDaPtrs() {
     int vertex_kind_idx_unfixed = 0;
     for (auto &vertex_vector : edges) {
       if (vertex_vector[0]->get_Fixed())
@@ -306,7 +293,8 @@ public:
           std::vector<T *> da_ptrs_;
           da_ptrs_.resize(world_size);
           for (int k = 0; k < world_size; ++k) {
-            da_ptrs_[k] = &schur_da_ptrs[vertex_kind_idx_unfixed][k][i * Memory_Pool::getElmNum(k)];
+            da_ptrs_[k] = &schur_da_ptrs[vertex_kind_idx_unfixed][k]
+                                        [i * Memory_Pool::getElmNum(k)];
           }
           Jet_estimation(i).bind_da_ptr(std::move(da_ptrs_));
         } else {
@@ -321,9 +309,9 @@ public:
   std::unordered_map<VertexKind_t, std::set<BaseVertex<T> *>> const
       *vertices_set_ptr_;
 
-  std::vector<Schur_Equation_Container> schur_equation_container_;
+  std::vector<SchurEquationContainer> schur_equation_container_;
 
-  std::vector<Position_and_Relation_Container>
+  std::vector<PositionAndRelationContainer>
       schur_position_and_relation_container_;
 };
 }

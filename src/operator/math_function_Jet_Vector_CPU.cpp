@@ -17,7 +17,7 @@ namespace MegBA {
             template<typename T>
             void JetVector_add_JetVector_CPU(const MegBA::JetVector<T> &f, const MegBA::JetVector<T> &g,
                                            MegBA::JetVector<T> &out) {
-                for (unsigned int i = 0; i < out.get_Grad_Shape(); ++i) {
+                for (unsigned int i = 0; i < out.getGradShape(); ++i) {
                     thrust::transform(f.get_CPU_Grad()[i].begin(), f.get_CPU_Grad()[i].end(),
                                       g.get_CPU_Grad()[i].begin(),
                                       out.get_CPU_Grad()[i].begin(),
@@ -53,13 +53,13 @@ namespace MegBA {
             template<typename T>
             void Vector_add_Vector_CPU(const MegBA::JetVector<T> &f, const MegBA::JetVector<T> &g,
                                        MegBA::JetVector<T> &out) {
-                if (f.get_Grad_Shape() != 0)
-                    if (g.get_Grad_Shape() != 0)
+                if (f.getGradShape() != 0)
+                    if (g.getGradShape() != 0)
                         JetVector_add_JetVector_CPU(f, g, out);
                     else
                         JetVector_add_Scalar_Vector_CPU(f, g, out);
                 else
-                    if (g.get_Grad_Shape() != 0)
+                    if (g.getGradShape() != 0)
                         JetVector_add_Scalar_Vector_CPU(g, f, out);
                     else
                         Scalar_Vector_add_Scalar_Vector_CPU(f, g, out);
@@ -75,7 +75,7 @@ namespace MegBA {
             template<typename T>
             void JetVector_minus_JetVector_CPU(const MegBA::JetVector<T> &f, const MegBA::JetVector<T> &g,
                                                  MegBA::JetVector<T> &out) {
-                for (unsigned int i = 0; i < out.get_Grad_Shape(); ++i) {
+                for (unsigned int i = 0; i < out.getGradShape(); ++i) {
                     thrust::transform(f.get_CPU_Grad()[i].begin(), f.get_CPU_Grad()[i].end(),
                                       g.get_CPU_Grad()[i].begin(),
                                       out.get_CPU_Grad()[i].begin(),
@@ -102,7 +102,7 @@ namespace MegBA {
             template<typename T>
             void Scalar_Vector_minus_JetVector_CPU(const MegBA::JetVector<T> &f, const MegBA::JetVector<T> &g,
                                                MegBA::JetVector<T> &out) {
-                for (unsigned int i = 0; i < out.get_Grad_Shape(); ++i) {
+                for (unsigned int i = 0; i < out.getGradShape(); ++i) {
                     thrust::transform(g.get_CPU_Grad()[i].begin(), g.get_CPU_Grad()[i].end(),
                                       out.get_CPU_Grad()[i].begin(),
                                       thrust::negate<T>());
@@ -126,13 +126,13 @@ namespace MegBA {
             template<typename T>
             void Vector_minus_Vector_CPU(const MegBA::JetVector<T> &f, const MegBA::JetVector<T> &g,
                                          MegBA::JetVector<T> &out) {
-                if (f.get_Grad_Shape() != 0)
-                    if (g.get_Grad_Shape() != 0)
+                if (f.getGradShape() != 0)
+                    if (g.getGradShape() != 0)
                         JetVector_minus_JetVector_CPU(f, g, out);
                     else
                         JetVector_minus_Scalar_Vector_CPU(f, g, out);
                 else
-                    if (g.get_Grad_Shape() != 0)
+                    if (g.getGradShape() != 0)
                         Scalar_Vector_minus_JetVector_CPU(f, g, out);
                     else
                         Scalar_Vector_minus_Scalar_Vector_CPU(f, g, out);
@@ -149,7 +149,7 @@ namespace MegBA {
             void
             JetVector_multiplies_JetVector_CPU(const MegBA::JetVector<T> &f, const MegBA::JetVector<T> &g,
                                                  MegBA::JetVector<T> &out) {
-                for (unsigned int i = 0; i < out.get_Grad_Shape(); ++i) {
+                for (unsigned int i = 0; i < out.getGradShape(); ++i) {
                     thrust::transform(
                             thrust::make_zip_iterator(thrust::make_tuple(f.get_CPU_Res().begin(),
                                                                          f.get_CPU_Grad()[i].begin(),
@@ -172,7 +172,7 @@ namespace MegBA {
             void
             JetVector_multiplies_Scalar_Vector_CPU(const MegBA::JetVector<T> &f, const MegBA::JetVector<T> &g,
                 MegBA::JetVector<T> &out) {
-                for (unsigned int i = 0; i < out.get_Grad_Shape(); ++i) {
+                for (unsigned int i = 0; i < out.getGradShape(); ++i) {
                     thrust::transform(f.get_CPU_Grad()[i].begin(), f.get_CPU_Grad()[i].end(),
                                       g.get_CPU_Res().begin(),
                                       out.get_CPU_Grad()[i].begin(),
@@ -198,13 +198,13 @@ namespace MegBA {
             template<typename T>
             void Vector_multiplies_Vector_CPU(const MegBA::JetVector<T> &f, const MegBA::JetVector<T> &g,
                                               MegBA::JetVector<T> &out) {
-                if (f.get_Grad_Shape() != 0)
-                    if (g.get_Grad_Shape() != 0)
+                if (f.getGradShape() != 0)
+                    if (g.getGradShape() != 0)
                         JetVector_multiplies_JetVector_CPU(f, g, out);
                     else
                         JetVector_multiplies_Scalar_Vector_CPU(f, g, out);
                 else
-                    if (g.get_Grad_Shape() != 0)
+                    if (g.getGradShape() != 0)
                         JetVector_multiplies_Scalar_Vector_CPU(g, f, out);
                     else
                         Scalar_Vector_multiplies_Scalar_Vector_CPU(f, g, out);
@@ -223,7 +223,7 @@ namespace MegBA {
                 std::vector<T> inv_ga(f.get_CPU_Res().size());
                 thrust::transform(g.get_CPU_Res().begin(), g.get_CPU_Res().end(), inv_ga.begin(),
                                   MegBA::TT::inverse<T>());
-                for (unsigned int i = 0; i < out.get_Grad_Shape(); ++i) {
+                for (unsigned int i = 0; i < out.getGradShape(); ++i) {
                     thrust::transform(
                             thrust::make_zip_iterator(thrust::make_tuple(f.get_CPU_Res().begin(),
                                                                          f.get_CPU_Grad()[i].begin(),
@@ -250,7 +250,7 @@ namespace MegBA {
                 std::vector<T> inv_ga(f.get_CPU_Res().size());
                 thrust::transform(g.get_CPU_Res().begin(), g.get_CPU_Res().end(), inv_ga.begin(),
                                   MegBA::TT::inverse<T>());
-                for (unsigned int i = 0; i < out.get_Grad_Shape(); ++i) {
+                for (unsigned int i = 0; i < out.getGradShape(); ++i) {
                     thrust::transform(f.get_CPU_Grad()[i].begin(), f.get_CPU_Grad()[i].end(),
                                       inv_ga.begin(),
                                       out.get_CPU_Grad()[i].begin(),
@@ -269,7 +269,7 @@ namespace MegBA {
                 std::vector<T> inv_ga(f.get_CPU_Res().size());
                 thrust::transform(g.get_CPU_Res().begin(), g.get_CPU_Res().end(), inv_ga.begin(),
                                   MegBA::TT::inverse<T>());
-                for (unsigned int i = 0; i < out.get_Grad_Shape(); ++i) {
+                for (unsigned int i = 0; i < out.getGradShape(); ++i) {
                     thrust::transform(
                             thrust::make_zip_iterator(thrust::make_tuple(f.get_CPU_Res().begin(),
                                                                          inv_ga.begin(),
@@ -299,13 +299,13 @@ namespace MegBA {
             template<typename T>
             void Vector_divides_Vector_CPU(const MegBA::JetVector<T> &f, const MegBA::JetVector<T> &g,
                                            MegBA::JetVector<T> &out) {
-                if (f.get_Grad_Shape() != 0)
-                    if (g.get_Grad_Shape() != 0)
+                if (f.getGradShape() != 0)
+                    if (g.getGradShape() != 0)
                         JetVector_divides_JetVector_CPU(f, g, out);
                     else
                         JetVector_divides_Scalar_Vector_CPU(f, g, out);
                 else
-                    if (g.get_Grad_Shape() != 0)
+                    if (g.getGradShape() != 0)
                         Scalar_Vector_divides_JetVector_CPU(f, g, out);
                     else
                         Scalar_Vector_divides_Scalar_Vector_CPU(f, g, out);
@@ -325,7 +325,7 @@ namespace MegBA {
                                   thrust::make_constant_iterator(g),
                                   out.get_CPU_Res().begin(),
                                   thrust::plus<T>());
-                for (unsigned int i = 0; i < out.get_Grad_Shape(); ++i)
+                for (unsigned int i = 0; i < out.getGradShape(); ++i)
                     thrust::copy(f.get_CPU_Grad()[i].begin(), f.get_CPU_Grad()[i].end(),
                                  out.get_CPU_Grad()[i].begin());
             }
@@ -345,7 +345,7 @@ namespace MegBA {
                                   out.get_CPU_Res().begin(),
                                   thrust::minus<T>());
 
-                for (unsigned int i = 0; i < out.get_Grad_Shape(); ++i)
+                for (unsigned int i = 0; i < out.getGradShape(); ++i)
                     thrust::copy(f.get_CPU_Grad()[i].begin(), f.get_CPU_Grad()[i].end(),
                                  out.get_CPU_Grad()[i].begin());
             }
@@ -360,7 +360,7 @@ namespace MegBA {
             template<typename T>
             void JetVector_multiplies_Scalar_CPU(const MegBA::JetVector<T> &f, T g,
                                                   MegBA::JetVector<T> &out) {
-                for (unsigned int i = 0; i < out.get_Grad_Shape(); ++i) {
+                for (unsigned int i = 0; i < out.getGradShape(); ++i) {
                     thrust::transform(f.get_CPU_Grad()[i].begin(), f.get_CPU_Grad()[i].end(),
                                       thrust::make_constant_iterator(g),
                                       out.get_CPU_Grad()[i].begin(),
@@ -382,7 +382,7 @@ namespace MegBA {
 
             template<typename T>
             void JetVector_divides_Scalar_CPU(const MegBA::JetVector<T> &f, T g, MegBA::JetVector<T> &out) {
-                for (unsigned int i = 0; i < out.get_Grad_Shape(); ++i) {
+                for (unsigned int i = 0; i < out.getGradShape(); ++i) {
                     thrust::transform(f.get_CPU_Grad()[i].begin(), f.get_CPU_Grad()[i].end(),
                                       thrust::make_constant_iterator(T(1.) / g),
                                       out.get_CPU_Grad()[i].begin(),
@@ -405,7 +405,7 @@ namespace MegBA {
             template<typename T>
             void Scalar_minus_JetVector_CPU(T f, const JetVector<T> &g,
                                              JetVector<T> &out) {
-                for (unsigned int i = 0; i < out.get_Grad_Shape(); ++i) {
+                for (unsigned int i = 0; i < out.getGradShape(); ++i) {
                     thrust::transform(g.get_CPU_Grad()[i].begin(), g.get_CPU_Grad()[i].end(),
                                       out.get_CPU_Grad()[i].begin(),
                                       thrust::negate<T>());
@@ -426,7 +426,7 @@ namespace MegBA {
             template<typename T>
             void Scalar_divides_JetVector_CPU(T f, const JetVector<T> &g,
                                                JetVector<T> &out) {
-                for (unsigned int i = 0; i < out.get_Grad_Shape(); ++i) {
+                for (unsigned int i = 0; i < out.getGradShape(); ++i) {
                     thrust::transform(g.get_CPU_Res().begin(), g.get_CPU_Res().end(),
                                       g.get_CPU_Grad()[i].begin(),
                                       out.get_CPU_Grad()[i].begin(),
@@ -451,7 +451,7 @@ namespace MegBA {
                 std::vector<T> mask(f.get_CPU_Res().size());
                 thrust::transform(f.get_CPU_Res().begin(), f.get_CPU_Res().end(), mask.begin(),
                                   MegBA::TT::abs_mask<T>());
-                for (unsigned int i = 0; i < out.get_Grad_Shape(); ++i) {
+                for (unsigned int i = 0; i < out.getGradShape(); ++i) {
                     thrust::transform(
                             f.get_CPU_Grad()[i].begin(), f.get_CPU_Grad()[i].end(),
                             mask.begin(),
@@ -475,7 +475,7 @@ namespace MegBA {
             template<typename T>
             void cos_JetVector_CPU(const MegBA::JetVector<T> &f,
                                     MegBA::JetVector<T> &out) {
-                for (unsigned int i = 0; i < out.get_Grad_Shape(); ++i) {
+                for (unsigned int i = 0; i < out.getGradShape(); ++i) {
                     thrust::transform(
                             f.get_CPU_Res().begin(), f.get_CPU_Res().end(),
                             f.get_CPU_Grad()[i].begin(),
@@ -498,7 +498,7 @@ namespace MegBA {
             template<typename T>
             void sin_JetVector_CPU(const MegBA::JetVector<T> &f,
                                     MegBA::JetVector<T> &out) {
-                for (unsigned int i = 0; i < out.get_Grad_Shape(); ++i) {
+                for (unsigned int i = 0; i < out.getGradShape(); ++i) {
                     thrust::transform(
                             f.get_CPU_Res().begin(), f.get_CPU_Res().end(),
                             f.get_CPU_Grad()[i].begin(),
@@ -525,7 +525,7 @@ namespace MegBA {
                                   out.get_CPU_Res().begin(),
                                   TT::sqrt<T>());
 
-                for (unsigned int i = 0; i < out.get_Grad_Shape(); ++i) {
+                for (unsigned int i = 0; i < out.getGradShape(); ++i) {
                     thrust::transform(
                             out.get_CPU_Res().begin(), out.get_CPU_Res().end(),
                             f.get_CPU_Grad()[i].begin(),

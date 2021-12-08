@@ -120,9 +120,9 @@ namespace MegBA {
 
     template<typename T>
     void BaseProblem<T>::append_Edge(BaseEdge<T> &edge) {
-        bool success = edges.try_push_back(edge);
+        bool success = edges.tryPushBack(edge);
         if (!success) {
-            edges.try_push_back(edge);
+          edges.tryPushBack(edge);
         }
         for (int vertex_idx = edge.size() - 1; vertex_idx >= 0; --vertex_idx) {
             auto vertex = edge[vertex_idx];
@@ -136,7 +136,7 @@ namespace MegBA {
             if (option_.use_schur) {
                 for (int i = 0; i < option_.world_size; ++i) {
                     auto &working_schur_H_entrance = schur_H_entrance_[i];
-                    working_schur_H_entrance.dim_[kind] = vertex->get_Grad_Shape();
+                    working_schur_H_entrance.dim_[kind] = vertex->getGradShape();
                     auto &connection_block_matrix = working_schur_H_entrance.nra_[kind];
                     auto connection_find = connection_block_matrix.find(vertex);
                     if (connection_find == connection_block_matrix.end()) {
@@ -181,11 +181,11 @@ namespace MegBA {
     }
 
     template<typename T>
-    void BaseProblem<T>::erase_Vertex(int ID) {
+    void BaseProblem<T>::eraseVertex(int ID) {
         const auto vertex = vertices.find(ID);
         if (vertex == vertices.end())
             throw std::runtime_error("The ID " + std::to_string(ID) + " does not exist in the current graph.");
-        edges.erase_Vertex(*vertex->second);
+        edges.eraseVertex(*vertex->second);
         vertices.erase(ID);
 
         for (auto &vertices_set : vertices_sets) {
@@ -195,7 +195,7 @@ namespace MegBA {
 
     template<typename T>
     void BaseProblem<T>::DeallocateResource() {
-      edges.DeallocateResource();
+      edges.deallocateResource();
         switch (option_.device) {
             case CUDA_t:
               cudaDeallocateResource();
@@ -211,7 +211,7 @@ namespace MegBA {
         for (const auto &vertex_set_pair : vertices_sets) {
             const auto &vertex_set = vertex_set_pair.second;
             BaseVertex<T> const *vertex_ptr = *vertex_set.begin();
-            Grad_Shape += vertex_set.size() * vertex_ptr->get_Grad_Shape();
+            Grad_Shape += vertex_set.size() * vertex_ptr->getGradShape();
         }
         return Grad_Shape;
     }
@@ -244,12 +244,12 @@ namespace MegBA {
           // TODO: implement this
         }
 
-        edges.set_Hessian_Shape(Hessian_shape_);
-        edges.bind_Vertices_Set(&vertices_sets);
-        edges.allocate_resource_pre();
-        edges.make_Vertices();
-        edges.allocate_resource_post();
-        edges.fit_Device();
+        edges.setHessianShape(Hessian_shape_);
+        edges.bindVerticesSet(&vertices_sets);
+        edges.allocateResourcePre();
+        edges.makeVertices();
+        edges.allocateResourcePost();
+        edges.fitDevice();
 
     }
 

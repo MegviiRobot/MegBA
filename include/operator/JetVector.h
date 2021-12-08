@@ -99,7 +99,7 @@ namespace MegBA {
             ha_data.erase(ha_data.begin() + idx);
             nElm_--;
         };
-        const unsigned int& get_Grad_Shape() const { return N_; };
+        const unsigned int& getGradShape() const { return N_; };
         const unsigned int& get_Elm_Num() const { return nElm_; };
         std::size_t get_Elm_Num(int rank) const {
             return Memory_Pool::getElmNum(rank);
@@ -177,7 +177,7 @@ namespace MegBA {
                 for (auto &data : z.get_CPU_Res())
                     s << data << ", ";
                 s << "]," << std::endl;
-                for (unsigned int i = 0; i < z.get_Grad_Shape(); ++i) {
+                for (unsigned int i = 0; i < z.getGradShape(); ++i) {
                     s << "Grad[" << i << "]: " << "[ ";
                     for (auto &data : z.get_CPU_Grad()[i])
                         s << data << ", ";

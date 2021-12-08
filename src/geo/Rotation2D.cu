@@ -46,7 +46,7 @@ namespace MegBA {
                 }
             }
 
-            const auto N = JV_Template.get_Grad_Shape();
+            const auto N = JV_Template.getGradShape();
             for (int i = 0; i < Memory_Pool::getWorldSize(); ++i) {
                 cudaSetDevice(i);
                 const auto nElm = JV_Template.get_Elm_Num(i);

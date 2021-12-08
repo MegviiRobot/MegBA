@@ -13,13 +13,13 @@ class BAL_Edge : public MegBA::BaseEdge<T> {
 public:
   MegBA::JVD<T> forward() override {
         using MappedJVD = Eigen::Map<const MegBA::geo::JVD<T>>;
-        const auto &Vertices = this->get_Vertices();
+        const auto &Vertices = this->getVertices();
         MappedJVD angle_axisd{&Vertices[0].get_Estimation()(0, 0), 3, 1};
         MappedJVD t{&Vertices[0].get_Estimation()(3, 0), 3, 1};
         MappedJVD intrinsics{&Vertices[0].get_Estimation()(6, 0), 3, 1};
 
         const auto &point_xyz = Vertices[1].get_Estimation();
-        const auto &obs_uv = this->get_Measurement();
+        const auto &obs_uv = this->getMeasurement();
         auto &&R = MegBA::geo::AngleAxisToRotationKernelMatrix(angle_axisd);
         Eigen::Matrix<MegBA::JetVector<T>, 3, 1> re_projection = R * point_xyz + t;
         re_projection = -re_projection / re_projection(2);
@@ -163,9 +163,9 @@ int main(int argc, char *arcv[]) {
 
     for (int j = 0; j < num_observations; ++j) {
         auto edge_ptr = new BAL_Edge<T>;
-        edge_ptr->append_Vertex(problem.get_Vertex(std::get<0>(edge[j])));
-        edge_ptr->append_Vertex(problem.get_Vertex(std::get<1>(edge[j])));
-        edge_ptr->set_Measurement(std::get<2>(std::move(edge[j])));
+        edge_ptr->appendVertex(problem.get_Vertex(std::get<0>(edge[j])));
+        edge_ptr->appendVertex(problem.get_Vertex(std::get<1>(edge[j])));
+        edge_ptr->setMeasurement(std::get<2>(std::move(edge[j])));
         problem.append_Edge(edge_ptr);
     }
     problem.SolveLM(iter, solver_tol, solver_refuse_ratio, solver_max_iter, tau, epsilon1, epsilon2);

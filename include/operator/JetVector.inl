@@ -25,8 +25,8 @@ namespace MegBA {
 
         template<typename T>
         inline bool Shape_Same(const JetVector<T> &f, const JetVector<T> &g) {
-            const auto f_Grad_Shape = f.get_Grad_Shape();
-            const auto g_Grad_Shape = g.get_Grad_Shape();
+            const auto f_Grad_Shape = f.getGradShape();
+            const auto g_Grad_Shape = g.getGradShape();
             return (f_Grad_Shape == 0 || g_Grad_Shape == 0 || f_Grad_Shape == g_Grad_Shape) && f.get_Elm_Num() == g.get_Elm_Num() ? true : false;
         }
 
@@ -34,8 +34,8 @@ namespace MegBA {
         inline void Shape_Throw(const JetVector<T> &f, const JetVector<T> &g) {
             if (!Shape_Same(f, g))
                 throw std::runtime_error(
-                        "Different shape for gradient of item #1 is " + std::to_string(f.get_Grad_Shape()) +
-                        " item #2 is " + std::to_string(g.get_Grad_Shape()) +
+                        "Different shape for gradient of item #1 is " + std::to_string(f.getGradShape()) +
+                        " item #2 is " + std::to_string(g.getGradShape()) +
                         ", element number of item #1 is " + std::to_string(f.get_Elm_Num()) +
                         " item #2 is " + std::to_string(g.get_Elm_Num()));
         }

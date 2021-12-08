@@ -145,7 +145,7 @@ namespace MegBA {
 
     template<typename T>
     std::ostream &cuOSTREAM(std::ostream &s, const JetVector<T> &z) {
-        auto N = z.get_Grad_Shape();
+        auto N = z.getGradShape();
         auto nElm = z.get_Elm_Num();
         std::unique_ptr<T[]> Res{new T[nElm]};
         std::vector<std::unique_ptr<T []>> Grad;

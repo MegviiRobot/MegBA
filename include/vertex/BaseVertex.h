@@ -45,7 +45,7 @@ template <typename T> struct BaseVertex {
 
   bool has_Observation() { return observation_.rows() || observation_.cols(); };
 
-  unsigned int get_Grad_Shape() const {
+  unsigned int getGradShape() const {
     return fixed_ ? 0 : estimation_.rows() * estimation_.cols();
   };
 
@@ -116,7 +116,7 @@ public:
     parent::erase(parent::begin() + idx);
   };
 
-  bool exist_Vertex(const BaseVertex<T> *vertex) const {
+  bool existVertex(const BaseVertex<T> *vertex) const {
     return vertex_counter_.find(vertex) != vertex_counter_.end();
   };
 
@@ -183,7 +183,7 @@ public:
     return estimation_rows_ * estimation_cols_;
   }
 
-  auto get_Grad_Shape() const {
+  auto getGradShape() const {
     return fixed_ ? 0 : estimation_rows_ * estimation_cols_;
   }
 
@@ -226,16 +226,16 @@ private:
 
   JVD<T> const *Jet_measurement_ = nullptr;
 
-  JVD<T> const &get_Measurement() const {
+  JVD<T> const &getMeasurement() const {
     return *Jet_measurement_;
   };
 
-  void bind_Edge_Vector(const EdgeVector<T> *EV) {
-    Jet_measurement_ = &EV->get_Measurement();
-    parent::resize(EV->get_Edges().size());
+  void bindEdgeVector(const EdgeVector<T> *EV) {
+    Jet_measurement_ = &EV->getMeasurement();
+    parent::resize(EV->getEdges().size());
     for (int i = 0; i < parent::size(); ++i) {
-      (*this)[i].bind_Jet_Estimation(EV->get_Jet_Estimation_i(i));
-      (*this)[i].bind_Jet_Observation(EV->get_Jet_Observation_i(i));
+      (*this)[i].bind_Jet_Estimation(EV->getEstimation(i));
+      (*this)[i].bind_Jet_Observation(EV->getObservation(i));
     }
   };
 };

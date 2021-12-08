@@ -63,7 +63,7 @@ namespace MegBA {
 
         const BaseVertex<T> &get_Vertex(int ID) const;
 
-        void erase_Vertex(int ID);
+        void eraseVertex(int ID);
 
         void set_absolute_position();
 

@@ -12,11 +12,11 @@
 #include <omp.h>
 
 namespace MegBA {
-template <typename T> void BaseEdge<T>::append_Vertex(BaseVertex<T> &vertex) {
+template <typename T> void BaseEdge<T>::appendVertex(BaseVertex<T> &vertex) {
   parent::push_back(&vertex);
 }
 
-template <typename T> bool EdgeVector<T>::try_push_back(BaseEdge<T> &edge) {
+template <typename T> bool EdgeVector<T>::tryPushBack(BaseEdge<T> &edge) {
   /*
          * Try to push the coming edge into the back of the EdgeVector, return true if success, false if failed.
    */
@@ -33,7 +33,7 @@ template <typename T> bool EdgeVector<T>::try_push_back(BaseEdge<T> &edge) {
     bool same_vertex = true;
     for (int i = 0; i < vertex_num_in_edge; ++i) {
       offset[i] = accumulated_grad_shape;
-      accumulated_grad_shape += edge[i]->get_Grad_Shape();
+      accumulated_grad_shape += edge[i]->getGradShape();
       if (same_vertex) {
         camera_vertex_num += edge[i]->get_Fixed() ? 0 : 1;
         same_vertex &= edge[i]->kind() ==
@@ -53,9 +53,9 @@ template <typename T> bool EdgeVector<T>::try_push_back(BaseEdge<T> &edge) {
       edges[i].set_Grad_Shape_and_Offset(accumulated_grad_shape, offset[i]);
     }
 
-    const auto &measurement = edge.get_Measurement_();
+    const auto &measurement = edge.getMeasurement_();
     Jet_measurement_.resize(measurement.rows(), measurement.cols());
-    const auto &information = edge.get_Information_();
+    const auto &information = edge.getInformation_();
     Jet_information_.resize(information.rows(), information.cols());
   } else if (name_hash != hash_of_input_edge)
     return false;
@@ -64,14 +64,14 @@ template <typename T> bool EdgeVector<T>::try_push_back(BaseEdge<T> &edge) {
     edges[i].push_back(edge[i]);
   edges_ptr.push_back(&edge);
 
-  const auto &measurement = edge.get_Measurement_();
+  const auto &measurement = edge.getMeasurement_();
   for (int i = 0; i < measurement.rows(); ++i) {
     for (int j = 0; j < measurement.cols(); ++j) {
       Jet_measurement_(i, j).append_Jet(measurement(i, j));
     }
   }
 
-  const auto &information = edge.get_Information_();
+  const auto &information = edge.getInformation_();
   for (int i = 0; i < information.rows(); ++i) {
     for (int j = 0; j < information.cols(); ++j) {
       Jet_information_(i, j).append_Jet(information(i, j));
@@ -81,9 +81,9 @@ template <typename T> bool EdgeVector<T>::try_push_back(BaseEdge<T> &edge) {
 };
 
 template <typename T>
-void EdgeVector<T>::erase_Vertex(const BaseVertex<T> &vertex) {
+void EdgeVector<T>::eraseVertex(const BaseVertex<T> &vertex) {
   for (int i = 0; i < edges_ptr.size(); ++i)
-    if (edges_ptr[i]->exist_Vertex(vertex)) {
+    if (edges_ptr[i]->existVertex(vertex)) {
       for (int j = 0; j < edges.size(); ++j) {
         edges[j].erase(i);
       }
@@ -105,14 +105,14 @@ void EdgeVector<T>::erase_Vertex(const BaseVertex<T> &vertex) {
     }
 }
 
-template <typename T> unsigned int EdgeVector<T>::get_Grad_Shape() const {
+template <typename T> unsigned int EdgeVector<T>::getGradShape() const {
   unsigned int Grad_Shape = 0;
   for (const auto &vertex_vector : edges)
-    Grad_Shape += vertex_vector.get_Grad_Shape();
+    Grad_Shape += vertex_vector.getGradShape();
   return Grad_Shape;
 }
 
-template <typename T> void EdgeVector<T>::allocate_resource_pre() {
+template <typename T> void EdgeVector<T>::allocateResourcePre() {
   DecideEdgeKind();
   // TODO: num is a global variable
   num.reset(new int[camera_vertex_num + point_vertex_num]);
@@ -138,7 +138,7 @@ template <typename T> void EdgeVector<T>::allocate_resource_pre() {
   }
   switch (option_.device) {
   case CUDA_t: {
-    prepare_update_data_CUDA();
+    cudaPrepareUpdateData();
     break;
   }
   default: {
@@ -147,10 +147,10 @@ template <typename T> void EdgeVector<T>::allocate_resource_pre() {
   }
 }
 
-template <typename T> void EdgeVector<T>::allocate_resource_post() {
+template <typename T> void EdgeVector<T>::allocateResourcePost() {
   switch (option_.device) {
   case CUDA_t: {
-    prepare_position_and_relation_data_CUDA();
+    preparePositionAndRelationDataCUDA();
     break;
   }
   default: {
@@ -160,7 +160,7 @@ template <typename T> void EdgeVector<T>::allocate_resource_post() {
   }
 }
 
-template <typename T> void EdgeVector<T>::DeallocateResource() {
+template <typename T> void EdgeVector<T>::deallocateResource() {
   csrRowPtr.reset();
   for (auto &ptrs : schur_csrRowPtr)
     for (auto &ptr : ptrs)
@@ -168,7 +168,7 @@ template <typename T> void EdgeVector<T>::DeallocateResource() {
 
   switch (option_.device) {
   case CUDA_t: {
-    cudaDeallocateResource();
+    deallocateResourceCUDA();
     break;
   }
   default: {
@@ -178,15 +178,15 @@ template <typename T> void EdgeVector<T>::DeallocateResource() {
   }
 }
 
-template <typename T> void EdgeVector<T>::make_Vertices() {
+template <typename T> void EdgeVector<T>::makeVertices() {
   if (option_.use_schur) {
-    make_schur_Vertices();
+    makeSchurVertices();
   } else {
     // TODO: implement this
   }
 }
 
-template <typename T> void EdgeVector<T>::make_schur_Vertices() {
+template <typename T> void EdgeVector<T>::makeSchurVertices() {
   for (int vertex_kind_idx = 0; vertex_kind_idx < 2; ++vertex_kind_idx) {
     const auto &vertex_vector = edges[vertex_kind_idx];
 
@@ -237,13 +237,13 @@ template <typename T> void EdgeVector<T>::make_schur_Vertices() {
 }
 
 template <typename T> JVD<T> EdgeVector<T>::forward() {
-  edges_ptr[0]->bind_Edge_Vector(this);
+  edges_ptr[0]->bindEdgeVector(this);
   return edges_ptr[0]->forward();
 }
 
-template <typename T> void EdgeVector<T>::fit_Device() {
+template <typename T> void EdgeVector<T>::fitDevice() {
   if (option_.device == CUDA_t)
-    rebind_da_ptrs();
+    rebindDaPtrs();
 
   for (int vertex_kind_idx = 0; vertex_kind_idx < edges.size();
        ++vertex_kind_idx) {
@@ -284,10 +284,10 @@ template <typename T> void EdgeVector<T>::fit_Device() {
 }
 
 template <typename T>
-void EdgeVector<T>::make_H_and_g_schur(JVD<T> &Jet_Estimation) {
+void EdgeVector<T>::buildLinearSystemSchur(JVD<T> &Jet_Estimation) {
   switch (option_.device) {
   case CUDA_t: {
-    make_H_and_g_schur_CUDA(Jet_Estimation);
+    buildLinearSystemSchurCUDA(Jet_Estimation);
     break;
   }
   default:

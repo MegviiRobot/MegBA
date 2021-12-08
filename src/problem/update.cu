@@ -39,16 +39,16 @@ namespace MegBA {
     }
 
     template<typename T>
-    void EdgeVector<T>::update_schur(const std::vector<T *> &delta_x_ptr) {
+    void EdgeVector<T>::updateSchur(const std::vector<T *> &delta_x_ptr) {
         for (int i = 0; i < Memory_Pool::getWorldSize(); ++i) {
             cudaSetDevice(i);
             cudaStreamSynchronize(schur_stream_LM_memcpy_[i]);
         }
 
         const double LR = 1.;
-        const auto camera_dim = edges[0][0]->get_Grad_Shape();
+        const auto camera_dim = edges[0][0]->getGradShape();
         const auto camera_num = vertices_set_ptr_->find(edges[0][0]->kind())->second.size();
-        const auto point_dim = edges[1][0]->get_Grad_Shape();
+        const auto point_dim = edges[1][0]->getGradShape();
 
 //        cudaSetDevice(0);
 //        PRINT_DMEMORY(schur_da_ptrs[0][0], 5, T);

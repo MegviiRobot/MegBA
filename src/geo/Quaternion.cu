@@ -220,7 +220,7 @@ namespace MegAutoBA{
             }
 
             const auto nElm = JV_Template.get_Elm_Num();
-            const auto N = JV_Template.get_Grad_Shape();
+            const auto N = JV_Template.getGradShape();
             // 512 instead of 1024 for the limitation of registers
             dim3 block_dim(std::min(decltype(nElm)(512), nElm));
             dim3 grid_dim((nElm - 1) / block_dim.x + 1);
@@ -275,7 +275,7 @@ namespace MegAutoBA{
             cudaMemcpyToSymbolAsync(W::get_dQ(), address_dQ, 4 * sizeof(T *), 0, cudaMemcpyHostToDevice, stream);
 
             const auto nElm = JV_Template.get_Elm_Num();
-            const auto N = JV_Template.get_Grad_Shape();
+            const auto N = JV_Template.getGradShape();
             // 512 instead of 1024 for the limitation of registers
             dim3 block_dim(std::min(decltype(nElm)(512), nElm));
             dim3 grid_dim((nElm - 1) / block_dim.x + 1);
@@ -293,7 +293,7 @@ namespace MegAutoBA{
             cudaStreamCreateWithFlags(&stream, CU_STREAM_NON_BLOCKING);
 
             const auto nElm = Q(0).get_Elm_Num();
-            const auto N = Q(0).get_Grad_Shape();
+            const auto N = Q(0).getGradShape();
             // 512 instead of 1024 for the limitation of registers
             dim3 block_dim(std::min(decltype(nElm)(768), nElm));
             dim3 grid_dim((nElm - 1) / block_dim.x + 1);
