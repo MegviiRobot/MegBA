@@ -35,7 +35,7 @@ namespace MegBA {
                 // col
                 for (const auto &col : H_entrance_block_row_) {
                     H_entrance_ra_block_row_.push_back(col);
-                    csrColInd_kind[nnz_counter] = col->absolute_position;
+                    csrColInd_kind[nnz_counter] = col->absolutePosition;
                     nnz_counter++;
                 }
                 for (int j = 0; j < schur_H_entrance.dim_[i]; ++j) {
@@ -244,8 +244,7 @@ namespace MegBA {
           // TODO: implement this
         }
 
-        edges.setHessianShape(Hessian_shape_);
-        edges.bindVerticesSet(&vertices_sets);
+        edges.verticesSetPtr = &vertices_sets;
         edges.allocateResourcePre();
         edges.makeVertices();
         edges.allocateResourcePost();
@@ -263,7 +262,7 @@ namespace MegBA {
             bool fixed = (*set.begin())->get_Fixed();
             std::size_t nnz_each_item = (*set.begin())->get_Estimation().rows() * (*set.begin())->get_Estimation().cols();
             for (auto &vertex : set) {
-                vertex->absolute_position = absolute_position_counter;
+                vertex->absolutePosition = absolute_position_counter;
                 ++absolute_position_counter;
                 if (!fixed) {
                     memcpy(&hx_ptr[entrance_bias], vertex->get_Estimation().data(), nnz_each_item * sizeof(T));

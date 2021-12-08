@@ -157,8 +157,8 @@ namespace MegBA {
     __global__ void oursGgemvBatched(const T *csrVal, const T *r, int batchSize, T *dx);
 
     template<typename T>
-    void EdgeVector<T>::buildLinearSystemSchurCUDA(const JVD<T> &Jet_Estimation) {
-        const auto rows = Jet_Estimation.rows(), cols = Jet_Estimation.cols();
+    void EdgeVector<T>::buildLinearSystemSchurCUDA(const JVD<T> &jetEstimation) {
+        const auto rows = jetEstimation.rows(), cols = jetEstimation.cols();
         const double LR = 1.;
         const auto camera_dim = edges[0].getGradShape();
         const auto point_dim = edges[1].getGradShape();
@@ -168,32 +168,36 @@ namespace MegBA {
         const auto Hll_rows = point_dim * point_num;
         ASSERT_CUDA_NO_ERROR();
 
-        std::vector<T *>d_g_camera{static_cast<std::size_t>(option_.world_size)};
-        std::vector<T *>d_g_point{static_cast<std::size_t>(option_.world_size)};
-        for (int i = 0; i < option_.world_size; ++i) {
+        std::vector<T *>d_g_camera{static_cast<std::size_t>(_option.world_size)};
+        std::vector<T *>d_g_point{static_cast<std::size_t>(_option.world_size)};
+        for (int i = 0; i < _option.world_size; ++i) {
             cudaSetDevice(i);
-            cudaMemsetAsync(schur_equation_container_[i].g, 0, (Hpp_rows + Hll_rows) * sizeof(T));
-            d_g_camera[i] = &schur_equation_container_[i].g[0];
-            d_g_point[i] = &schur_equation_container_[i].g[Hpp_rows];
+            cudaMemsetAsync(schurEquationContainer[i].g, 0, (Hpp_rows + Hll_rows) * sizeof(T));
+            d_g_camera[i] = &schurEquationContainer[i].g[0];
+            d_g_point[i] = &schurEquationContainer[i].g[Hpp_rows];
             ASSERT_CUDA_NO_ERROR();
-            cudaMemsetAsync(schur_equation_container_[i].csrVal[0], 0, schur_equation_container_[i].nnz[0] * sizeof(T));
-            cudaMemsetAsync(schur_equation_container_[i].csrVal[1], 0, schur_equation_container_[i].nnz[1] * sizeof(T));
-            cudaMemsetAsync(schur_equation_container_[i].csrVal[2], 0, schur_equation_container_[i].nnz[2] * sizeof(T));
-            cudaMemsetAsync(schur_equation_container_[i].csrVal[3], 0, schur_equation_container_[i].nnz[3] * sizeof(T));
+            cudaMemsetAsync(schurEquationContainer[i].csrVal[0], 0,
+                            schurEquationContainer[i].nnz[0] * sizeof(T));
+            cudaMemsetAsync(schurEquationContainer[i].csrVal[1], 0,
+                            schurEquationContainer[i].nnz[1] * sizeof(T));
+            cudaMemsetAsync(schurEquationContainer[i].csrVal[2], 0,
+                            schurEquationContainer[i].nnz[2] * sizeof(T));
+            cudaMemsetAsync(schurEquationContainer[i].csrVal[3], 0,
+                            schurEquationContainer[i].nnz[3] * sizeof(T));
             ASSERT_CUDA_NO_ERROR();
         }
 
         const auto res_dim = rows * cols;
         std::vector<std::unique_ptr<const T *[]>> total_ptrs{};
-        total_ptrs.reserve(option_.world_size);
-        std::vector<const T **> device_total_ptrs{static_cast<std::size_t>(option_.world_size)};
+        total_ptrs.reserve(_option.world_size);
+        std::vector<const T **> device_total_ptrs{static_cast<std::size_t>(_option.world_size)};
 
-        std::vector<const T **> val_ptrs{static_cast<std::size_t>(option_.world_size)};
-        std::vector<const T **> device_val_ptrs{static_cast<std::size_t>(option_.world_size)};
+        std::vector<const T **> val_ptrs{static_cast<std::size_t>(_option.world_size)};
+        std::vector<const T **> device_val_ptrs{static_cast<std::size_t>(_option.world_size)};
 
-        std::vector<const T **> error_ptrs{static_cast<std::size_t>(option_.world_size)};
-        std::vector<const T **> device_error_ptrs{static_cast<std::size_t>(option_.world_size)};
-        for (int device_rank = 0; device_rank < option_.world_size; ++device_rank) {
+        std::vector<const T **> error_ptrs{static_cast<std::size_t>(_option.world_size)};
+        std::vector<const T **> device_error_ptrs{static_cast<std::size_t>(_option.world_size)};
+        for (int device_rank = 0; device_rank < _option.world_size; ++device_rank) {
             total_ptrs.emplace_back(new const T *[res_dim * (3 + res_dim)]);
             cudaSetDevice(device_rank);
             cudaMalloc(&device_total_ptrs[device_rank], res_dim * (3 + res_dim) * sizeof(T *));
@@ -205,38 +209,40 @@ namespace MegBA {
             device_error_ptrs[device_rank] = &device_total_ptrs[device_rank][res_dim];
             for (int i = 0; i < rows; ++i)
                 for (int j = 0; j < cols; ++j) {
-                    const auto &Jet_Estimation_inner = Jet_Estimation(i, j);
+                    const auto &Jet_Estimation_inner = jetEstimation(i, j);
                     val_ptrs[device_rank][j + i * cols] = Jet_Estimation_inner.get_CUDA_Grad_ptr()[device_rank];
                     error_ptrs[device_rank][j + i * cols] = Jet_Estimation_inner.get_CUDA_Res_ptr()[device_rank];
                 }
             cudaMemcpyAsync(device_total_ptrs[device_rank], total_ptrs[device_rank].get(), res_dim * 2 * sizeof(T *), cudaMemcpyHostToDevice);
         }
 
-        if (Jet_information_.rows() != 0 && Jet_information_.cols() != 0) {
+        if (jetInformation.rows() != 0 && jetInformation.cols() != 0) {
 
         } else {
-            for (int i = 0; i < option_.world_size; ++i) {
+            for (int i = 0; i < _option.world_size; ++i) {
                 cudaSetDevice(i);
                 const auto edge_num = Memory_Pool::getElmNum(i);
                 dim3 block(std::min((decltype(edge_num))32, edge_num), camera_dim + point_dim);
                 dim3 grid((edge_num - 1) / block.x + 1);
                 problem::CUDA::make_H_schur<<<grid, block, block.x * block.y * sizeof(T)>>>(
                         device_val_ptrs[i], device_error_ptrs[i],
-                        schur_position_and_relation_container_[i].absolute_position_camera, schur_position_and_relation_container_[i].absolute_position_point,
-                        schur_position_and_relation_container_[i].relative_position_camera, schur_position_and_relation_container_[i].relative_position_point,
-                        schur_equation_container_[i].csrRowPtr[0], schur_equation_container_[i].csrRowPtr[1],
+                    schurPositionAndRelationContainer[i].absolutePositionCamera,
+                    schurPositionAndRelationContainer[i].absolutePositionPoint,
+                    schurPositionAndRelationContainer[i].relativePositionCamera,
+                    schurPositionAndRelationContainer[i].relativePositionPoint,
+                    schurEquationContainer[i].csrRowPtr[0],
+                    schurEquationContainer[i].csrRowPtr[1],
                         res_dim,
                         camera_dim, point_dim, edge_num,
                         d_g_camera[i], d_g_point[i],
-                        schur_equation_container_[i].csrVal[2],
-                        schur_equation_container_[i].csrVal[3],
-                        schur_equation_container_[i].csrVal[0],
-                        schur_equation_container_[i].csrVal[1]);
-//                PRINT_DMEMORY(schur_equation_container_[i].csrVal[0], 5, T);
+                    schurEquationContainer[i].csrVal[2],
+                    schurEquationContainer[i].csrVal[3],
+                    schurEquationContainer[i].csrVal[0],
+                    schurEquationContainer[i].csrVal[1]);
             }
         }
         ASSERT_CUDA_NO_ERROR();
-        for (int i = 0; i < option_.world_size; ++i) {
+        for (int i = 0; i < _option.world_size; ++i) {
             cudaSetDevice(i);
             cudaStreamSynchronize(nullptr);
             cudaFree(device_total_ptrs[i]);
@@ -244,9 +250,13 @@ namespace MegBA {
 
         const auto &comms = HandleManager::get_ncclComm();
         ncclGroupStart();
-        for (int i = 0; i < option_.world_size; ++i) {
-            ncclAllReduce(schur_equation_container_[i].csrVal[2], schur_equation_container_[i].csrVal[2], schur_equation_container_[i].nnz[2], Wrapper::declared_cudaDatatype<T>::nccl_dtype, ncclSum, comms[i], nullptr);
-            ncclAllReduce(schur_equation_container_[i].csrVal[3], schur_equation_container_[i].csrVal[3], schur_equation_container_[i].nnz[3], Wrapper::declared_cudaDatatype<T>::nccl_dtype, ncclSum, comms[i], nullptr);
+        for (int i = 0; i < _option.world_size; ++i) {
+            ncclAllReduce(schurEquationContainer[i].csrVal[2],
+                        schurEquationContainer[i].csrVal[2],
+                        schurEquationContainer[i].nnz[2], Wrapper::declared_cudaDatatype<T>::nccl_dtype, ncclSum, comms[i], nullptr);
+            ncclAllReduce(schurEquationContainer[i].csrVal[3],
+                          schurEquationContainer[i].csrVal[3],
+                          schurEquationContainer[i].nnz[3], Wrapper::declared_cudaDatatype<T>::nccl_dtype, ncclSum, comms[i], nullptr);
             ncclAllReduce(d_g_camera[i], d_g_camera[i], Hpp_rows + Hll_rows, Wrapper::declared_cudaDatatype<T>::nccl_dtype, ncclSum, comms[i], nullptr);
         }
         ncclGroupEnd();

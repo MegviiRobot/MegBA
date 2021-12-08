@@ -16,7 +16,7 @@ using JVD = Eigen::Matrix<JetVector<T>, Eigen::Dynamic, Eigen::Dynamic>;
 template <typename T>
 using TD = Eigen::Matrix<T, Eigen::Dynamic, Eigen::Dynamic>;
 
-enum VertexKind_t { CAMERA = 0, POINT = 1, NONE = 2 };
+enum VertexKind { CAMERA = 0, POINT = 1, NONE = 2 };
 
 template <typename T> struct BaseVertex {
   BaseVertex() = default;
@@ -27,11 +27,17 @@ template <typename T> struct BaseVertex {
 
   void set_Estimation(const TD<T> &estimation) { estimation_ = estimation; };
 
-  void set_Estimation(TD<T> &&estimation) { estimation_ = std::move(estimation); };
+  void set_Estimation(TD<T> &&estimation) {
+    estimation_ = std::move(estimation);
+  };
 
-  void set_Observation(const TD<T> &observation) { observation_ = observation; };
+  void set_Observation(const TD<T> &observation) {
+    observation_ = observation;
+  };
 
-  void set_Observation(TD<T> &&observation) { observation_ = std::move(observation); };
+  void set_Observation(TD<T> &&observation) {
+    observation_ = std::move(observation);
+  };
 
   bool get_Fixed() { return fixed_; };
 
@@ -53,8 +59,8 @@ template <typename T> struct BaseVertex {
     return estimation_ == vertex.estimation_;
   };
 
-  virtual VertexKind_t kind() { return NONE; };
-  int absolute_position = 0;
+  virtual VertexKind kind() { return NONE; };
+  int absolutePosition = 0;
 
 private:
   bool fixed_ = false;
@@ -65,13 +71,13 @@ private:
 template <typename T> struct CameraVertex : public BaseVertex<T> {
   CameraVertex() = default;
 
-  VertexKind_t kind() final { return CAMERA; };
+  VertexKind kind() final { return CAMERA; };
 };
 
 template <typename T> struct PointVertex : public BaseVertex<T> {
   PointVertex() = default;
 
-  VertexKind_t kind() final { return POINT; };
+  VertexKind kind() final { return POINT; };
 };
 
 template <typename T>
@@ -197,9 +203,7 @@ template <typename T> class BaseVertexWrapper {
 public:
   JVD<T> const &get_Estimation() const { return *Jet_estimation_; }
 
-  JVD<T> const &get_Observation() const {
-    return *Jet_observation_;
-  }
+  JVD<T> const &get_Observation() const { return *Jet_observation_; }
 
 private:
   friend BaseEdgeWrapper<T>;
@@ -219,16 +223,15 @@ private:
 
 template <typename T>
 class BaseEdgeWrapper : public std::vector<BaseVertexWrapper<T>> {
-private:
-  friend BaseEdge<T>;
-
   typedef std::vector<BaseVertexWrapper<T>> parent;
 
-  JVD<T> const *Jet_measurement_ = nullptr;
+  friend BaseEdge<T>;
 
-  JVD<T> const &getMeasurement() const {
-    return *Jet_measurement_;
-  };
+  friend EdgeVector<T>;
+
+  JVD<T> const *Jet_measurement_{nullptr};
+
+  JVD<T> const &getMeasurement() const { return *Jet_measurement_; };
 
   void bindEdgeVector(const EdgeVector<T> *EV) {
     Jet_measurement_ = &EV->getMeasurement();

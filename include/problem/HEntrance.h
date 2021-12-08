@@ -41,10 +41,10 @@ namespace MegBA {
     struct HEntrance_t {
         using BlockRow_t = std::set<BaseVertex<T> *>;
         using BlockMatrix_t = std::map<BaseVertex<T> *, BlockRow_t>;
-        std::unordered_map<VertexKind_t, std::array<BlockMatrix_t, 2>> nra_;
+        std::unordered_map<VertexKind, std::array<BlockMatrix_t, 2>> nra_;
         using BlockRowRA_t = std::vector<BaseVertex<T> *>;
         using BlockMatrixRA_t = std::vector<BlockRowRA_t>;
-        std::unordered_map<VertexKind_t, std::array<BlockMatrixRA_t, 2>> ra_;
+        std::unordered_map<VertexKind, std::array<BlockMatrixRA_t, 2>> ra_;
 
         HEntrance_t();
 

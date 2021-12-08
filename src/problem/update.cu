@@ -39,19 +39,18 @@ namespace MegBA {
     }
 
     template<typename T>
-    void EdgeVector<T>::updateSchur(const std::vector<T *> &delta_x_ptr) {
+    void EdgeVector<T>::updateSchur(const std::vector<T *> &deltaXPtr) {
         for (int i = 0; i < Memory_Pool::getWorldSize(); ++i) {
             cudaSetDevice(i);
-            cudaStreamSynchronize(schur_stream_LM_memcpy_[i]);
+            cudaStreamSynchronize(schurStreamLmMemcpy[i]);
         }
 
         const double LR = 1.;
         const auto camera_dim = edges[0][0]->getGradShape();
-        const auto camera_num = vertices_set_ptr_->find(edges[0][0]->kind())->second.size();
+        const auto camera_num =
+            verticesSetPtr->find(edges[0][0]->kind())->second.size();
         const auto point_dim = edges[1][0]->getGradShape();
 
-//        cudaSetDevice(0);
-//        PRINT_DMEMORY(schur_da_ptrs[0][0], 5, T);
         // TODO: merge into method 'solve_Linear'
 
         for (int i = 0; i < Memory_Pool::getWorldSize(); ++i) {
@@ -61,17 +60,46 @@ namespace MegBA {
             dim3 grid((edge_num - 1) / block.x + 1);
             ASSERT_CUDA_NO_ERROR();
             problem::CUDA::update_delta_x_two_Vertices<T><<<grid, block>>>(
-                    delta_x_ptr[i], schur_position_and_relation_container_[i].absolute_position_camera, schur_position_and_relation_container_[i].absolute_position_point,
+                deltaXPtr[i],
+                schurPositionAndRelationContainer[i].absolutePositionCamera,
+                schurPositionAndRelationContainer[i].absolutePositionPoint,
                     LR,
                     camera_dim, point_dim,
                     camera_num, edge_num,
-                    schur_da_ptrs[0][i], schur_da_ptrs[1][i]);
+                schurDaPtrs[0][i], schurDaPtrs[1][i]);
             ASSERT_CUDA_NO_ERROR();
         }
 //        cudaSetDevice(0);
 //        PRINT_DMEMORY(schur_da_ptrs[0][0], 5, T);
     }
 
+    template<typename T>
+    void EdgeVector<T>::rebindDaPtrs() {
+      int vertexKindIdxUnfixed = 0;
+      for (auto &vertexVector : edges) {
+        if (vertexVector[0]->get_Fixed())
+          continue;
+        auto &jetEstimation = vertexVector.get_Jet_Estimation();
+        auto &jetObservation = vertexVector.get_Jet_Observation();
+
+        const auto worldSize = Memory_Pool::getWorldSize();
+        for (int i = 0; i < vertexVector[0]->get_Estimation().size(); ++i) {
+          // bind da_ptr_ for CUDA
+          if (_option.use_schur) {
+            std::vector<T *> daPtrs;
+            daPtrs.resize(worldSize);
+            for (int k = 0; k < worldSize; ++k) {
+              daPtrs[k] = &schurDaPtrs[vertexKindIdxUnfixed][k]
+                                      [i * Memory_Pool::getElmNum(k)];
+            }
+            jetEstimation(i).bind_da_ptr(std::move(daPtrs));
+          } else {
+            // TODO: implement this
+          }
+        }
+        vertexKindIdxUnfixed++;
+      }
+    }
     template class EdgeVector<double>;
     template class EdgeVector<float>;
 }

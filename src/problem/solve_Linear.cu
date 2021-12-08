@@ -767,7 +767,7 @@ namespace MegBA {
             std::vector<T *> delta_x{static_cast<std::size_t>(world_size)};
 
             for (int i = 0; i < world_size; ++i) {
-                auto &schur_equation_container = edges.schur_equation_container_[i];
+                auto &schur_equation_container = edges.schurEquationContainer[i];
                 Hpp_csrVal[i] = schur_equation_container.csrVal[2];
                 Hll_csrVal[i] = schur_equation_container.csrVal[3];
                 Hpl_csrVal[i] = schur_equation_container.csrVal[0];

@@ -230,7 +230,7 @@ void BaseProblem<T>::SolveLM(int iter, double solver_tol,
   ExtractedDiag.resize(Memory_Pool::getWorldSize());
   for (int i = 0; i < Memory_Pool::getWorldSize(); ++i) {
     cudaSetDevice(i);
-    auto &container = edges.schur_equation_container_[i];
+    auto &container = edges.schurEquationContainer[i];
     cudaMalloc(&ExtractedDiag[i][0],
                container.nnz[2] / container.dim[0] * sizeof(T));
     cudaMalloc(&ExtractedDiag[i][1],
@@ -243,7 +243,7 @@ void BaseProblem<T>::SolveLM(int iter, double solver_tol,
       if (recover_diag) {
         for (int i = 0; i < Memory_Pool::getWorldSize(); ++i) {
           cudaSetDevice(i);
-          auto &container = edges.schur_equation_container_[i];
+          auto &container = edges.schurEquationContainer[i];
           ASSERT_CUDA_NO_ERROR();
           RecoverDiag(ExtractedDiag[i][0], T(1.) / u,
                       container.nnz[2] / container.dim[0] / container.dim[0],
@@ -258,7 +258,7 @@ void BaseProblem<T>::SolveLM(int iter, double solver_tol,
       } else {
         for (int i = 0; i < Memory_Pool::getWorldSize(); ++i) {
           cudaSetDevice(i);
-          auto &container = edges.schur_equation_container_[i];
+          auto &container = edges.schurEquationContainer[i];
           ExtractOldAndApplyNewDiag(
               T(1.) / u, container.nnz[2] / container.dim[0] / container.dim[0],
               container.dim[0], container.csrVal[2], ExtractedDiag[i][0]);
@@ -303,10 +303,10 @@ void BaseProblem<T>::SolveLM(int iter, double solver_tol,
       if (option_.use_schur) {
         std::vector<std::vector<T *>> Jdx;
         Jdx.resize(Memory_Pool::getWorldSize());
-        const int camera_dim = edges.schur_equation_container_[0].dim[0];
+        const int camera_dim = edges.schurEquationContainer[0].dim[0];
         const int camera_num =
-            edges.schur_equation_container_[0].nnz[2] / camera_dim / camera_dim;
-        const int point_dim = edges.schur_equation_container_[0].dim[1];
+            edges.schurEquationContainer[0].nnz[2] / camera_dim / camera_dim;
+        const int point_dim = edges.schurEquationContainer[0].dim[1];
 
         std::vector<std::vector<thrust::system::cuda::unique_eager_future<T>>>
             futures;
@@ -315,9 +315,9 @@ void BaseProblem<T>::SolveLM(int iter, double solver_tol,
         for (int i = 0; i < Memory_Pool::getWorldSize(); ++i) {
           cudaSetDevice(i);
           const auto nElm = Memory_Pool::getElmNum(i);
-          const auto &eq_container = edges.schur_equation_container_[i];
+          const auto &eq_container = edges.schurEquationContainer[i];
           const auto &position_container =
-              edges.schur_position_and_relation_container_[i];
+              edges.schurPositionAndRelationContainer[i];
           futures[i].resize(JV_backup.size());
           for (int j = 0; j < JV_backup.size(); ++j) {
             auto &J = JV_backup(j);
@@ -328,8 +328,8 @@ void BaseProblem<T>::SolveLM(int iter, double solver_tol,
             JdxpF<<<grid, block>>>(
                 J.get_CUDA_Grad_ptr()[i], schur_delta_x_ptr[i],
                 J.get_CUDA_Res_ptr()[i],
-                position_container.absolute_position_camera,
-                position_container.absolute_position_point, nElm, camera_dim,
+                position_container.absolutePositionCamera,
+                position_container.absolutePositionPoint, nElm, camera_dim,
                 camera_num, point_dim, ptr);
             futures[i][j] = thrust::async::reduce(
                 thrust::cuda::par.on(nullptr), thrust::device_ptr<T>{ptr},
@@ -391,7 +391,7 @@ void BaseProblem<T>::SolveLM(int iter, double solver_tol,
         residual_norm = new_residual_norm;
         if (option_.use_schur) {
           cudaSetDevice(0);
-          auto &container = edges.schur_equation_container_[0];
+          auto &container = edges.schurEquationContainer[0];
           const auto norm = LinfNorm(container.g, Hessian_shape_);
           stop = norm <= epsilon1;
           if (stop)

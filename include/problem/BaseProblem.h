@@ -30,8 +30,7 @@ namespace MegBA {
 
         std::size_t Hessian_shape_{0};
         std::unordered_map<int, BaseVertex<T> *> vertices{};
-        std::unordered_map<VertexKind_t, std::set<BaseVertex<T> *>> vertices_sets{};
-        HEntrance_t<T> H_entrance_;
+        std::unordered_map<VertexKind, std::set<BaseVertex<T> *>> vertices_sets{};
         struct SchurWorkingSpace_t {
             // first: working index, second: body
             std::size_t split_size_{0};
@@ -39,7 +38,7 @@ namespace MegBA {
             std::vector<SchurHEntrance_t<T>> schur_H_entrance_;
         } schur_ws_{};
         std::vector<SchurHEntrance_t<T>> &schur_H_entrance_{schur_ws_.schur_H_entrance_};
-        EdgeVector<T> edges{option_, H_entrance_, schur_H_entrance_};
+        EdgeVector<T> edges{option_, schur_H_entrance_};
 
         std::vector<T *> schur_x_ptr{nullptr};
         std::vector<T *> schur_delta_x_ptr{nullptr};
