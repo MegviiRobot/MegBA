@@ -85,18 +85,18 @@ void EdgeVector<T>::PositionAndRelationContainer::clear() {
   connectionNumPoint = nullptr;
 }
 
-template <typename T> EdgeVector<T>::EdgeVector(const ProblemOption_t &option, const std::vector<SchurHEntrance_t<T>> &schurHEntrance)
+template <typename T> EdgeVector<T>::EdgeVector(const ProblemOption &option, const std::vector<SchurHEntrance<T>> &schurHEntrance)
     : _option{option}, schurHEntrance{schurHEntrance},
-      schurCsrRowPtr(option.world_size) {
-  schurEquationContainer.reserve(option.world_size);
-  for (int i = 0; i < option.world_size; ++i) {
+      schurCsrRowPtr(option.worldSize) {
+  schurEquationContainer.reserve(option.worldSize);
+  for (int i = 0; i < option.worldSize; ++i) {
     schurEquationContainer.emplace_back(option.device);
     schurPositionAndRelationContainer.emplace_back(option.device);
   }
 }
 
 template <typename T> void EdgeVector<T>::rollback() {
-  if (_option.use_schur) {
+  if (_option.useSchur) {
     schurDaPtrs.swap(schurDaPtrsOld);
   } else {
     // TODO: implement this
@@ -202,7 +202,7 @@ template <typename T> void EdgeVector<T>::allocateResourcePre() {
   // TODO: num is a global variable
   num.reset(new int[cameraVertexNum + pointVertexNum]);
 
-  if (_option.use_schur) {
+  if (_option.useSchur) {
     schurAbsolutePosition.resize(2);
     for (auto &vs : schurAbsolutePosition) {
       vs.resize(Memory_Pool::getWorldSize());
@@ -264,7 +264,7 @@ template <typename T> void EdgeVector<T>::deallocateResource() {
 }
 
 template <typename T> void EdgeVector<T>::makeVertices() {
-  if (_option.use_schur) {
+  if (_option.useSchur) {
     makeSchurVertices();
   } else {
     // TODO: implement this
@@ -288,7 +288,7 @@ template <typename T> void EdgeVector<T>::makeSchurVertices() {
     // iterate element, fill data in Jet_estimation_ and prepare data for make_H_and_g_without_Info_two_Vertices
 
     std::size_t total_vertex_idx{0};
-    for (int i = 0; i < _option.world_size; ++i) {
+    for (int i = 0; i < _option.worldSize; ++i) {
       const auto &schur_H_entrance_other = schurHEntrance[i].ra_[other_kind];
       omp_set_num_threads(16);
 #pragma omp parallel for
@@ -305,7 +305,7 @@ template <typename T> void EdgeVector<T>::makeSchurVertices() {
       total_vertex_idx += schurHEntrance[i].counter;
 
       schurCsrRowPtr[i][vertex_kind_idx] = std::move(
-          const_cast<std::vector<SchurHEntrance_t<T>> &>(schurHEntrance)[i]
+          const_cast<std::vector<SchurHEntrance<T>> &>(schurHEntrance)[i]
               .csrRowPtr_[vertex_kind_idx]);
       // fill csrRowPtr_. next row's csrRowPtr_ = this row's csrRowPtr_ + this row's non-zero element number.
       const unsigned int rows = vertex_vector[0]->get_Estimation().rows();

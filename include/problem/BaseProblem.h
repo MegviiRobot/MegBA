@@ -26,7 +26,7 @@ namespace MegBA {
 
         void MakeVertices();
 
-        const ProblemOption_t option_;
+        const ProblemOption option_;
 
         std::size_t Hessian_shape_{0};
         std::unordered_map<int, BaseVertex<T> *> vertices{};
@@ -35,16 +35,16 @@ namespace MegBA {
             // first: working index, second: body
             std::size_t split_size_{0};
             int working_device_{0};
-            std::vector<SchurHEntrance_t<T>> schur_H_entrance_;
+            std::vector<SchurHEntrance<T>> schur_H_entrance_;
         } schur_ws_{};
-        std::vector<SchurHEntrance_t<T>> &schur_H_entrance_{schur_ws_.schur_H_entrance_};
+        std::vector<SchurHEntrance<T>> &schur_H_entrance_{schur_ws_.schur_H_entrance_};
         EdgeVector<T> edges{option_, schur_H_entrance_};
 
         std::vector<T *> schur_x_ptr{nullptr};
         std::vector<T *> schur_delta_x_ptr{nullptr};
         std::vector<T *> schur_delta_x_ptr_backup{nullptr};
     public:
-        explicit BaseProblem(ProblemOption_t option=ProblemOption_t{});
+        explicit BaseProblem(ProblemOption option= ProblemOption{});
 
         ~BaseProblem() = default;
 

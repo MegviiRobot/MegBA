@@ -744,7 +744,7 @@ namespace MegBA {
     bool BaseProblem<T>::cudaSolveLinear(double tol, double solver_refuse_ratio, std::size_t max_iter) {
         bool success;
 
-        if (option_.use_schur) {
+        if (option_.useSchur) {
             // TODO: need great change
             const auto world_size = Memory_Pool::getWorldSize();
             std::vector<T *> Hpp_csrVal{static_cast<std::size_t>(world_size)};

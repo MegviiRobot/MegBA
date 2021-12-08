@@ -103,10 +103,10 @@ int main(int argc, char *arcv[]) {
     fin >> num_points;
     fin >> num_observations;
 
-    MegBA::ProblemOption_t option{};
+    MegBA::ProblemOption option{};
     option.nElm = num_observations;
     option.N = 12;
-    option.world_size = world_size;
+    option.worldSize = world_size;
     MegBA::BaseProblem<T> problem{option};
 
     std::vector<std::tuple<int, int, Eigen::Matrix<T, 2, 1>>> edge;

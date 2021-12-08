@@ -168,9 +168,9 @@ namespace MegBA {
         const auto Hll_rows = point_dim * point_num;
         ASSERT_CUDA_NO_ERROR();
 
-        std::vector<T *>d_g_camera{static_cast<std::size_t>(_option.world_size)};
-        std::vector<T *>d_g_point{static_cast<std::size_t>(_option.world_size)};
-        for (int i = 0; i < _option.world_size; ++i) {
+        std::vector<T *>d_g_camera{static_cast<std::size_t>(_option.worldSize)};
+        std::vector<T *>d_g_point{static_cast<std::size_t>(_option.worldSize)};
+        for (int i = 0; i < _option.worldSize; ++i) {
             cudaSetDevice(i);
             cudaMemsetAsync(schurEquationContainer[i].g, 0, (Hpp_rows + Hll_rows) * sizeof(T));
             d_g_camera[i] = &schurEquationContainer[i].g[0];
@@ -189,15 +189,15 @@ namespace MegBA {
 
         const auto res_dim = rows * cols;
         std::vector<std::unique_ptr<const T *[]>> total_ptrs{};
-        total_ptrs.reserve(_option.world_size);
-        std::vector<const T **> device_total_ptrs{static_cast<std::size_t>(_option.world_size)};
+        total_ptrs.reserve(_option.worldSize);
+        std::vector<const T **> device_total_ptrs{static_cast<std::size_t>(_option.worldSize)};
 
-        std::vector<const T **> val_ptrs{static_cast<std::size_t>(_option.world_size)};
-        std::vector<const T **> device_val_ptrs{static_cast<std::size_t>(_option.world_size)};
+        std::vector<const T **> val_ptrs{static_cast<std::size_t>(_option.worldSize)};
+        std::vector<const T **> device_val_ptrs{static_cast<std::size_t>(_option.worldSize)};
 
-        std::vector<const T **> error_ptrs{static_cast<std::size_t>(_option.world_size)};
-        std::vector<const T **> device_error_ptrs{static_cast<std::size_t>(_option.world_size)};
-        for (int device_rank = 0; device_rank < _option.world_size; ++device_rank) {
+        std::vector<const T **> error_ptrs{static_cast<std::size_t>(_option.worldSize)};
+        std::vector<const T **> device_error_ptrs{static_cast<std::size_t>(_option.worldSize)};
+        for (int device_rank = 0; device_rank < _option.worldSize; ++device_rank) {
             total_ptrs.emplace_back(new const T *[res_dim * (3 + res_dim)]);
             cudaSetDevice(device_rank);
             cudaMalloc(&device_total_ptrs[device_rank], res_dim * (3 + res_dim) * sizeof(T *));
@@ -219,7 +219,7 @@ namespace MegBA {
         if (jetInformation.rows() != 0 && jetInformation.cols() != 0) {
 
         } else {
-            for (int i = 0; i < _option.world_size; ++i) {
+            for (int i = 0; i < _option.worldSize; ++i) {
                 cudaSetDevice(i);
                 const auto edge_num = Memory_Pool::getElmNum(i);
                 dim3 block(std::min((decltype(edge_num))32, edge_num), camera_dim + point_dim);
@@ -242,7 +242,7 @@ namespace MegBA {
             }
         }
         ASSERT_CUDA_NO_ERROR();
-        for (int i = 0; i < _option.world_size; ++i) {
+        for (int i = 0; i < _option.worldSize; ++i) {
             cudaSetDevice(i);
             cudaStreamSynchronize(nullptr);
             cudaFree(device_total_ptrs[i]);
@@ -250,7 +250,7 @@ namespace MegBA {
 
         const auto &comms = HandleManager::get_ncclComm();
         ncclGroupStart();
-        for (int i = 0; i < _option.world_size; ++i) {
+        for (int i = 0; i < _option.worldSize; ++i) {
             ncclAllReduce(schurEquationContainer[i].csrVal[2],
                         schurEquationContainer[i].csrVal[2],
                         schurEquationContainer[i].nnz[2], Wrapper::declared_cudaDatatype<T>::nccl_dtype, ncclSum, comms[i], nullptr);

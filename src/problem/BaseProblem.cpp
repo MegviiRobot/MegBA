@@ -53,11 +53,11 @@ namespace MegBA {
     }// namespace
 
     template<typename T>
-    void SchurHEntrance_t<T>::BuildRandomAccess() {
+    void SchurHEntrance<T>::BuildRandomAccess() {
         // camera and point
         std::vector<std::thread> threads;
-        threads.emplace_back(std::thread{InternalBuildRandomAccess<SchurHEntrance_t<T>>, 0, std::ref(*this)});
-        threads.emplace_back(std::thread{InternalBuildRandomAccess<SchurHEntrance_t<T>>, 1, std::ref(*this)});
+        threads.emplace_back(std::thread{InternalBuildRandomAccess<SchurHEntrance<T>>, 0, std::ref(*this)});
+        threads.emplace_back(std::thread{InternalBuildRandomAccess<SchurHEntrance<T>>, 1, std::ref(*this)});
         for (auto &thread : threads)
             thread.join();
     }
@@ -92,13 +92,13 @@ namespace MegBA {
     }
 
     template<typename T>
-    BaseProblem<T>::BaseProblem(ProblemOption_t option) : option_(option) {
+    BaseProblem<T>::BaseProblem(ProblemOption option) : option_(option) {
         if (option.N != -1 && option.nElm != -1)
-            Memory_Pool::reset_Pool(option.N, option.nElm, sizeof(T), option.world_size);
-        if (option.use_schur) {
-            schur_ws_.split_size_ = option.nElm / option.world_size + 1;
+            Memory_Pool::reset_Pool(option.N, option.nElm, sizeof(T), option.worldSize);
+        if (option.useSchur) {
+            schur_ws_.split_size_ = option.nElm / option.worldSize + 1;
             schur_ws_.working_device_ = 0;
-            schur_ws_.schur_H_entrance_.resize(option.world_size);
+            schur_ws_.schur_H_entrance_.resize(option.worldSize);
             schur_ws_.schur_H_entrance_.shrink_to_fit();
         }
     }
@@ -133,8 +133,8 @@ namespace MegBA {
             else
                 find->second.emplace(vertex);
 
-            if (option_.use_schur) {
-                for (int i = 0; i < option_.world_size; ++i) {
+            if (option_.useSchur) {
+                for (int i = 0; i < option_.worldSize; ++i) {
                     auto &working_schur_H_entrance = schur_H_entrance_[i];
                     working_schur_H_entrance.dim_[kind] = vertex->getGradShape();
                     auto &connection_block_matrix = working_schur_H_entrance.nra_[kind];
@@ -150,7 +150,7 @@ namespace MegBA {
               // TODO: implement this
             }
         }
-        if (option_.use_schur) {
+        if (option_.useSchur) {
             auto &working_schur_H_entrance = schur_H_entrance_[schur_ws_.working_device_];
             working_schur_H_entrance.counter++;
             if (working_schur_H_entrance.counter >= schur_ws_.split_size_)
@@ -232,7 +232,7 @@ namespace MegBA {
         Hessian_shape_ = get_Hessian_Shape();
         PrepareUpdateData();
         set_absolute_position();
-        if (option_.use_schur) {
+        if (option_.useSchur) {
             std::vector<std::thread> threads;
             for (auto &schur_H_entrance : schur_H_entrance_) {
                 threads.emplace_back(std::thread{[&](){schur_H_entrance.BuildRandomAccess();}});
@@ -270,7 +270,7 @@ namespace MegBA {
                 }
             }
         }
-        if (option_.use_schur) {
+        if (option_.useSchur) {
             for (int i = 0; i < Memory_Pool::getWorldSize(); ++i) {
                 cudaSetDevice(i);
                 cudaMemcpyAsync(schur_x_ptr[i], hx_ptr, Hessian_shape_ * sizeof(T), cudaMemcpyHostToDevice);
@@ -295,7 +295,7 @@ namespace MegBA {
     void BaseProblem<T>::WriteBack() {
         T *hx_ptr = new T[Hessian_shape_];
         std::size_t entrance_bias{0};
-        if (option_.use_schur) {
+        if (option_.useSchur) {
             cudaSetDevice(0);
             cudaMemcpy(hx_ptr, schur_x_ptr[0], Hessian_shape_ * sizeof(T), cudaMemcpyDeviceToHost);
         } else {

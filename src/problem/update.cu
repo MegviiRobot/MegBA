@@ -85,7 +85,7 @@ namespace MegBA {
         const auto worldSize = Memory_Pool::getWorldSize();
         for (int i = 0; i < vertexVector[0]->get_Estimation().size(); ++i) {
           // bind da_ptr_ for CUDA
-          if (_option.use_schur) {
+          if (_option.useSchur) {
             std::vector<T *> daPtrs;
             daPtrs.resize(worldSize);
             for (int k = 0; k < worldSize; ++k) {

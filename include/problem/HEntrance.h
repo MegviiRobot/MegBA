@@ -9,16 +9,16 @@
 #include <vertex/BaseVertex.h>
 
 namespace MegBA {
-    struct ProblemOption_t {
-        bool use_schur{true};
-        int world_size{1};
+    struct ProblemOption {
+        bool useSchur{true};
+        int worldSize{1};
         device_t device{CUDA_t};
         int N{-1};
         int64_t nElm{-1};
     };
 
     template<typename T>
-    struct SchurHEntrance_t {
+    struct SchurHEntrance {
         // first is camera
         using BlockRow_t = std::set<BaseVertex<T> *>;
         using BlockMatrix_t = std::map<BaseVertex<T> *, BlockRow_t>;
@@ -32,7 +32,7 @@ namespace MegBA {
         std::array<int, 2> dim_{};
         std::size_t nnz_in_E{};
 
-        SchurHEntrance_t() = default;
+        SchurHEntrance() = default;
 
         void BuildRandomAccess();
     };

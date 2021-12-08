@@ -10,7 +10,7 @@
 
 namespace MegBA {
 template <typename T> void EdgeVector<T>::backupDaPtrs() {
-  if (_option.use_schur) {
+  if (_option.useSchur) {
     const auto gradShape = getGradShape();
     for (int i = 0; i < Memory_Pool::getWorldSize(); ++i) {
       cudaSetDevice(i);
@@ -37,10 +37,10 @@ __global__ void broadCastCsrColInd(const int *input, const int other_dim,
 }
 
 template <typename T> void EdgeVector<T>::preparePositionAndRelationDataCUDA() {
-  if (_option.use_schur) {
+  if (_option.useSchur) {
     std::vector<std::array<int *, 2>> compressedCsrColInd;
-    compressedCsrColInd.resize(_option.world_size);
-    for (int i = 0; i < _option.world_size; ++i) {
+    compressedCsrColInd.resize(_option.worldSize);
+    for (int i = 0; i < _option.worldSize; ++i) {
       cudaSetDevice(i);
       const auto edgeNum = Memory_Pool::getElmNum(i);
 
@@ -132,7 +132,7 @@ template <typename T> void EdgeVector<T>::preparePositionAndRelationDataCUDA() {
           schurAbsolutePosition[1][i].data(), edgeNum * sizeof(int),
           cudaMemcpyHostToDevice);
     }
-    for (int i = 0; i < _option.world_size; ++i) {
+    for (int i = 0; i < _option.worldSize; ++i) {
       cudaSetDevice(i);
       cudaDeviceSynchronize();
       cudaFree(compressedCsrColInd[i][0]);
@@ -144,7 +144,7 @@ template <typename T> void EdgeVector<T>::preparePositionAndRelationDataCUDA() {
 }
 
 template <typename T> void EdgeVector<T>::PrepareUpdateDataCUDA() {
-  if (_option.use_schur) {
+  if (_option.useSchur) {
     const auto worldSize = Memory_Pool::getWorldSize();
     const auto gradShape = getGradShape();
     schurStreamLmMemcpy.resize(worldSize);
@@ -186,7 +186,7 @@ template <typename T> void EdgeVector<T>::PrepareUpdateDataCUDA() {
 }
 
 template <typename T> void EdgeVector<T>::deallocateResourceCUDA() {
-  if (_option.use_schur) {
+  if (_option.useSchur) {
     for (int i = 0; i < Memory_Pool::getWorldSize(); ++i) {
       cudaSetDevice(i);
       schurPositionAndRelationContainer[i].clearCUDA();

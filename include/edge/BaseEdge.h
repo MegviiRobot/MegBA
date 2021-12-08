@@ -61,8 +61,8 @@ protected:
 template <typename T> class EdgeVector {
   friend BaseProblem<T>;
 
-  const ProblemOption_t &_option;
-  const std::vector<SchurHEntrance_t<T>> &schurHEntrance;
+  const ProblemOption &_option;
+  const std::vector<SchurHEntrance<T>> &schurHEntrance;
   // total number for each vertex kind
   std::unique_ptr<int[]> num{nullptr};
   std::vector<std::vector<int>> absolutePosition;
@@ -91,7 +91,7 @@ template <typename T> class EdgeVector {
 public:
   EdgeVector() = delete;
 
-  EdgeVector(const ProblemOption_t &option, const std::vector<SchurHEntrance_t<T>> &schurHEntrance);
+  EdgeVector(const ProblemOption &option, const std::vector<SchurHEntrance<T>> &schurHEntrance);
 
   struct SchurEquationContainer {
     explicit SchurEquationContainer(const device_t &device) : _device(device){};
