@@ -1,9 +1,10 @@
 #pragma once
-#include "Common.h"
-#include "Eigen/Core"
 #include <set>
 #include <map>
 #include <utility>
+#include <Eigen/Core>
+
+#include "Common.h"
 
 namespace MegBA {
 template <typename T> class BaseVertexWrapper;
