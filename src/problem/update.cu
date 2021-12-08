@@ -66,13 +66,13 @@ void EdgeVector<T>::updateSchur(const std::vector<T *> &deltaXPtr) {
 template <typename T> void EdgeVector<T>::rebindDaPtrs() {
   int vertexKindIdxUnfixed = 0;
   for (auto &vertexVector : edges) {
-    if (vertexVector[0]->get_Fixed())
+    if (vertexVector[0]->fixed)
       continue;
-    auto &jetEstimation = vertexVector.get_Jet_Estimation();
-    auto &jetObservation = vertexVector.get_Jet_Observation();
+    auto &jetEstimation = vertexVector.getJVEstimation();
+    auto &jetObservation = vertexVector.getJVObservation();
 
     const auto worldSize = Memory_Pool::getWorldSize();
-    for (int i = 0; i < vertexVector[0]->get_Estimation().size(); ++i) {
+    for (int i = 0; i < vertexVector[0]->getEstimation().size(); ++i) {
       // bind da_ptr_ for CUDA
       if (_option.useSchur) {
         std::vector<T *> daPtrs;

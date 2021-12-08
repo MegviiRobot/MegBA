@@ -124,22 +124,22 @@ template <typename T> bool EdgeVector<T>::tryPushBack(BaseEdge<T> &edge) {
       offset[i] = accumulated_grad_shape;
       accumulated_grad_shape += edge[i]->getGradShape();
       if (same_vertex) {
-        cameraVertexNum += edge[i]->get_Fixed() ? 0 : 1;
+        cameraVertexNum += edge[i]->fixed ? 0 : 1;
         same_vertex &= edge[i]->kind() ==
                        edge[i == vertex_num_in_edge - 1 ? i : i + 1]->kind();
       } else {
-        pointVertexNum += edge[i]->get_Fixed() ? 0 : 1;
+        pointVertexNum += edge[i]->fixed ? 0 : 1;
         assert(edge[i]->kind() ==
                edge[i == vertex_num_in_edge - 1 ? i : i + 1]->kind());
       }
     }
     for (int i = 0; i < vertex_num_in_edge; ++i) {
-      const auto &estimation = edge[i]->get_Estimation();
-      const auto &observation = edge[i]->get_Observation();
-      edges[i].resize_Jet_Estimation(estimation.rows(), estimation.cols());
-      edges[i].resize_Jet_Observation(observation.rows(), observation.cols());
-      edges[i].set_Fixed(edge[i]->get_Fixed());
-      edges[i].set_Grad_Shape_and_Offset(accumulated_grad_shape, offset[i]);
+      const auto &estimation = edge[i]->getEstimation();
+      const auto &observation = edge[i]->getObservation();
+      edges[i].resizeJVEstimation(estimation.rows(), estimation.cols());
+      edges[i].resizeJVObservation(observation.rows(), observation.cols());
+      edges[i].fixed = edge[i]->fixed;
+      edges[i].setGradShapeAndOffset(accumulated_grad_shape, offset[i]);
     }
 
     const auto &measurement = edge._measurement;
@@ -308,8 +308,8 @@ template <typename T> void EdgeVector<T>::makeSchurVertices() {
           const_cast<std::vector<SchurHEntrance<T>> &>(schurHEntrance)[i]
               .csrRowPtr[vertex_kind_idx]);
       // fill csrRowPtr_. next row's csrRowPtr_ = this row's csrRowPtr_ + this row's non-zero element number.
-      const unsigned int rows = vertex_vector[0]->get_Estimation().rows();
-      const unsigned int cols = vertex_vector[0]->get_Estimation().cols();
+      const unsigned int rows = vertex_vector[0]->getEstimation().rows();
+      const unsigned int cols = vertex_vector[0]->getEstimation().cols();
       num[vertex_kind_idx] = vertices_set.size();
 
       schurEquationContainer[i].nnz[vertex_kind_idx] =
@@ -334,11 +334,11 @@ template <typename T> void EdgeVector<T>::fitDevice() {
        ++vertex_kind_idx) {
     const auto &vertex_vector = edges[vertex_kind_idx];
     // set device_
-    auto &Jet_estimation = edges[vertex_kind_idx].get_Jet_Estimation();
-    auto &Jet_observation = edges[vertex_kind_idx].get_Jet_Observation();
+    auto &Jet_estimation = edges[vertex_kind_idx].getJVEstimation();
+    auto &Jet_observation = edges[vertex_kind_idx].getJVObservation();
 
-    auto rows = vertex_vector[0]->get_Estimation().rows();
-    auto cols = vertex_vector[0]->get_Estimation().cols();
+    auto rows = vertex_vector[0]->getEstimation().rows();
+    auto cols = vertex_vector[0]->getEstimation().cols();
     for (int i = 0; i < rows; ++i) {
       for (int j = 0; j < cols; ++j) {
         Jet_estimation(i, j).to(_option.device);

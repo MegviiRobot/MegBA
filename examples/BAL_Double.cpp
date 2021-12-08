@@ -14,11 +14,11 @@ public:
   MegBA::JVD<T> forward() override {
         using MappedJVD = Eigen::Map<const MegBA::geo::JVD<T>>;
         const auto &Vertices = this->getVertices();
-        MappedJVD angle_axisd{&Vertices[0].get_Estimation()(0, 0), 3, 1};
-        MappedJVD t{&Vertices[0].get_Estimation()(3, 0), 3, 1};
-        MappedJVD intrinsics{&Vertices[0].get_Estimation()(6, 0), 3, 1};
+        MappedJVD angle_axisd{&Vertices[0].getEstimation()(0, 0), 3, 1};
+        MappedJVD t{&Vertices[0].getEstimation()(3, 0), 3, 1};
+        MappedJVD intrinsics{&Vertices[0].getEstimation()(6, 0), 3, 1};
 
-        const auto &point_xyz = Vertices[1].get_Estimation();
+        const auto &point_xyz = Vertices[1].getEstimation();
         const auto &obs_uv = this->getMeasurement();
         auto &&R = MegBA::geo::AngleAxisToRotationKernelMatrix(angle_axisd);
         Eigen::Matrix<MegBA::JetVector<T>, 3, 1> re_projection = R * point_xyz + t;
@@ -152,13 +152,13 @@ int main(int argc, char *arcv[]) {
         //        Eigen::Matrix<T, 6, 1> camera;
         //        camera.head(3) = std::get<1>(camera_vertices[n]).head(3);
         //        camera.tail(3) = std::get<1>(camera_vertices[n]).segment(3, 3);
-        problem.get_Vertex(std::get<0>(camera_vertices[n])).set_Estimation(std::get<1>(std::move(camera_vertices[n])));
+        problem.get_Vertex(std::get<0>(camera_vertices[n])).setEstimation(std::get<1>(std::move(camera_vertices[n])));
         //        problem.get_Vertex(std::get<0>(camera_vertices[n])).set_Observation(std::get<1>(camera_vertices[n]).tail(3));
         //        problem.get_Vertex(std::get<0>(camera_vertices[n])).set_Fixed(true);
     }
     for (int n = 0; n < num_points; ++n) {
         problem.append_Vertex(std::get<0>(point_vertices[n]), new MegBA::PointVertex<T>());
-        problem.get_Vertex(std::get<0>(point_vertices[n])).set_Estimation(std::get<1>(std::move(point_vertices[n])));
+        problem.get_Vertex(std::get<0>(point_vertices[n])).setEstimation(std::get<1>(std::move(point_vertices[n])));
     }
 
     for (int j = 0; j < num_observations; ++j) {

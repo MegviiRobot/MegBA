@@ -231,13 +231,14 @@ namespace MegBA {
         for (auto &set_pair : vertices_sets) {
             auto &set = set_pair.second;
             int absolute_position_counter = 0;
-            bool fixed = (*set.begin())->get_Fixed();
-            std::size_t nnz_each_item = (*set.begin())->get_Estimation().rows() * (*set.begin())->get_Estimation().cols();
+            bool fixed = (*set.begin())->fixed;
+            std::size_t nnz_each_item = (*set.begin())->getEstimation().rows() *
+                (*set.begin())->getEstimation().cols();
             for (auto &vertex : set) {
                 vertex->absolutePosition = absolute_position_counter;
                 ++absolute_position_counter;
                 if (!fixed) {
-                    memcpy(&hx_ptr[entrance_bias], vertex->get_Estimation().data(), nnz_each_item * sizeof(T));
+                    memcpy(&hx_ptr[entrance_bias], vertex->getEstimation().data(), nnz_each_item * sizeof(T));
                     entrance_bias += nnz_each_item;
                 }
             }
@@ -275,11 +276,13 @@ namespace MegBA {
         }
         for (auto &vertex_set_pair : vertices_sets) {
             auto &vertex_set = vertex_set_pair.second;
-            if ((*vertex_set.begin())->get_Fixed())
+            if ((*vertex_set.begin())->fixed)
                 continue;
-            const auto nnz_each_item = (*vertex_set.begin())->get_Estimation().rows() * (*vertex_set.begin())->get_Estimation().cols();
+            const auto nnz_each_item =
+                (*vertex_set.begin())->getEstimation().rows() *
+                (*vertex_set.begin())->getEstimation().cols();
             for (auto &vertex : vertex_set) {
-                memcpy(vertex->get_Estimation().data(), &hx_ptr[entrance_bias], nnz_each_item * sizeof(T));
+                memcpy(vertex->getEstimation().data(), &hx_ptr[entrance_bias], nnz_each_item * sizeof(T));
                 entrance_bias += nnz_each_item;
             }
         }

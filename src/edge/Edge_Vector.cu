@@ -169,7 +169,7 @@ template <typename T> void EdgeVector<T>::PrepareUpdateDataCUDA() {
       schurDaPtrsOld[i].resize(worldSize);
     }
     for (int i = 0, iUnfixed = 0, offset = 0; i < edges.size(); ++i) {
-      if (edges[i][0]->get_Fixed())
+      if (edges[i][0]->fixed)
         continue;
       for (int j = 0; j < worldSize; ++j) {
         const auto nElm = Memory_Pool::getElmNum(j);
@@ -177,7 +177,7 @@ template <typename T> void EdgeVector<T>::PrepareUpdateDataCUDA() {
         schurDaPtrsOld[iUnfixed][j] = &daPtrsOld[j][offset * nElm];
       }
       iUnfixed++;
-      const auto &estimation = edges[i][0]->get_Estimation();
+      const auto &estimation = edges[i][0]->getEstimation();
       offset += estimation.rows() * estimation.cols();
     }
   } else {

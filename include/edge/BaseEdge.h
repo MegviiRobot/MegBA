@@ -71,7 +71,7 @@ template <typename T> class EdgeVector {
   std::vector<std::vector<std::vector<int>>> schurAbsolutePosition;
   std::vector<BaseEdge<T> *> edgesPtr;
   std::size_t nameHash{};
-  std::vector<Vertex_Vector<T>> edges;
+  std::vector<VertexVector<T>> edges;
   std::unique_ptr<int[]> csrRowPtr{nullptr};
   std::vector<std::array<std::unique_ptr<int[]>, 2>> schurCsrRowPtr;
   // kind -> world_size -> ptr
@@ -133,20 +133,20 @@ public:
 
   void rollback();
 
-  std::vector<Vertex_Vector<T>> &getEdges() { return edges; };
+  std::vector<VertexVector<T>> &getEdges() { return edges; };
 
-  const std::vector<Vertex_Vector<T>> &getEdges() const { return edges; };
+  const std::vector<VertexVector<T>> &getEdges() const { return edges; };
 
-  JVD<T> &getEstimation(int i) { return edges[i].get_Jet_Estimation(); };
+  JVD<T> &getEstimation(int i) { return edges[i].getJVEstimation(); };
 
   const JVD<T> &getEstimation(int i) const {
-    return edges[i].get_Jet_Estimation();
+    return edges[i].getJVEstimation();
   };
 
-  JVD<T> &getObservation(int i) { return edges[i].get_Jet_Observation(); };
+  JVD<T> &getObservation(int i) { return edges[i].getJVObservation(); };
 
   const JVD<T> &getObservation(int i) const {
-    return edges[i].get_Jet_Observation();
+    return edges[i].getJVObservation();
   };
 
   JVD<T> &getMeasurement() { return jetMeasurement; };

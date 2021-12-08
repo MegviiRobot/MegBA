@@ -23,49 +23,35 @@ template <typename T> struct BaseVertex {
 
   virtual ~BaseVertex() = default;
 
-  void set_Fixed(bool fixed) { fixed_ = fixed; };
+  template <typename Estimation> void setEstimation(Estimation &&estimation) {
+    _estimation = std::forward<Estimation>(estimation); };
 
-  void set_Estimation(const TD<T> &estimation) { estimation_ = estimation; };
+  template <typename Estimation> void setObservation(Estimation &&observation) {
+    _observation = std::forward<Estimation>(observation); };
 
-  void set_Estimation(TD<T> &&estimation) {
-    estimation_ = std::move(estimation);
-  };
+  const TD<T> &getEstimation() const { return _estimation; };
 
-  void set_Observation(const TD<T> &observation) {
-    observation_ = observation;
-  };
+  TD<T> &getEstimation() { return _estimation; };
 
-  void set_Observation(TD<T> &&observation) {
-    observation_ = std::move(observation);
-  };
+  const TD<T> &getObservation() const { return _observation; };
 
-  bool get_Fixed() { return fixed_; };
-
-  const TD<T> &get_Estimation() const { return estimation_; };
-
-  TD<T> &get_Estimation() { return estimation_; };
-
-  const TD<T> &get_Observation() const { return observation_; };
-
-  TD<T> &get_Observation() { return observation_; };
-
-  bool has_Observation() { return observation_.rows() || observation_.cols(); };
+  TD<T> &getObservation() { return _observation; };
 
   unsigned int getGradShape() const {
-    return fixed_ ? 0 : estimation_.rows() * estimation_.cols();
+    return fixed ? 0 : _estimation.rows() * _estimation.cols();
   };
 
   bool operator==(const BaseVertex<T> &vertex) const {
-    return estimation_ == vertex.estimation_;
+    return _estimation == vertex._estimation;
   };
 
   virtual VertexKind kind() { return NONE; };
-  int absolutePosition = 0;
+  int absolutePosition{};
+  bool fixed{false};
 
 private:
-  bool fixed_ = false;
-  TD<T> estimation_;
-  TD<T> observation_{};
+  TD<T> _estimation{};
+  TD<T> _observation{};
 };
 
 template <typename T> struct CameraVertex : public BaseVertex<T> {
@@ -81,41 +67,42 @@ template <typename T> struct PointVertex : public BaseVertex<T> {
 };
 
 template <typename T>
-class Vertex_Vector : public std::vector<BaseVertex<T> *> {
+class VertexVector : public std::vector<BaseVertex<T> *> {
   typedef std::vector<BaseVertex<T> *> parent;
-  std::map<const BaseVertex<T> *, std::size_t> vertex_counter_;
-  JVD<T> Jet_estimation_;
-  JVD<T> Jet_observation_;
-  long estimation_rows_;
-  long estimation_cols_;
-  long observation_rows_;
-  long observation_cols_;
-  bool fixed_;
+  std::map<const BaseVertex<T> *, std::size_t> _vertexCounter;
+  JVD<T> _JVEstimation;
+  JVD<T> _JVObservation;
+  long _estimationRows;
+  long _estimationCols;
+  long _observationRows;
+  long _observationCols;
 
 public:
-  void CPU() {
-    for (int i = 0; i < estimation_rows_; ++i)
-      for (int j = 0; j < estimation_cols_; ++j)
-        Jet_estimation_(i, j).CPU();
+  bool fixed;
 
-    for (int i = 0; i < observation_rows_; ++i)
-      for (int j = 0; j < observation_cols_; ++j)
-        Jet_observation_(i, j).CPU();
+  void CPU() {
+    for (int i = 0; i < _estimationRows; ++i)
+      for (int j = 0; j < _estimationCols; ++j)
+        _JVEstimation(i, j).CPU();
+
+    for (int i = 0; i < _observationRows; ++i)
+      for (int j = 0; j < _observationCols; ++j)
+        _JVObservation(i, j).CPU();
   }
 
   void erase(std::size_t idx) {
-    for (int i = 0; i < estimation_rows_; ++i)
-      for (int j = 0; j < estimation_cols_; ++j)
-        Jet_estimation_(i, j).erase(idx);
+    for (int i = 0; i < _estimationRows; ++i)
+      for (int j = 0; j < _estimationCols; ++j)
+        _JVEstimation(i, j).erase(idx);
 
-    for (int i = 0; i < observation_rows_; ++i)
-      for (int j = 0; j < observation_cols_; ++j)
-        Jet_observation_(i, j).erase(idx);
+    for (int i = 0; i < _observationRows; ++i)
+      for (int j = 0; j < _observationCols; ++j)
+        _JVObservation(i, j).erase(idx);
 
     auto vertex = (*this)[idx];
-    auto find = vertex_counter_.find(vertex);
+    auto find = _vertexCounter.find(vertex);
     if (find->second == 1)
-      vertex_counter_.erase(find);
+      _vertexCounter.erase(find);
     else
       find->second--;
 
@@ -123,36 +110,34 @@ public:
   };
 
   bool existVertex(const BaseVertex<T> *vertex) const {
-    return vertex_counter_.find(vertex) != vertex_counter_.end();
+    return _vertexCounter.find(vertex) != _vertexCounter.end();
   };
 
-  void resize_Jet_Estimation(long rows, long cols) {
-    estimation_rows_ = rows;
-    estimation_cols_ = cols;
-    Jet_estimation_.resize(rows, cols);
+  void resizeJVEstimation(long rows, long cols) {
+    _estimationRows = rows;
+    _estimationCols = cols;
+    _JVEstimation.resize(rows, cols);
   };
 
-  void resize_Jet_Observation(long rows, long cols) {
-    observation_rows_ = rows;
-    observation_cols_ = cols;
-    Jet_observation_.resize(rows, cols);
+  void resizeJVObservation(long rows, long cols) {
+    _observationRows = rows;
+    _observationCols = cols;
+    _JVObservation.resize(rows, cols);
     for (int i = 0; i < rows; ++i) {
       for (int j = 0; j < cols; ++j) {
-        Jet_observation_(i, j).set_Grad_Shape(0);
+        _JVObservation(i, j).set_Grad_Shape(0);
       }
     }
   };
 
-  void set_Fixed(bool fixed) { fixed_ = fixed; }
-
-  void set_Grad_Shape_and_Offset(unsigned int N, unsigned int offset) {
-    if (fixed_)
-      offset = -estimation_rows_ * estimation_cols_ - 1;
-    for (int i = 0; i < estimation_rows_; ++i) {
-      for (int j = 0; j < estimation_cols_; ++j) {
-        Jet_estimation_(i, j).set_Grad_Shape(fixed_ ? 0 : N);
-        Jet_estimation_(i, j).set_Grad_Position(
-            fixed_ ? -1 : offset + i * estimation_cols_ + j);
+  void setGradShapeAndOffset(unsigned int N, unsigned int offset) {
+    if (fixed)
+      offset = -_estimationRows * _estimationCols - 1;
+    for (int i = 0; i < _estimationRows; ++i) {
+      for (int j = 0; j < _estimationCols; ++j) {
+        _JVEstimation(i, j).set_Grad_Shape(fixed ? 0 : N);
+        _JVEstimation(i, j).set_Grad_Position(
+            fixed ? -1 : offset + i * _estimationCols + j);
       }
     }
   }
@@ -160,65 +145,59 @@ public:
   void push_back(BaseVertex<T> *vertex) {
     parent::push_back(vertex);
 
-    auto find = vertex_counter_.find(vertex);
-    if (find == vertex_counter_.end())
-      vertex_counter_.insert(std::make_pair(vertex, 1));
+    auto find = _vertexCounter.find(vertex);
+    if (find == _vertexCounter.end())
+      _vertexCounter.insert(std::make_pair(vertex, 1));
     else
       find->second++;
 
-    const auto &estimation = vertex->get_Estimation();
-    for (int i = 0; i < estimation_rows_; ++i) {
-      for (int j = 0; j < estimation_cols_; ++j) {
-        Jet_estimation_(i, j).append_Jet(estimation(i, j));
+    const auto &estimation = vertex->getEstimation();
+    for (int i = 0; i < _estimationRows; ++i) {
+      for (int j = 0; j < _estimationCols; ++j) {
+        _JVEstimation(i, j).append_Jet(estimation(i, j));
       }
     }
 
-    const auto &observation = vertex->get_Observation();
-    for (int i = 0; i < observation_rows_; ++i) {
-      for (int j = 0; j < observation_cols_; ++j) {
-        Jet_observation_(i, j).append_Jet(observation(i, j));
+    const auto &observation = vertex->getObservation();
+    for (int i = 0; i < _observationRows; ++i) {
+      for (int j = 0; j < _observationCols; ++j) {
+        _JVObservation(i, j).append_Jet(observation(i, j));
       }
     }
   };
 
-  auto &get_Jet_Estimation() { return Jet_estimation_; }
+  auto &getJVEstimation() { return _JVEstimation; }
 
-  const auto &get_Jet_Estimation() const { return Jet_estimation_; }
-
-  auto get_Estimation_Shape() const {
-    return estimation_rows_ * estimation_cols_;
-  }
+  const auto &getJVEstimation() const { return _JVEstimation; }
 
   auto getGradShape() const {
-    return fixed_ ? 0 : estimation_rows_ * estimation_cols_;
+    return fixed ? 0 : _estimationRows * _estimationCols;
   }
 
-  auto &get_Jet_Observation() { return Jet_observation_; }
+  auto &getJVObservation() { return _JVObservation; }
 
-  const auto &get_Jet_Observation() const { return Jet_observation_; }
+  const auto &getJVObservation() const { return _JVObservation; }
 };
 
 template <typename T> class BaseVertexWrapper {
-
-public:
-  JVD<T> const &get_Estimation() const { return *Jet_estimation_; }
-
-  JVD<T> const &get_Observation() const { return *Jet_observation_; }
-
-private:
   friend BaseEdgeWrapper<T>;
 
-  void bind_Jet_Estimation(const JVD<T> &Jet_estimation) {
-    Jet_estimation_ = &Jet_estimation;
+  void bindJVEstimation(const JVD<T> &JVEstimation) {
+    _JVEstimation = &JVEstimation;
   }
 
-  void bind_Jet_Observation(const JVD<T> &Jet_observation) {
-    Jet_observation_ = &Jet_observation;
+  void bindJVObservation(const JVD<T> &JVObservation) {
+    _JVObservation = &JVObservation;
   }
 
-  JVD<T> const *Jet_estimation_ = nullptr;
+  JVD<T> const *_JVEstimation{nullptr};
 
-  JVD<T> const *Jet_observation_ = nullptr;
+  JVD<T> const *_JVObservation{nullptr};
+
+public:
+  JVD<T> const &getEstimation() const { return *_JVEstimation; }
+
+  JVD<T> const &getObservation() const { return *_JVObservation; }
 };
 
 template <typename T>
@@ -229,16 +208,16 @@ class BaseEdgeWrapper : public std::vector<BaseVertexWrapper<T>> {
 
   friend EdgeVector<T>;
 
-  JVD<T> const *Jet_measurement_{nullptr};
+  JVD<T> const *_JVMeasurement{nullptr};
 
-  JVD<T> const &getMeasurement() const { return *Jet_measurement_; };
+  JVD<T> const &getMeasurement() const { return *_JVMeasurement; };
 
   void bindEdgeVector(const EdgeVector<T> *EV) {
-    Jet_measurement_ = &EV->getMeasurement();
+    _JVMeasurement = &EV->getMeasurement();
     parent::resize(EV->getEdges().size());
     for (int i = 0; i < parent::size(); ++i) {
-      (*this)[i].bind_Jet_Estimation(EV->getEstimation(i));
-      (*this)[i].bind_Jet_Observation(EV->getObservation(i));
+      (*this)[i].bindJVEstimation(EV->getEstimation(i));
+      (*this)[i].bindJVObservation(EV->getObservation(i));
     }
   };
 };
