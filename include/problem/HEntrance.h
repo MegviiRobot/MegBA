@@ -20,34 +20,34 @@ namespace MegBA {
     template<typename T>
     struct SchurHEntrance {
         // first is camera
-        using BlockRow_t = std::set<BaseVertex<T> *>;
-        using BlockMatrix_t = std::map<BaseVertex<T> *, BlockRow_t>;
-        std::array<BlockMatrix_t, 2> nra_;
-        using BlockRowRA_t = std::vector<BaseVertex<T> *>;
-        using BlockMatrixRA_t = std::vector<BlockRowRA_t>;
-        std::array<BlockMatrixRA_t, 2> ra_;
-        std::array<std::unique_ptr<int[]>, 2> csrRowPtr_;
-        std::array<std::unique_ptr<int[]>, 2> csrColInd_;
+        using BlockRow = std::set<BaseVertex<T> *>;
+        using BlockMatrix = std::map<BaseVertex<T> *, BlockRow>;
+        std::array<BlockMatrix, 2> nra;
+        using BlockRowRA = std::vector<BaseVertex<T> *>;
+        using BlockMatrixRA = std::vector<BlockRowRA>;
+        std::array<BlockMatrixRA, 2> ra;
+        std::array<std::unique_ptr<int[]>, 2> csrRowPtr;
+        std::array<std::unique_ptr<int[]>, 2> csrColInd;
         std::size_t counter{0};
-        std::array<int, 2> dim_{};
-        std::size_t nnz_in_E{};
+        std::array<int, 2> dim{};
+        std::size_t nnzInE{};
 
         SchurHEntrance() = default;
 
-        void BuildRandomAccess();
+        void buildRandomAccess();
     };
 
     template<typename T>
-    struct HEntrance_t {
-        using BlockRow_t = std::set<BaseVertex<T> *>;
-        using BlockMatrix_t = std::map<BaseVertex<T> *, BlockRow_t>;
-        std::unordered_map<VertexKind, std::array<BlockMatrix_t, 2>> nra_;
-        using BlockRowRA_t = std::vector<BaseVertex<T> *>;
-        using BlockMatrixRA_t = std::vector<BlockRowRA_t>;
-        std::unordered_map<VertexKind, std::array<BlockMatrixRA_t, 2>> ra_;
+    struct HEntrance {
+        using BlockRow = std::set<BaseVertex<T> *>;
+        using BlockMatrix = std::map<BaseVertex<T> *, BlockRow>;
+        std::unordered_map<VertexKind, std::array<BlockMatrix, 2>> nra;
+        using BlockRowRA = std::vector<BaseVertex<T> *>;
+        using BlockMatrixRA = std::vector<BlockRowRA>;
+        std::unordered_map<VertexKind, std::array<BlockMatrixRA, 2>> ra;
 
-        HEntrance_t();
+        HEntrance();
 
-        void BuildRandomAccess();
+        void buildRandomAccess();
     };
 }

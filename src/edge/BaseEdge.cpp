@@ -289,7 +289,7 @@ template <typename T> void EdgeVector<T>::makeSchurVertices() {
 
     std::size_t total_vertex_idx{0};
     for (int i = 0; i < _option.worldSize; ++i) {
-      const auto &schur_H_entrance_other = schurHEntrance[i].ra_[other_kind];
+      const auto &schur_H_entrance_other = schurHEntrance[i].ra[other_kind];
       omp_set_num_threads(16);
 #pragma omp parallel for
       for (int j = 0; j < schurHEntrance[i].counter; ++j) {
@@ -306,14 +306,14 @@ template <typename T> void EdgeVector<T>::makeSchurVertices() {
 
       schurCsrRowPtr[i][vertex_kind_idx] = std::move(
           const_cast<std::vector<SchurHEntrance<T>> &>(schurHEntrance)[i]
-              .csrRowPtr_[vertex_kind_idx]);
+              .csrRowPtr[vertex_kind_idx]);
       // fill csrRowPtr_. next row's csrRowPtr_ = this row's csrRowPtr_ + this row's non-zero element number.
       const unsigned int rows = vertex_vector[0]->get_Estimation().rows();
       const unsigned int cols = vertex_vector[0]->get_Estimation().cols();
       num[vertex_kind_idx] = vertices_set.size();
 
       schurEquationContainer[i].nnz[vertex_kind_idx] =
-          schurHEntrance[i].nnz_in_E;
+          schurHEntrance[i].nnzInE;
       schurEquationContainer[i].nnz[vertex_kind_idx + 2] =
           num[vertex_kind_idx] * rows * cols * rows * cols;
       schurEquationContainer[i].dim[vertex_kind_idx] = rows * cols;
