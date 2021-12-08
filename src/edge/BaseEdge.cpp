@@ -223,7 +223,7 @@ template <typename T> void EdgeVector<T>::allocateResourcePre() {
   }
   switch (_option.device) {
   case CUDA_t: {
-    cudaPrepareUpdateData();
+    PrepareUpdateDataCUDA();
     break;
   }
   default: {

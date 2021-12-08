@@ -177,7 +177,7 @@ public:
 
   void makeSchurVertices();
 
-  void cudaPrepareUpdateData();
+  void PrepareUpdateDataCUDA();
 
   JVD<T> forward();
 
