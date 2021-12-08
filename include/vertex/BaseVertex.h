@@ -1,8 +1,8 @@
 #pragma once
-#include <set>
-#include <map>
-#include <utility>
 #include <Eigen/Core>
+#include <map>
+#include <set>
+#include <utility>
 
 #include "Common.h"
 
@@ -25,10 +25,12 @@ template <typename T> struct BaseVertex {
   virtual ~BaseVertex() = default;
 
   template <typename Estimation> void setEstimation(Estimation &&estimation) {
-    _estimation = std::forward<Estimation>(estimation); };
+    _estimation = std::forward<Estimation>(estimation);
+  };
 
   template <typename Estimation> void setObservation(Estimation &&observation) {
-    _observation = std::forward<Estimation>(observation); };
+    _observation = std::forward<Estimation>(observation);
+  };
 
   const TD<T> &getEstimation() const { return _estimation; };
 
@@ -67,8 +69,7 @@ template <typename T> struct PointVertex : public BaseVertex<T> {
   VertexKind kind() final { return POINT; };
 };
 
-template <typename T>
-class VertexVector : public std::vector<BaseVertex<T> *> {
+template <typename T> class VertexVector : public std::vector<BaseVertex<T> *> {
   typedef std::vector<BaseVertex<T> *> parent;
   std::map<const BaseVertex<T> *, std::size_t> _vertexCounter;
   JVD<T> _JVEstimation;
@@ -222,4 +223,4 @@ class BaseEdgeWrapper : public std::vector<BaseVertexWrapper<T>> {
     }
   };
 };
-}
+} // namespace MegBA
