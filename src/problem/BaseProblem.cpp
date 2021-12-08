@@ -12,43 +12,44 @@
 
 namespace MegBA {
     namespace {
-        template<typename SchurHEntrance_t>
-        void InternalBuildRandomAccess(int i, SchurHEntrance_t & schur_H_entrance) {
-            const auto &H_entrance_block_matrix_ = schur_H_entrance.nra[i];
-            const auto dim_other = schur_H_entrance.dim[1^i];
-            auto &csrRowPtr_kind = schur_H_entrance.csrRowPtr[i];
-            auto &csrColInd_kind = schur_H_entrance.csrColInd[i];
-            csrRowPtr_kind.reset(new int[H_entrance_block_matrix_.size() * schur_H_entrance.dim[i] + 1]);
-            csrColInd_kind.reset(new int[schur_H_entrance.counter * schur_H_entrance.dim[i]]);
-            csrRowPtr_kind[0] = 0;
-            std::size_t row_counter{0};
-            std::size_t nnz_counter{0};
-            auto &H_entrance_ra_block_matrix_ = schur_H_entrance.ra[i];
-            H_entrance_ra_block_matrix_.clear();
-            H_entrance_ra_block_matrix_.reserve(H_entrance_block_matrix_.size());
+        template<typename SchurHEntrance>
+        void internalBuildRandomAccess(int i, SchurHEntrance &schurHEntrance) {
+            const auto &hEntranceBlockMatrix = schurHEntrance.nra[i];
+            const auto dimOther = schurHEntrance.dim[1^i];
+            auto &csrRowPtrKind = schurHEntrance.csrRowPtr[i];
+            auto &csrColIndKind = schurHEntrance.csrColInd[i];
+            csrRowPtrKind.reset(new int[hEntranceBlockMatrix.size() * schurHEntrance.dim[i] + 1]);
+            csrColIndKind.reset(new int[schurHEntrance.counter * schurHEntrance.dim[i]]);
+            csrRowPtrKind[0] = 0;
+            std::size_t rowCounter{0};
+            std::size_t nnzCounter{0};
+            auto &HEntranceRaBlockMatrix = schurHEntrance.ra[i];
+            HEntranceRaBlockMatrix.clear();
+            HEntranceRaBlockMatrix.reserve(hEntranceBlockMatrix.size());
             // row
-            for (const auto &row_iter : H_entrance_block_matrix_) {
-                const auto &H_entrance_block_row_ = row_iter.second;
-                const auto row_size = H_entrance_block_row_.size();
-                typename std::decay_t<decltype(H_entrance_ra_block_matrix_)>::value_type H_entrance_ra_block_row_;
-                H_entrance_ra_block_row_.reserve(row_size);
+            for (const auto &rowIter : hEntranceBlockMatrix) {
+                const auto &hEntranceBlockRow = rowIter.second;
+                const auto rowSize = hEntranceBlockRow.size();
+                typename std::decay_t<decltype(HEntranceRaBlockMatrix)>::value_type HEntranceRaBlockRow;
+                HEntranceRaBlockRow.reserve(rowSize);
                 // col
-                for (const auto &col : H_entrance_block_row_) {
-                    H_entrance_ra_block_row_.push_back(col);
-                    csrColInd_kind[nnz_counter] = col->absolutePosition;
-                    nnz_counter++;
+                for (const auto &col : hEntranceBlockRow) {
+                  HEntranceRaBlockRow.push_back(col);
+                    csrColIndKind[nnzCounter] = col->absolutePosition;
+                    nnzCounter++;
                 }
-                for (int j = 0; j < schur_H_entrance.dim[i]; ++j) {
-                    csrRowPtr_kind[row_counter + 1] = csrRowPtr_kind[row_counter] + row_size * dim_other;
-                    ++row_counter;
+                for (int j = 0; j < schurHEntrance.dim[i]; ++j) {
+                  csrRowPtrKind[rowCounter + 1] =
+                      csrRowPtrKind[rowCounter] + rowSize * dimOther;
+                    ++rowCounter;
                     if (j > 0) {
-                        memcpy(&csrColInd_kind[nnz_counter], &csrColInd_kind[nnz_counter - row_size], row_size * sizeof(int));
-                        nnz_counter += row_size;
+                        memcpy(&csrColIndKind[nnzCounter], &csrColIndKind[nnzCounter - rowSize], rowSize * sizeof(int));
+                        nnzCounter += rowSize;
                     }
                 }
-                H_entrance_ra_block_matrix_.push_back(std::move(H_entrance_ra_block_row_));
+                HEntranceRaBlockMatrix.push_back(std::move(HEntranceRaBlockRow));
             }
-            schur_H_entrance.nnzInE = csrRowPtr_kind[row_counter];
+            schurHEntrance.nnzInE = csrRowPtrKind[rowCounter];
         }
     }// namespace
 
@@ -56,39 +57,10 @@ namespace MegBA {
     void SchurHEntrance<T>::buildRandomAccess() {
         // camera and point
         std::vector<std::thread> threads;
-        threads.emplace_back(std::thread{InternalBuildRandomAccess<SchurHEntrance<T>>, 0, std::ref(*this)});
-        threads.emplace_back(std::thread{InternalBuildRandomAccess<SchurHEntrance<T>>, 1, std::ref(*this)});
+        threads.emplace_back(std::thread{internalBuildRandomAccess<SchurHEntrance<T>>, 0, std::ref(*this)});
+        threads.emplace_back(std::thread{internalBuildRandomAccess<SchurHEntrance<T>>, 1, std::ref(*this)});
         for (auto &thread : threads)
             thread.join();
-    }
-
-    template<typename T>
-    HEntrance<T>::HEntrance() : nra{std::make_pair(CAMERA, std::array<BlockMatrix, 2>{}), std::make_pair(POINT, std::array<BlockMatrix, 2>{})},
-          ra{std::make_pair(CAMERA, std::array<BlockMatrixRA, 2>{}), std::make_pair(POINT, std::array<BlockMatrixRA, 2>{})} {};
-
-    template<typename T>
-    void HEntrance<T>::buildRandomAccess() {
-        // camera and point
-        for (const auto &entrance_iter : nra) {
-            auto &H_entrance_ra_kind_ = ra[entrance_iter.first];
-            // pp & pl || ll & lp
-            for (int i = 0; i < entrance_iter.second.size(); ++i) {
-                const auto &H_entrance_block_matrix_ = entrance_iter.second[i];
-                auto &H_entrance_ra_block_matrix_ = H_entrance_ra_kind_[i];
-                H_entrance_ra_block_matrix_.clear();
-                H_entrance_ra_block_matrix_.reserve(H_entrance_block_matrix_.size());
-                // row
-                for (const auto &row_iter : H_entrance_block_matrix_) {
-                    const auto &H_entrance_block_row_ = row_iter.second;
-                    typename std::decay_t<decltype(H_entrance_ra_block_matrix_)>::value_type H_entrance_ra_block_row_;
-                    H_entrance_ra_block_row_.reserve(H_entrance_block_row_.size());
-                    // col
-                    for (const auto &col : H_entrance_block_row_)
-                        H_entrance_ra_block_row_.push_back(col);
-                    H_entrance_ra_block_matrix_.push_back(std::move(H_entrance_ra_block_row_));
-                }
-            }
-        }
     }
 
     template<typename T>
@@ -140,7 +112,7 @@ namespace MegBA {
                     auto &connection_block_matrix = working_schur_H_entrance.nra[kind];
                     auto connection_find = connection_block_matrix.find(vertex);
                     if (connection_find == connection_block_matrix.end()) {
-                        connection_find = connection_block_matrix.emplace(vertex, typename HEntrance<T>::BlockRow{}).first;
+                        connection_find = connection_block_matrix.emplace(vertex, typename SchurHEntrance<T>::BlockRow{}).first;
                     }
                     if (i == schur_ws_.working_device_) {
                         connection_find->second.emplace(edge[1^ vertex_idx]);

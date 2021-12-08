@@ -36,18 +36,4 @@ namespace MegBA {
 
         void buildRandomAccess();
     };
-
-    template<typename T>
-    struct HEntrance {
-        using BlockRow = std::set<BaseVertex<T> *>;
-        using BlockMatrix = std::map<BaseVertex<T> *, BlockRow>;
-        std::unordered_map<VertexKind, std::array<BlockMatrix, 2>> nra;
-        using BlockRowRA = std::vector<BaseVertex<T> *>;
-        using BlockMatrixRA = std::vector<BlockRowRA>;
-        std::unordered_map<VertexKind, std::array<BlockMatrixRA, 2>> ra;
-
-        HEntrance();
-
-        void buildRandomAccess();
-    };
 }
