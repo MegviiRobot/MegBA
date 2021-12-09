@@ -68,7 +68,7 @@ public:
   template <typename F>
   JetVector(const JetVector<T> &init_template, F &&math_func) {
     initAs(init_template);
-    math_func(*this);
+    math_func(this);
   }
 
   ~JetVector() { clear(); };

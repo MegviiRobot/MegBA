@@ -12,48 +12,48 @@ namespace math {
 namespace function {
 template <typename T>
 void vectorAddVectorCUDA(const JetVector<T> &f, const JetVector<T> &g,
-                         JetVector<T> &out);
+                         JetVector<T> *out);
 
 template <typename T>
 void vectorMinusVectorCUDA(const JetVector<T> &f, const JetVector<T> &g,
-                           JetVector<T> &out);
+                           JetVector<T> *out);
 
 template <typename T>
 void vectorMultipliesVectorCUDA(const JetVector<T> &f, const JetVector<T> &g,
-                                JetVector<T> &out);
+                                JetVector<T> *out);
 
 template <typename T>
 void vectorDividesVectorCUDA(const JetVector<T> &f, const JetVector<T> &g,
-                             JetVector<T> &out);
+                             JetVector<T> *out);
 
 template <typename T>
-void jetVectorAddScalarCUDA(const JetVector<T> &f, T g, JetVector<T> &out);
+void jetVectorAddScalarCUDA(const JetVector<T> &f, T g, JetVector<T> *out);
 
 template <typename T>
-void jetVectorMinusScalarCUDA(const JetVector<T> &f, T g, JetVector<T> &out);
+void jetVectorMinusScalarCUDA(const JetVector<T> &f, T g, JetVector<T> *out);
 
 template <typename T>
 void jetVectorMultipliesScalarCUDA(const JetVector<T> &f, T g,
-                                   JetVector<T> &out);
+                                   JetVector<T> *out);
 
 template <typename T>
-void scalarMinusJetVectorCUDA(T f, const JetVector<T> &g, JetVector<T> &out);
+void scalarMinusJetVectorCUDA(T f, const JetVector<T> &g, JetVector<T> *out);
 
 template <typename T>
-void scalarDividesJetVectorCUDA(T f, const JetVector<T> &g, JetVector<T> &out);
+void scalarDividesJetVectorCUDA(T f, const JetVector<T> &g, JetVector<T> *out);
 
 template <typename T>
-void abs_JetVector_CUDA(const MegBA::JetVector<T> &f, MegBA::JetVector<T> &out);
+void abs_JetVector_CUDA(const MegBA::JetVector<T> &f, MegBA::JetVector<T> *out);
 
 template <typename T>
-void cos_JetVector_CUDA(const MegBA::JetVector<T> &f, MegBA::JetVector<T> &out);
+void cos_JetVector_CUDA(const MegBA::JetVector<T> &f, MegBA::JetVector<T> *out);
 
 template <typename T>
-void sin_JetVector_CUDA(const MegBA::JetVector<T> &f, MegBA::JetVector<T> &out);
+void sin_JetVector_CUDA(const MegBA::JetVector<T> &f, MegBA::JetVector<T> *out);
 
 template <typename T>
 void sqrt_JetVector_CUDA(const MegBA::JetVector<T> &f,
-                         MegBA::JetVector<T> &out);
+                         MegBA::JetVector<T> *out);
 }
 }
 }

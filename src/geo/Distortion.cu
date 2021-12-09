@@ -99,15 +99,15 @@ __global__ void RadialDistortionFastGradKernel(
 
 template <typename T>
 void RadialDistortionImpl(const JV3<T> &point, const JV3<T> &intrinsic,
-                          JetVector<T> &out) {
-  const auto N = out.getGradShape();
+                          JetVector<T> *out) {
+  const auto N = out->getGradShape();
   bool use_fast_grad{true};
   for (int i = 0; i < 3; ++i)
     use_fast_grad &= intrinsic(i).getGradPosition() != -1;
 
   for (int i = 0; i < MemoryPool::getWorldSize(); ++i) {
     cudaSetDevice(i);
-    const auto nElm = out.getElmNum(i);
+    const auto nElm = out->getElmNum(i);
     dim3 block_dim(std::min(decltype(nElm)(256), nElm));
     dim3 grid_dim((nElm - 1) / block_dim.x + 1);
     if (intrinsic(0).getGradShape() == 0) {
@@ -116,8 +116,8 @@ void RadialDistortionImpl(const JV3<T> &point, const JV3<T> &intrinsic,
           point(1).getCUDAResPtr()[i], point(0).getCUDAGradPtr()[i],
           point(1).getCUDAGradPtr()[i], intrinsic(0).getCUDAResPtr()[i],
           intrinsic(1).getCUDAResPtr()[i],
-          intrinsic(2).getCUDAResPtr()[i], out.getCUDAResPtr()[i],
-          out.getCUDAGradPtr()[i]);
+          intrinsic(2).getCUDAResPtr()[i], out->getCUDAResPtr()[i],
+          out->getCUDAGradPtr()[i]);
     } else {
       if (use_fast_grad) {
         RadialDistortionFastGradKernel<T><<<grid_dim, block_dim>>>(
@@ -127,8 +127,8 @@ void RadialDistortionImpl(const JV3<T> &point, const JV3<T> &intrinsic,
             intrinsic(1).getCUDAResPtr()[i],
             intrinsic(2).getCUDAResPtr()[i],
             intrinsic(0).getGradPosition(), intrinsic(1).getGradPosition(),
-            intrinsic(2).getGradPosition(), out.getCUDAResPtr()[i],
-            out.getCUDAGradPtr()[i]);
+            intrinsic(2).getGradPosition(), out->getCUDAResPtr()[i],
+            out->getCUDAGradPtr()[i]);
       } else {
         RadialDistortionKernel<T><<<grid_dim, block_dim>>>(
             nElm, N, point(0).getCUDAResPtr()[i],
@@ -138,8 +138,8 @@ void RadialDistortionImpl(const JV3<T> &point, const JV3<T> &intrinsic,
             intrinsic(2).getCUDAResPtr()[i],
             intrinsic(0).getCUDAGradPtr()[i],
             intrinsic(1).getCUDAGradPtr()[i],
-            intrinsic(2).getCUDAGradPtr()[i], out.getCUDAResPtr()[i],
-            out.getCUDAGradPtr()[i]);
+            intrinsic(2).getCUDAGradPtr()[i], out->getCUDAResPtr()[i],
+            out->getCUDAGradPtr()[i]);
       }
     }
   }
@@ -148,15 +148,15 @@ void RadialDistortionImpl(const JV3<T> &point, const JV3<T> &intrinsic,
 template <typename T>
 void RadialDistortionImpl(const JV3<T> &point,
                           const Eigen::Map<const JV3<T>> &intrinsic,
-                          JetVector<T> &out) {
-  const auto N = out.getGradShape();
+                          JetVector<T> *out) {
+  const auto N = out->getGradShape();
   bool use_fast_grad{true};
   for (int i = 0; i < 3; ++i)
     use_fast_grad &= intrinsic(i).getGradPosition() != -1;
 
   for (int i = 0; i < MemoryPool::getWorldSize(); ++i) {
     cudaSetDevice(i);
-    const auto nElm = out.getElmNum(i);
+    const auto nElm = out->getElmNum(i);
     dim3 block_dim(std::min(decltype(nElm)(256), nElm));
     dim3 grid_dim((nElm - 1) / block_dim.x + 1);
     if (intrinsic(0).getGradShape() == 0) {
@@ -165,8 +165,8 @@ void RadialDistortionImpl(const JV3<T> &point,
           point(1).getCUDAResPtr()[i], point(0).getCUDAGradPtr()[i],
           point(1).getCUDAGradPtr()[i], intrinsic(0).getCUDAResPtr()[i],
           intrinsic(1).getCUDAResPtr()[i],
-          intrinsic(2).getCUDAResPtr()[i], out.getCUDAResPtr()[i],
-          out.getCUDAGradPtr()[i]);
+          intrinsic(2).getCUDAResPtr()[i], out->getCUDAResPtr()[i],
+          out->getCUDAGradPtr()[i]);
     } else {
       if (use_fast_grad) {
         RadialDistortionFastGradKernel<T><<<grid_dim, block_dim>>>(
@@ -176,8 +176,8 @@ void RadialDistortionImpl(const JV3<T> &point,
             intrinsic(1).getCUDAResPtr()[i],
             intrinsic(2).getCUDAResPtr()[i],
             intrinsic(0).getGradPosition(), intrinsic(1).getGradPosition(),
-            intrinsic(2).getGradPosition(), out.getCUDAResPtr()[i],
-            out.getCUDAGradPtr()[i]);
+            intrinsic(2).getGradPosition(), out->getCUDAResPtr()[i],
+            out->getCUDAGradPtr()[i]);
       } else {
         RadialDistortionKernel<T><<<grid_dim, block_dim>>>(
             nElm, N, point(0).getCUDAResPtr()[i],
@@ -187,8 +187,8 @@ void RadialDistortionImpl(const JV3<T> &point,
             intrinsic(2).getCUDAResPtr()[i],
             intrinsic(0).getCUDAGradPtr()[i],
             intrinsic(1).getCUDAGradPtr()[i],
-            intrinsic(2).getCUDAGradPtr()[i], out.getCUDAResPtr()[i],
-            out.getCUDAGradPtr()[i]);
+            intrinsic(2).getCUDAGradPtr()[i], out->getCUDAResPtr()[i],
+            out->getCUDAGradPtr()[i]);
       }
     }
   }
@@ -197,15 +197,15 @@ void RadialDistortionImpl(const JV3<T> &point,
 template <typename T>
 void RadialDistortionImpl(const JV3<T> &point,
                           const Eigen::Map<const JVD<T>> &intrinsic,
-                          JetVector<T> &out) {
-  const auto N = out.getGradShape();
+                          JetVector<T> *out) {
+  const auto N = out->getGradShape();
   bool use_fast_grad{true};
   for (int i = 0; i < 3; ++i)
     use_fast_grad &= intrinsic(i).getGradPosition() != -1;
 
   for (int i = 0; i < MemoryPool::getWorldSize(); ++i) {
     cudaSetDevice(i);
-    const auto nElm = out.getElmNum(i);
+    const auto nElm = out->getElmNum(i);
     dim3 block_dim(std::min(decltype(nElm)(256), nElm));
     dim3 grid_dim((nElm - 1) / block_dim.x + 1);
     if (intrinsic(0).getGradShape() == 0) {
@@ -214,8 +214,8 @@ void RadialDistortionImpl(const JV3<T> &point,
           point(1).getCUDAResPtr()[i], point(0).getCUDAGradPtr()[i],
           point(1).getCUDAGradPtr()[i], intrinsic(0).getCUDAResPtr()[i],
           intrinsic(1).getCUDAResPtr()[i],
-          intrinsic(2).getCUDAResPtr()[i], out.getCUDAResPtr()[i],
-          out.getCUDAGradPtr()[i]);
+          intrinsic(2).getCUDAResPtr()[i], out->getCUDAResPtr()[i],
+          out->getCUDAGradPtr()[i]);
     } else {
       if (use_fast_grad) {
         RadialDistortionFastGradKernel<T><<<grid_dim, block_dim>>>(
@@ -225,8 +225,8 @@ void RadialDistortionImpl(const JV3<T> &point,
             intrinsic(1).getCUDAResPtr()[i],
             intrinsic(2).getCUDAResPtr()[i],
             intrinsic(0).getGradPosition(), intrinsic(1).getGradPosition(),
-            intrinsic(2).getGradPosition(), out.getCUDAResPtr()[i],
-            out.getCUDAGradPtr()[i]);
+            intrinsic(2).getGradPosition(), out->getCUDAResPtr()[i],
+            out->getCUDAGradPtr()[i]);
       } else {
         RadialDistortionKernel<T><<<grid_dim, block_dim>>>(
             nElm, N, point(0).getCUDAResPtr()[i],
@@ -236,8 +236,8 @@ void RadialDistortionImpl(const JV3<T> &point,
             intrinsic(2).getCUDAResPtr()[i],
             intrinsic(0).getCUDAGradPtr()[i],
             intrinsic(1).getCUDAGradPtr()[i],
-            intrinsic(2).getCUDAGradPtr()[i], out.getCUDAResPtr()[i],
-            out.getCUDAGradPtr()[i]);
+            intrinsic(2).getCUDAGradPtr()[i], out->getCUDAResPtr()[i],
+            out->getCUDAGradPtr()[i]);
       }
     }
   }
@@ -246,7 +246,7 @@ void RadialDistortionImpl(const JV3<T> &point,
 
 template <typename T>
 JetVector<T> RadialDistortion(const JV3<T> &point, const JV3<T> &intrinsic) {
-  return JetVector<T>{point(0, 0), [&](JetVector<T> &out) {
+  return JetVector<T>{point(0, 0), [&](JetVector<T> *out) {
                          RadialDistortionImpl(point, intrinsic, out);
                        }};
 }
@@ -254,7 +254,7 @@ JetVector<T> RadialDistortion(const JV3<T> &point, const JV3<T> &intrinsic) {
 template <typename T>
 JetVector<T> RadialDistortion(const JV3<T> &point,
                                const Eigen::Map<const JV3<T>> &intrinsic) {
-  return JetVector<T>{point(0), [&](JetVector<T> &out) {
+  return JetVector<T>{point(0), [&](JetVector<T> *out) {
                          RadialDistortionImpl(point, intrinsic, out);
                        }};
 }
@@ -263,7 +263,7 @@ template <typename T>
 JetVector<T> RadialDistortion(const JV3<T> &point,
                                const Eigen::Map<const JVD<T>> &intrinsic) {
   assert(intrinsic.rows() == 3 && intrinsic.cols() == 1);
-  return JetVector<T>{point(0), [&](JetVector<T> &out) {
+  return JetVector<T>{point(0), [&](JetVector<T> *out) {
                          RadialDistortionImpl(point, intrinsic, out);
                        }};
 }
