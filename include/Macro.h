@@ -11,14 +11,14 @@
 #include <Eigen/Sparse>
 
 #if DEBUG
-#define PRINT_DMEMORY(d_ptr, nElm, T)                                   \
-do {                                                                    \
+#define PRINT_DMEMORY(d_ptr, nElm, T)                                     \
+do {                                                                      \
     T *__ptr = new T[nElm];                                               \
     cudaMemcpy(__ptr, d_ptr, (nElm) * sizeof(T), cudaMemcpyDeviceToHost); \
-    std::cout << #d_ptr << ": ";                                        \
-    for (std::size_t __i = 0; __i < (nElm); ++__i)                            \
-        std::cout << __ptr[__i] << " ";                                     \
-    std::cout << std::endl;                                             \
+    std::cout << #d_ptr << ": ";                                          \
+    for (std::size_t __i = 0; __i < (nElm); ++__i)                        \
+        std::cout << __ptr[__i] << " ";                                   \
+    std::cout << std::endl;                                               \
     delete[] __ptr;                                                       \
 } while(false)
 

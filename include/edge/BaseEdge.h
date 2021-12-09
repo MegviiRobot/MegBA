@@ -183,7 +183,7 @@ public:
 
   void fitDevice();
 
-  void buildLinearSystemSchur(JVD<T> &jetEstimation);
+  void buildLinearSystemSchur(const JVD<T> &jetEstimation);
 
   void buildLinearSystemSchurCUDA(const JVD<T> &jetEstimation);
 
