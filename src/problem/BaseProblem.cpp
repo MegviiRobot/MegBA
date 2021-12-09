@@ -64,81 +64,71 @@ namespace MegBA {
     }
 
     template<typename T>
-    BaseProblem<T>::BaseProblem(ProblemOption option) : option_(option) {
+    BaseProblem<T>::BaseProblem(ProblemOption option) : option(option) {
         if (option.N != -1 && option.nElm != -1)
           MemoryPool::resetPool(option.N, option.nElm, sizeof(T),
                                  option.worldSize);
         if (option.useSchur) {
-            schur_ws_.split_size_ = option.nElm / option.worldSize + 1;
-            schur_ws_.working_device_ = 0;
-            schur_ws_.schur_H_entrance_.resize(option.worldSize);
-            schur_ws_.schur_H_entrance_.shrink_to_fit();
+          schurWS.splitSize = option.nElm / option.worldSize + 1;
+          schurWS.workingDevice = 0;
+          schurWS.schurHEntrance.resize(option.worldSize);
+          schurWS.schurHEntrance.shrink_to_fit();
         }
     }
 
     template<typename T>
     const device_t &BaseProblem<T>::getDevice() const {
-        return option_.device;
+        return option.device;
     }
 
     template<typename T>
-    void BaseProblem<T>::append_Vertex(int ID, BaseVertex<T> &vertex) {
-        append_Vertex(ID, &vertex);
-    }
-
-    template<typename T>
-    void BaseProblem<T>::append_Vertex(int ID, BaseVertex<T> *vertex) {
+    void BaseProblem<T>::appendVertex(int ID, BaseVertex<T> *vertex) {
         vertices.insert(std::make_pair(ID, vertex));
     }
 
     template<typename T>
-    void BaseProblem<T>::append_Edge(BaseEdge<T> &edge) {
-        bool success = edges.tryPushBack(&edge);
-        if (!success) {
-          edges.tryPushBack(&edge);
-        }
-        for (int vertex_idx = edge.size() - 1; vertex_idx >= 0; --vertex_idx) {
-            auto vertex = edge[vertex_idx];
-            auto kind = vertex->kind();
-            auto find = vertices_sets.find(kind);
-            if (find == vertices_sets.end())
-                vertices_sets.emplace(vertex->kind(), std::set<BaseVertex<T> *>{vertex});
-            else
-                find->second.emplace(vertex);
+    void BaseProblem<T>::appendEdge(BaseEdge<T> *edge) {
+      bool success = edges.tryPushBack(edge);
+      if (!success) {
+        edges.tryPushBack(edge);
+      }
+      for (int vertex_idx = edge->size() - 1; vertex_idx >= 0; --vertex_idx) {
+        auto vertex = edge->operator[](vertex_idx);
+        auto kind = vertex->kind();
+        auto find = verticesSets.find(kind);
+        if (find == verticesSets.end())
+          verticesSets.emplace(vertex->kind(), std::set<BaseVertex<T> *>{vertex});
+        else
+          find->second.emplace(vertex);
 
-            if (option_.useSchur) {
-                for (int i = 0; i < option_.worldSize; ++i) {
-                    auto &working_schur_H_entrance = schur_H_entrance_[i];
-                    working_schur_H_entrance.dim[kind] = vertex->getGradShape();
-                    auto &connection_block_matrix = working_schur_H_entrance.nra[kind];
-                    auto connection_find = connection_block_matrix.find(vertex);
-                    if (connection_find == connection_block_matrix.end()) {
-                        connection_find = connection_block_matrix.emplace(vertex, typename SchurHEntrance<T>::BlockRow{}).first;
-                    }
-                    if (i == schur_ws_.working_device_) {
-                        connection_find->second.emplace(edge[1^ vertex_idx]);
-                    }
-                }
-            } else {
-              // TODO: implement this
+        if (option.useSchur) {
+          for (int i = 0; i < option.worldSize; ++i) {
+            auto &working_schur_H_entrance = schurWS.schurHEntrance[i];
+            working_schur_H_entrance.dim[kind] = vertex->getGradShape();
+            auto &connection_block_matrix = working_schur_H_entrance.nra[kind];
+            auto connection_find = connection_block_matrix.find(vertex);
+            if (connection_find == connection_block_matrix.end()) {
+              connection_find = connection_block_matrix.emplace(vertex, typename SchurHEntrance<T>::BlockRow{}).first;
             }
-        }
-        if (option_.useSchur) {
-            auto &working_schur_H_entrance = schur_H_entrance_[schur_ws_.working_device_];
-            working_schur_H_entrance.counter++;
-            if (working_schur_H_entrance.counter >= schur_ws_.split_size_)
-                schur_ws_.working_device_++;
+            if (i == schurWS.workingDevice) {
+              connection_find->second.emplace(edge->operator[](1^ vertex_idx));
+            }
+          }
         } else {
           // TODO: implement this
         }
+      }
+      if (option.useSchur) {
+        auto &working_schur_H_entrance = schurWS.schurHEntrance[schurWS.workingDevice];
+        working_schur_H_entrance.counter++;
+        if (working_schur_H_entrance.counter >= schurWS.splitSize)
+          schurWS.workingDevice++;
+      } else {
+        // TODO: implement this
+      }
     }
 
-    template<typename T>
-    void BaseProblem<T>::append_Edge(BaseEdge<T> *edge) {
-        append_Edge(*edge);
-    }
-
-    template<typename T> BaseVertex<T> &BaseProblem<T>::get_Vertex(int ID) {
+    template<typename T> BaseVertex<T> &BaseProblem<T>::getVertex(int ID) {
         auto vertex = vertices.find(ID);
         if (vertex == vertices.end())
             throw std::runtime_error("The ID " + std::to_string(ID) + " does not exist in the current graph.");
@@ -146,7 +136,7 @@ namespace MegBA {
     }
 
     template<typename T>
-    const BaseVertex<T> &BaseProblem<T>::get_Vertex(int ID) const {
+    const BaseVertex<T> &BaseProblem<T>::getVertex(int ID) const {
         const auto vertex = vertices.find(ID);
         if (vertex == vertices.end())
             throw std::runtime_error("The ID " + std::to_string(ID) + " does not exist in the current graph.");
@@ -161,17 +151,17 @@ namespace MegBA {
         edges.eraseVertex(*vertex->second);
         vertices.erase(ID);
 
-        for (auto &vertices_set : vertices_sets) {
+        for (auto &vertices_set : verticesSets) {
             vertices_set.second.erase(vertex->second);
         }
     }
 
     template<typename T>
-    void BaseProblem<T>::DeallocateResource() {
+    void BaseProblem<T>::deallocateResource() {
       edges.deallocateResource();
-        switch (option_.device) {
+        switch (option.device) {
             case CUDA_t:
-              cudaDeallocateResource();
+              deallocateResourceCUDA();
                 break;
             default:
                 throw std::runtime_error("Not Implemented.");
@@ -179,9 +169,9 @@ namespace MegBA {
     }
 
     template<typename T>
-    unsigned int BaseProblem<T>::get_Hessian_Shape() const {
+    unsigned int BaseProblem<T>::getHessianShape() const {
         unsigned int Grad_Shape = 0;
-        for (const auto &vertex_set_pair : vertices_sets) {
+        for (const auto &vertex_set_pair : verticesSets) {
             const auto &vertex_set = vertex_set_pair.second;
             BaseVertex<T> const *vertex_ptr = *vertex_set.begin();
             Grad_Shape += vertex_set.size() * vertex_ptr->getGradShape();
@@ -190,10 +180,10 @@ namespace MegBA {
     }
 
     template<typename T>
-    void BaseProblem<T>::PrepareUpdateData() {
-        switch (option_.device) {
+    void BaseProblem<T>::prepareUpdateData() {
+        switch (option.device) {
             case CUDA_t:
-              cudaPrepareUpdateData();
+              prepareUpdateDataCUDA();
                 break;
             default:
                 throw std::runtime_error("Not Implemented.");
@@ -201,13 +191,13 @@ namespace MegBA {
     }
 
     template<typename T>
-    void BaseProblem<T>::MakeVertices() {
-        Hessian_shape_ = get_Hessian_Shape();
-        PrepareUpdateData();
-        set_absolute_position();
-        if (option_.useSchur) {
+    void BaseProblem<T>::makeVertices() {
+      hessianShape = getHessianShape();
+      prepareUpdateData();
+        setAbsolutePosition();
+        if (option.useSchur) {
             std::vector<std::thread> threads;
-            for (auto &schur_H_entrance : schur_H_entrance_) {
+            for (auto &schur_H_entrance : schurWS.schurHEntrance) {
                 threads.emplace_back(std::thread{[&](){ schur_H_entrance.buildRandomAccess();}});
             }
             for (auto &thread : threads) {
@@ -217,7 +207,7 @@ namespace MegBA {
           // TODO: implement this
         }
 
-        edges.verticesSetPtr = &vertices_sets;
+        edges.verticesSetPtr = &verticesSets;
         edges.allocateResourcePre();
         edges.makeVertices();
         edges.allocateResourcePost();
@@ -226,10 +216,10 @@ namespace MegBA {
     }
 
     template<typename T>
-    void BaseProblem<T>::set_absolute_position() {
-        T *hx_ptr = new T[Hessian_shape_];
+    void BaseProblem<T>::setAbsolutePosition() {
+        T *hx_ptr = new T[hessianShape];
         std::size_t entrance_bias{0};
-        for (auto &set_pair : vertices_sets) {
+        for (auto &set_pair : verticesSets) {
             auto &set = set_pair.second;
             int absolute_position_counter = 0;
             bool fixed = (*set.begin())->fixed;
@@ -244,10 +234,10 @@ namespace MegBA {
                 }
             }
         }
-        if (option_.useSchur) {
+        if (option.useSchur) {
             for (int i = 0; i < MemoryPool::getWorldSize(); ++i) {
                 cudaSetDevice(i);
-                cudaMemcpyAsync(schur_x_ptr[i], hx_ptr, Hessian_shape_ * sizeof(T), cudaMemcpyHostToDevice);
+                cudaMemcpyAsync(schurXPtr[i], hx_ptr, hessianShape * sizeof(T), cudaMemcpyHostToDevice);
             }
         } else {
           // TODO: implement this
@@ -256,26 +246,26 @@ namespace MegBA {
     }
 
     template<typename T>
-    bool BaseProblem<T>::SolveLinear(double tol, double solver_refuse_ratio, std::size_t max_iter) {
-        switch (option_.device) {
+    bool BaseProblem<T>::solveLinear(double tol, double solverRefuseRatio, std::size_t maxIter) {
+        switch (option.device) {
             case CUDA_t:
-                return cudaSolveLinear(tol, solver_refuse_ratio, max_iter);
+                return solveLinearCUDA(tol, solverRefuseRatio, maxIter);
             default:
                 throw std::runtime_error("Not Implemented.");
         }
     }
 
     template<typename T>
-    void BaseProblem<T>::WriteBack() {
-        T *hx_ptr = new T[Hessian_shape_];
+    void BaseProblem<T>::writeBack() {
+        T *hx_ptr = new T[hessianShape];
         std::size_t entrance_bias{0};
-        if (option_.useSchur) {
+        if (option.useSchur) {
             cudaSetDevice(0);
-            cudaMemcpy(hx_ptr, schur_x_ptr[0], Hessian_shape_ * sizeof(T), cudaMemcpyDeviceToHost);
+            cudaMemcpy(hx_ptr, schurXPtr[0], hessianShape * sizeof(T), cudaMemcpyDeviceToHost);
         } else {
           // TODO: implement this
         }
-        for (auto &vertex_set_pair : vertices_sets) {
+        for (auto &vertex_set_pair : verticesSets) {
             auto &vertex_set = vertex_set_pair.second;
             if ((*vertex_set.begin())->fixed)
                 continue;

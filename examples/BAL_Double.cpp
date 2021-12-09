@@ -147,26 +147,27 @@ int main(int argc, char *arcv[]) {
 
 
     for (int n = 0; n < num_cameras; ++n) {
-        problem.append_Vertex(std::get<0>(camera_vertices[n]), new MegBA::CameraVertex<T>());
+        problem.appendVertex(std::get<0>(camera_vertices[n]), new MegBA::CameraVertex<T>());
 
         //        Eigen::Matrix<T, 6, 1> camera;
         //        camera.head(3) = std::get<1>(camera_vertices[n]).head(3);
         //        camera.tail(3) = std::get<1>(camera_vertices[n]).segment(3, 3);
-        problem.get_Vertex(std::get<0>(camera_vertices[n])).setEstimation(std::get<1>(std::move(camera_vertices[n])));
-        //        problem.get_Vertex(std::get<0>(camera_vertices[n])).set_Observation(std::get<1>(camera_vertices[n]).tail(3));
-        //        problem.get_Vertex(std::get<0>(camera_vertices[n])).set_Fixed(true);
+        problem.getVertex(std::get<0>(camera_vertices[n])).setEstimation(std::get<1>(std::move(camera_vertices[n])));
+        //        problem.getVertex(std::get<0>(camera_vertices[n])).set_Observation(std::get<1>(camera_vertices[n]).tail(3));
+        //        problem.getVertex(std::get<0>(camera_vertices[n])).set_Fixed(true);
     }
     for (int n = 0; n < num_points; ++n) {
-        problem.append_Vertex(std::get<0>(point_vertices[n]), new MegBA::PointVertex<T>());
-        problem.get_Vertex(std::get<0>(point_vertices[n])).setEstimation(std::get<1>(std::move(point_vertices[n])));
+        problem.appendVertex(std::get<0>(point_vertices[n]), new MegBA::PointVertex<T>());
+        problem.getVertex(std::get<0>(point_vertices[n])).setEstimation(std::get<1>(std::move(point_vertices[n])));
     }
 
     for (int j = 0; j < num_observations; ++j) {
         auto edge_ptr = new BAL_Edge<T>;
-        edge_ptr->appendVertex(&problem.get_Vertex(std::get<0>(edge[j])));
-        edge_ptr->appendVertex(&problem.get_Vertex(std::get<1>(edge[j])));
+        edge_ptr->appendVertex(&problem.getVertex(std::get<0>(edge[j])));
+        edge_ptr->appendVertex(&problem.getVertex(std::get<1>(edge[j])));
         edge_ptr->setMeasurement(std::get<2>(std::move(edge[j])));
-        problem.append_Edge(edge_ptr);
+        problem.appendEdge(edge_ptr);
     }
-    problem.SolveLM(iter, solver_tol, solver_refuse_ratio, solver_max_iter, tau, epsilon1, epsilon2);
+    problem.solveLM(iter, solver_tol, solver_refuse_ratio, solver_max_iter, tau,
+                    epsilon1, epsilon2);
 }

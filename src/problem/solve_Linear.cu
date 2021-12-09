@@ -749,10 +749,10 @@ MemoryPool::allocateNormal((void **)&INFO[i],
     }
 
     template<typename T>
-    bool BaseProblem<T>::cudaSolveLinear(double tol, double solver_refuse_ratio, std::size_t max_iter) {
+    bool BaseProblem<T>::solveLinearCUDA(double tol, double solverRefuseRatio, std::size_t maxIter) {
         bool success;
 
-        if (option_.useSchur) {
+        if (option.useSchur) {
             // TODO: need great change
             const auto world_size = MemoryPool::getWorldSize();
             std::vector<T *> Hpp_csrVal{static_cast<std::size_t>(world_size)};
@@ -792,11 +792,11 @@ MemoryPool::allocateNormal((void **)&INFO[i],
                 Hpl_nnz[i] = schur_equation_container.nnz[0];
                 Hpp_rows = schur_equation_container.nnz[2] / schur_equation_container.dim[0];
                 Hll_rows = schur_equation_container.nnz[3] / schur_equation_container.dim[1];
-                delta_x[i] = schur_delta_x_ptr[i];
+                delta_x[i] = schurDeltaXPtr[i];
             }
 
             success = SchurSolverDistributed(
-                    tol, solver_refuse_ratio, max_iter,
+                    tol, solverRefuseRatio, maxIter,
                     Hpp_csrVal,
                     Hll_csrVal,
                     Hpl_csrVal, Hpl_csrColInd, Hpl_csrRowPtr,

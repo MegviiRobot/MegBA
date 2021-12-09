@@ -6,80 +6,79 @@
 **/
 
 #pragma once
-#include <vector>
-#include <map>
-#include <memory>
-#include <Common.h>
-#include <edge/BaseEdge.h>
-#include <vertex/BaseVertex.h>
-#include <problem/HEntrance.h>
 #include <cusparse_v2.h>
+#include <vector>
+#include <unordered_map>
+#include <memory>
+#include <set>
+#include "Common.h"
+#include "edge/BaseEdge.h"
+#include "vertex/BaseVertex.h"
+#include "problem/HEntrance.h"
 
 namespace MegBA {
-    template<typename T>
-    class BaseProblem {
-        void DeallocateResource();
+template <typename T> class BaseProblem {
+  const ProblemOption option;
 
-        void cudaDeallocateResource();
+  std::size_t hessianShape{0};
+  std::unordered_map<int, BaseVertex<T> *> vertices{};
+  std::unordered_map<VertexKind, std::set<BaseVertex<T> *>> verticesSets{};
+  struct SchurWorkingSpace_t {
+    // first: working index, second: body
+    std::size_t splitSize{0};
+    int workingDevice{0};
+    std::vector<SchurHEntrance<T>> schurHEntrance;
+  } schurWS{};
+  EdgeVector<T> edges{option, schurWS.schurHEntrance};
 
-        unsigned int get_Hessian_Shape() const;
+  std::vector<T *> schurXPtr{nullptr};
+  std::vector<T *> schurDeltaXPtr{nullptr};
+  std::vector<T *> schurDeltaXPtrBackup{nullptr};
 
-        void MakeVertices();
+  void deallocateResource();
 
-        const ProblemOption option_;
+  void deallocateResourceCUDA();
 
-        std::size_t Hessian_shape_{0};
-        std::unordered_map<int, BaseVertex<T> *> vertices{};
-        std::unordered_map<VertexKind, std::set<BaseVertex<T> *>> vertices_sets{};
-        struct SchurWorkingSpace_t {
-            // first: working index, second: body
-            std::size_t split_size_{0};
-            int working_device_{0};
-            std::vector<SchurHEntrance<T>> schur_H_entrance_;
-        } schur_ws_{};
-        std::vector<SchurHEntrance<T>> &schur_H_entrance_{schur_ws_.schur_H_entrance_};
-        EdgeVector<T> edges{option_, schur_H_entrance_};
+  unsigned int getHessianShape() const;
 
-        std::vector<T *> schur_x_ptr{nullptr};
-        std::vector<T *> schur_delta_x_ptr{nullptr};
-        std::vector<T *> schur_delta_x_ptr_backup{nullptr};
-    public:
-        explicit BaseProblem(ProblemOption option= ProblemOption{});
+  void makeVertices();
 
-        ~BaseProblem() = default;
+  void setAbsolutePosition();
 
-        const device_t &getDevice() const;
+  bool solveLinear(double tol, double solverRefuseRatio,
+                   std::size_t maxIter);
 
-        void append_Vertex(int ID, BaseVertex<T> &vertex);
+  bool solveLinearCUDA(double tol, double solverRefuseRatio,
+                       std::size_t maxIter);
 
-        void append_Vertex(int ID, BaseVertex<T> *vertex);
+  void prepareUpdateData();
 
-        void append_Edge(BaseEdge<T> &edge);
+  void writeBack();
 
-        void append_Edge(BaseEdge<T> *edge);
+  void prepareUpdateDataCUDA();
 
-        BaseVertex<T> &get_Vertex(int ID);
+  void backupLM();
 
-        const BaseVertex<T> &get_Vertex(int ID) const;
+  void rollbackLM();
+ public:
+  explicit BaseProblem(ProblemOption option = ProblemOption{});
 
-        void eraseVertex(int ID);
+  ~BaseProblem() = default;
 
-        void set_absolute_position();
+  const device_t &getDevice() const;
 
-        bool SolveLinear(double tol, double solver_refuse_ratio, std::size_t max_iter);
+  void appendVertex(int ID, BaseVertex<T> *vertex);
 
-        bool cudaSolveLinear(double tol, double solver_refuse_ratio, std::size_t max_iter);
+  void appendEdge(BaseEdge<T> *edge);
 
-        void PrepareUpdateData();
+  BaseVertex<T> &getVertex(int ID);
 
-        void WriteBack();
+  const BaseVertex<T> &getVertex(int ID) const;
 
-        void cudaPrepareUpdateData();
+  void eraseVertex(int ID);
 
-        void SolveLM(int iter, double solver_tol, double solver_refuse_ratio, int solver_max_iter, double tau, double epsilon1, double epsilon2);
-
-        void BackupLM();
-
-        void RollbackLM();
-    };
-}
+  void solveLM(int iter, double solverTol, double solverRefuseRatio,
+               int solverMaxIter, double tau, double epsilon1,
+               double epsilon2);
+};
+}  // namespace MegBA

@@ -14,34 +14,34 @@
 #include <thrust/async/reduce.h>
 
 namespace MegBA {
-template <typename T> void BaseProblem<T>::cudaDeallocateResource() {
-  if (option_.useSchur) {
+template <typename T> void BaseProblem<T>::deallocateResourceCUDA() {
+  if (option.useSchur) {
     for (int i = 0; i < MemoryPool::getWorldSize(); ++i) {
       cudaSetDevice(i);
-      cudaFree(schur_x_ptr[i]);
-      cudaFree(schur_delta_x_ptr[i]);
-      cudaFree(schur_delta_x_ptr_backup[i]);
+      cudaFree(schurXPtr[i]);
+      cudaFree(schurDeltaXPtr[i]);
+      cudaFree(schurDeltaXPtrBackup[i]);
     }
-    schur_x_ptr.clear();
-    schur_delta_x_ptr.clear();
-    schur_delta_x_ptr_backup.clear();
+    schurXPtr.clear();
+    schurDeltaXPtr.clear();
+    schurDeltaXPtrBackup.clear();
   } else {
     // TODO: implement this
   }
 }
 
-template <typename T> void BaseProblem<T>::cudaPrepareUpdateData() {
-  if (option_.useSchur) {
+template <typename T> void BaseProblem<T>::prepareUpdateDataCUDA() {
+  if (option.useSchur) {
     const auto world_size = MemoryPool::getWorldSize();
-    schur_x_ptr.resize(world_size);
-    schur_delta_x_ptr.resize(world_size);
-    schur_delta_x_ptr_backup.resize(world_size);
+    schurXPtr.resize(world_size);
+    schurDeltaXPtr.resize(world_size);
+    schurDeltaXPtrBackup.resize(world_size);
     for (int i = 0; i < world_size; ++i) {
       cudaSetDevice(i);
-      cudaMalloc(&schur_x_ptr[i], Hessian_shape_ * sizeof(T));
-      cudaMalloc(&schur_delta_x_ptr[i], Hessian_shape_ * sizeof(T));
-      cudaMalloc(&schur_delta_x_ptr_backup[i], Hessian_shape_ * sizeof(T));
-      cudaMemsetAsync(schur_delta_x_ptr[i], 0, Hessian_shape_ * sizeof(T));
+      cudaMalloc(&schurXPtr[i], hessianShape * sizeof(T));
+      cudaMalloc(&schurDeltaXPtr[i], hessianShape * sizeof(T));
+      cudaMalloc(&schurDeltaXPtrBackup[i], hessianShape * sizeof(T));
+      cudaMemsetAsync(schurDeltaXPtr[i], 0, hessianShape * sizeof(T));
     }
   } else {
     // TODO: implement this
@@ -172,12 +172,12 @@ __global__ void JdxpF(const T *grad, const T *delta_x, const T *res,
 }
 }
     template <typename T>
-void BaseProblem<T>::SolveLM(int iter, double solver_tol,
-                             double solver_refuse_ratio, int solver_max_iter,
+void BaseProblem<T>::solveLM(int iter, double solverTol,
+                             double solverRefuseRatio, int solverMaxIter,
                              const double tau, const double epsilon1,
                              const double epsilon2) {
   const auto &cublasHandle = HandleManager::get_cublasHandle();
-  MakeVertices();
+  makeVertices();
   Eigen::Matrix<JetVector<T>, Eigen::Dynamic, Eigen::Dynamic> JV_backup;
   int k = 0;
   T new_residual_norm = 0;
@@ -186,7 +186,7 @@ void BaseProblem<T>::SolveLM(int iter, double solver_tol,
   edges.backupDaPtrs();
   edges.regetCUDAGradPtrs();
   JV_backup = edges.forward();
-  if (option_.useSchur) {
+  if (option.useSchur) {
     edges.buildLinearSystemSchur(JV_backup);
   } else {
     // TODO: implement this
@@ -238,7 +238,7 @@ void BaseProblem<T>::SolveLM(int iter, double solver_tol,
   bool recover_diag{false};
   while (!stop && k < iter) {
     k++;
-    if (option_.useSchur) {
+    if (option.useSchur) {
       if (recover_diag) {
         for (int i = 0; i < MemoryPool::getWorldSize(); ++i) {
           cudaSetDevice(i);
@@ -270,15 +270,15 @@ void BaseProblem<T>::SolveLM(int iter, double solver_tol,
       // TODO: implement this
     }
     bool solver_success =
-        SolveLinear(solver_tol, solver_refuse_ratio, solver_max_iter);
+        solveLinear(solverTol, solverRefuseRatio, solverMaxIter);
     MemoryPool::redistribute();
     ASSERT_CUDA_NO_ERROR();
 
     T delta_x_l2, x_l2;
-    if (option_.useSchur) {
+    if (option.useSchur) {
       cudaSetDevice(0);
-      delta_x_l2 = L2Norm_pow2(schur_delta_x_ptr[0], Hessian_shape_);
-      x_l2 = L2Norm_pow2(schur_x_ptr[0], Hessian_shape_);
+      delta_x_l2 = L2Norm_pow2(schurDeltaXPtr[0], hessianShape);
+      x_l2 = L2Norm_pow2(schurXPtr[0], hessianShape);
     } else {
       // TODO: implement this
     }
@@ -292,14 +292,14 @@ void BaseProblem<T>::SolveLM(int iter, double solver_tol,
                 << epsilon1 << "})" << std::endl;
       break;
     } else {
-      if (option_.useSchur) {
-        edges.updateSchur(schur_delta_x_ptr);
+      if (option.useSchur) {
+        edges.updateSchur(schurDeltaXPtr);
       } else {
         // TODO: implement this
       }
 
       T rho_Denominator{0};
-      if (option_.useSchur) {
+      if (option.useSchur) {
         std::vector<std::vector<T *>> Jdx;
         Jdx.resize(MemoryPool::getWorldSize());
         const int camera_dim = edges.schurEquationContainer[0].dim[0];
@@ -325,7 +325,7 @@ void BaseProblem<T>::SolveLM(int iter, double solver_tol,
             dim3 block(std::min((std::size_t)256, nElm));
             dim3 grid((nElm - 1) / block.x + 1);
             JdxpF<<<grid, block>>>(
-                J.getCUDAGradPtr()[i], schur_delta_x_ptr[i],
+                J.getCUDAGradPtr()[i], schurDeltaXPtr[i],
                 J.getCUDAResPtr()[i],
                 position_container.absolutePositionCamera,
                 position_container.absolutePositionPoint, nElm, camera_dim,
@@ -377,7 +377,7 @@ void BaseProblem<T>::SolveLM(int iter, double solver_tol,
       if (residual_norm > new_residual_norm) {
         for (int i = 0; i < JV.size(); ++i)
           JV_backup(i) = JV(i);
-        if (option_.useSchur) {
+        if (option.useSchur) {
           edges.buildLinearSystemSchur(JV);
         } else {
           // TODO: implement this
@@ -386,12 +386,12 @@ void BaseProblem<T>::SolveLM(int iter, double solver_tol,
                   << ", log error: " << std::log10(new_residual_norm / 2)
                   << std::endl;
 
-        BackupLM();
+        backupLM();
         residual_norm = new_residual_norm;
-        if (option_.useSchur) {
+        if (option.useSchur) {
           cudaSetDevice(0);
           auto &container = edges.schurEquationContainer[0];
-          const auto norm = LinfNorm(container.g, Hessian_shape_);
+          const auto norm = LinfNorm(container.g, hessianShape);
           stop = norm <= epsilon1;
           if (stop)
             std::cout << "Stopped for norm{" << norm << "} <= epsilon1{"
@@ -403,7 +403,7 @@ void BaseProblem<T>::SolveLM(int iter, double solver_tol,
         v = 2;
       } else {
         new_residual_norm = residual_norm;
-        RollbackLM();
+        rollbackLM();
         u /= v;
         v *= 2;
         recover_diag = true;
@@ -412,8 +412,8 @@ void BaseProblem<T>::SolveLM(int iter, double solver_tol,
     if (stop)
       break;
   }
-  WriteBack();
-  DeallocateResource();
+  writeBack();
+  deallocateResource();
   for (int i = 0; i < MemoryPool::getWorldSize(); ++i) {
     cudaSetDevice(i);
     cudaFree(ExtractedDiag[i][0]);
@@ -421,17 +421,17 @@ void BaseProblem<T>::SolveLM(int iter, double solver_tol,
   }
 }
 
-template <typename T> void BaseProblem<T>::BackupLM() {
+template <typename T> void BaseProblem<T>::backupLM() {
   const std::vector<cublasHandle_t> &cublasHandle =
       HandleManager::get_cublasHandle();
   T one = 1.;
-  if (option_.useSchur) {
+  if (option.useSchur) {
     for (int i = 0; i < MemoryPool::getWorldSize(); ++i) {
       cudaSetDevice(i);
-      cudaMemcpyAsync(schur_delta_x_ptr_backup[i], schur_delta_x_ptr[i],
-                      Hessian_shape_ * sizeof(T), cudaMemcpyDeviceToDevice);
-      Wrapper::cublasGaxpy::call(cublasHandle[i], Hessian_shape_, &one,
-                                 schur_delta_x_ptr[i], 1, schur_x_ptr[i], 1);
+      cudaMemcpyAsync(schurDeltaXPtrBackup[i], schurDeltaXPtr[i],
+                      hessianShape * sizeof(T), cudaMemcpyDeviceToDevice);
+      Wrapper::cublasGaxpy::call(cublasHandle[i], hessianShape, &one,
+                                 schurDeltaXPtr[i], 1, schurXPtr[i], 1);
     }
   } else {
     // TODO: implement this
@@ -439,13 +439,13 @@ template <typename T> void BaseProblem<T>::BackupLM() {
   edges.backupDaPtrs();
 }
 
-template <typename T> void BaseProblem<T>::RollbackLM() {
+template <typename T> void BaseProblem<T>::rollbackLM() {
   edges.rollback();
-  if (option_.useSchur) {
+  if (option.useSchur) {
     for (int i = 0; i < MemoryPool::getWorldSize(); ++i) {
       cudaSetDevice(i);
-      cudaMemcpyAsync(schur_delta_x_ptr[i], schur_delta_x_ptr_backup[i],
-                      Hessian_shape_ * sizeof(T), cudaMemcpyDeviceToDevice);
+      cudaMemcpyAsync(schurDeltaXPtr[i], schurDeltaXPtrBackup[i],
+                      hessianShape * sizeof(T), cudaMemcpyDeviceToDevice);
     }
   } else {
     // TODO: implement this
