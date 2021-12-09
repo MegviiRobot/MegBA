@@ -19,7 +19,7 @@ template <typename T> void EdgeVector<T>::backupDaPtrs() {
                       cudaMemcpyDeviceToDevice, schurStreamLmMemcpy[i]);
     }
   } else {
-    // TODO: implement this
+    // TODO(Jie Ren): implement this
   }
 }
 
@@ -34,7 +34,7 @@ __global__ void broadCastCsrColInd(const int *input, const int other_dim,
     output[i + tid * other_dim] = i + input[tid] * other_dim;
   }
 }
-}
+}  // namespace
 
 template <typename T> void EdgeVector<T>::preparePositionAndRelationDataCUDA() {
   if (_option.useSchur) {
@@ -58,7 +58,7 @@ template <typename T> void EdgeVector<T>::preparePositionAndRelationDataCUDA() {
           cudaMemcpyHostToDevice);
 
       cudaMalloc(&schurEquationContainer[i].csrVal[0],
-                 schurEquationContainer[i].nnz[0] * sizeof(T)); // hpl
+                 schurEquationContainer[i].nnz[0] * sizeof(T));  // hpl
       cudaMalloc(&schurEquationContainer[i].csrColInd[0],
                  schurEquationContainer[i].nnz[0] * sizeof(int));
       {
@@ -76,7 +76,7 @@ template <typename T> void EdgeVector<T>::preparePositionAndRelationDataCUDA() {
       }
 
       cudaMalloc(&schurEquationContainer[i].csrVal[1],
-                 schurEquationContainer[i].nnz[1] * sizeof(T)); // hlp
+                 schurEquationContainer[i].nnz[1] * sizeof(T));  // hlp
       cudaMalloc(&schurEquationContainer[i].csrColInd[1],
                  schurEquationContainer[i].nnz[1] * sizeof(int));
       {
@@ -94,10 +94,10 @@ template <typename T> void EdgeVector<T>::preparePositionAndRelationDataCUDA() {
       }
 
       cudaMalloc(&schurEquationContainer[i].csrVal[2],
-                 schurEquationContainer[i].nnz[2] * sizeof(T)); // hpp
+                 schurEquationContainer[i].nnz[2] * sizeof(T));  // hpp
 
       cudaMalloc(&schurEquationContainer[i].csrVal[3],
-                 schurEquationContainer[i].nnz[3] * sizeof(T)); // hll
+                 schurEquationContainer[i].nnz[3] * sizeof(T));  // hll
 
       cudaMalloc(&schurEquationContainer[i].g,
                  (num[0] * schurEquationContainer[i].dim[0] +
@@ -139,7 +139,7 @@ template <typename T> void EdgeVector<T>::preparePositionAndRelationDataCUDA() {
       cudaFree(compressedCsrColInd[i][1]);
     }
   } else {
-    // TODO: implement this
+    // TODO(Jie Ren): implement this
   }
 }
 
@@ -181,7 +181,7 @@ template <typename T> void EdgeVector<T>::PrepareUpdateDataCUDA() {
       offset += estimation.rows() * estimation.cols();
     }
   } else {
-    // TODO: implement this
+    // TODO(Jie Ren): implement this
   }
 }
 
@@ -200,7 +200,7 @@ template <typename T> void EdgeVector<T>::deallocateResourceCUDA() {
     for (auto &edge : edges)
       edge.CPU();
   } else {
-    // TODO: implement this
+    // TODO(Jie Ren): implement this
   }
 }
 
@@ -225,4 +225,4 @@ void EdgeVector<T>::PositionAndRelationContainer::clearCUDA() {
 
 template class EdgeVector<float>;
 template class EdgeVector<double>;
-}
+}  // namespace MegBA
