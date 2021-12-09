@@ -6,14 +6,15 @@
 **/
 
 #pragma once
+#include <utility>
 #include <cassert>
+#include <functional>
+#include <vector>
 #include "Common.h"
 #include "JetVector.inl"
-#include "vector"
 #include "Jet_Vector_math.inl"
-#include <resource/MemoryPool.h>
-#include <functional>
-#include <resource/Manager.h>
+#include "resource/MemoryPool.h"
+#include "resource/Manager.h"
 
 namespace MegBA {
 template <typename T> class JetVector {
@@ -34,10 +35,10 @@ template <typename T> class JetVector {
   bool _pureScalarFlag = false;
   T _pureScalar = 0;
 
-public:
+ public:
   JetVector() = default;
 
-  explicit JetVector(T scalar) : _pureScalarFlag(true), _pureScalar(scalar){};
+  explicit JetVector(T scalar) : _pureScalarFlag(true), _pureScalar(scalar) {}
 
   JetVector(const JetVector<T> &f)
       : _N(f._N), _nElm(f._nElm), _device(f._device), _haData(f._haData),
@@ -51,7 +52,7 @@ public:
       break;
     }
     }
-  };
+  }
 
   JetVector(JetVector<T> &&f) noexcept
       : _N(std::move(f._N)), _nElm(std::move(f._nElm)),
@@ -63,7 +64,7 @@ public:
     f._N = 0;
     f._nElm = 0;
     f._gradPosition = -1;
-  };
+  }
 
   template <typename F>
   JetVector(const JetVector<T> &init_template, F &&math_func) {
@@ -71,7 +72,7 @@ public:
     math_func(this);
   }
 
-  ~JetVector() { clear(); };
+  ~JetVector() { clear(); }
 
   void append_Jet(T a, int n);
   void append_Jet(T a);
@@ -80,7 +81,7 @@ public:
   static const JetVector<T> &getInitTemplate(const JetVector<T> &f,
                                              const JetVector<T> &g) {
     return f._N > g._N ? f : g;
-  };
+  }
 
   void initAs(const JetVector<T> &initTemplate);
   JetVector<T> &to(device_t device);
@@ -92,30 +93,30 @@ public:
     assert(_device == CPU_t || _gradPosition != -1 || _N == 0);
     _haData.erase(_haData.begin() + idx);
     _nElm--;
-  };
-  const unsigned int &getGradShape() const { return _N; };
-  const unsigned int &getElmNum() const { return _nElm; };
-  std::size_t getElmNum(int rank) const { return MemoryPool::getElmNum(rank); };
-  int getGradPosition() const { return _gradPosition; };
-  const device_t &getDevice() const { return _device; };
+  }
+  const unsigned int &getGradShape() const { return _N; }
+  const unsigned int &getElmNum() const { return _nElm; }
+  std::size_t getElmNum(int rank) const { return MemoryPool::getElmNum(rank); }
+  int getGradPosition() const { return _gradPosition; }
+  const device_t &getDevice() const { return _device; }
 
-  const std::vector<std::vector<T>> &getCPUGrad() const { return _hvData; };
-  std::vector<std::vector<T>> &getCPUGrad() { return _hvData; };
+  const std::vector<std::vector<T>> &getCPUGrad() const { return _hvData; }
+  std::vector<std::vector<T>> &getCPUGrad() { return _hvData; }
 
-  const std::vector<T> &getCPURes() const { return _haData; };
-  std::vector<T> &getCPURes() { return _haData; };
+  const std::vector<T> &getCPURes() const { return _haData; }
+  std::vector<T> &getCPURes() { return _haData; }
 
-  // TODO: change to vector
-  const std::vector<T *> &getCUDAGradPtr() const { return _dvPtr; };
-  const std::vector<T *> &getCUDAResPtr() const { return _daPtr; };
+  // TODO(Jie Ren): change to vector
+  const std::vector<T *> &getCUDAGradPtr() const { return _dvPtr; }
+  const std::vector<T *> &getCUDAResPtr() const { return _daPtr; }
 
-  // TODO: input a array vector
+  // TODO(Jie Ren): input a array vector
   void bindDaPtr(T *da_ptr) {
     _daPtr.resize(MemoryPool::getWorldSize());
     _daPtr[0] = da_ptr;
-  };
+  }
 
-  void bindDaPtr(std::vector<T *> &&da_ptr) { _daPtr = std::move(da_ptr); };
+  void bindDaPtr(std::vector<T *> &&da_ptr) { _daPtr = std::move(da_ptr); }
 
   void setGradPosition(int gradPosition);
 
@@ -189,4 +190,4 @@ inline std::ostream &operator<<(std::ostream &s, const JetVector<T> &z) {
   }
   return s;
 }
-}
+}  // namespace MegBA
