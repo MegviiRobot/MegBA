@@ -12,38 +12,38 @@ namespace MegBA {
     namespace math {
         namespace function {
             template<typename T>
-            void Vector_add_Vector_CUDA(const JetVector<T> &f, const JetVector<T> &g, JetVector<T> &out);
+            void vectorAddVectorCUDA(const JetVector<T> &f, const JetVector<T> &g, JetVector<T> &out);
 
             template<typename T>
-            void Vector_minus_Vector_CUDA(const JetVector<T> &f, const JetVector<T> &g,
+            void vectorMinusVectorCUDA(const JetVector<T> &f, const JetVector<T> &g,
                                           JetVector<T> &out);
 
             template<typename T>
-            void Vector_multiplies_Vector_CUDA(const JetVector<T> &f, const JetVector<T> &g,
+            void vectorMultipliesVectorCUDA(const JetVector<T> &f, const JetVector<T> &g,
                                                JetVector<T> &out);
 
             template<typename T>
-            void Vector_divides_Vector_CUDA(const JetVector<T> &f, const JetVector<T> &g,
+            void vectorDividesVectorCUDA(const JetVector<T> &f, const JetVector<T> &g,
                                             JetVector<T> &out);
 
             template<typename T>
-            void JetVector_add_Scalar_CUDA(const JetVector<T> &f, T g,
+            void jetVectorAddScalarCUDA(const JetVector<T> &f, T g,
                                             JetVector<T> &out);
 
             template<typename T>
-            void JetVector_minus_Scalar_CUDA(const JetVector<T> &f, T g,
+            void jetVectorMinusScalarCUDA(const JetVector<T> &f, T g,
                                               JetVector<T> &out);
 
             template<typename T>
-            void JetVector_multiplies_Scalar_CUDA(const JetVector<T> &f, T g,
+            void jetVectorMultipliesScalarCUDA(const JetVector<T> &f, T g,
                                                    JetVector<T> &out);
 
             template<typename T>
-            void Scalar_minus_JetVector_CUDA(T f, const JetVector<T> &g,
+            void scalarMinusJetVectorCUDA(T f, const JetVector<T> &g,
                                               JetVector<T> &out);
 
             template<typename T>
-            void Scalar_divides_JetVector_CUDA(T f, const JetVector<T> &g,
+            void scalarDividesJetVectorCUDA(T f, const JetVector<T> &g,
                                                 JetVector<T> &out);
 
             template<typename T>

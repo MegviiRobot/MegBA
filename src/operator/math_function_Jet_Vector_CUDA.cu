@@ -6,7 +6,6 @@
 **/
 
 #include "operator/JetVector.h"
-#include "operator/Thrust_Transform.h"
 #include "operator/math_function_Jet_Vector_CUDA.cuh"
 
 namespace MegBA {
@@ -79,43 +78,47 @@ namespace MegBA {
                                                 MegBA::JetVector<T> &out) {
                 for (int i = 0; i < MemoryPool::getWorldSize(); ++i) {
                     cudaSetDevice(i);
-                    unsigned int nElm = out.get_Elm_Num(i);
+                    unsigned int nElm = out.getElmNum(i);
                     dim3 gridDim;
                     dim3 blockDim;
                     fit_grid_and_block(nElm, gridDim, blockDim);
-                    if (f.get_Grad_Position() != -1) {
-                        if (g.get_Grad_Position() != -1) {
+                    if (f.getGradPosition() != -1) {
+                        if (g.getGradPosition() != -1) {
                             // f is JPV, g is JPV
-                            cudaMemsetAsync(out.get_CUDA_Grad_ptr()[i], 0, f.getGradShape() * nElm * sizeof(T));
+                            cudaMemsetAsync(out.getCUDAGradPtr()[i], 0, f.getGradShape() * nElm * sizeof(T));
                             Jet_PVector_add_Jet_PVector_Kernel<T><<<gridDim, blockDim>>>(
                                     nElm,
-                                    f.get_CUDA_Res_ptr()[i], f.get_Grad_Position(),
-                                    g.get_CUDA_Res_ptr()[i], g.get_Grad_Position(),
-                                    out.get_CUDA_Res_ptr()[i], out.get_CUDA_Grad_ptr()[i]);
+                                    f.getCUDAResPtr()[i],
+                                    f.getGradPosition(),
+                                    g.getCUDAResPtr()[i],
+                                    g.getGradPosition(),
+                                    out.getCUDAResPtr()[i], out.getCUDAGradPtr()[i]);
                         } else {
                             // f is JPV, g is not JPV
-                            cudaMemcpyAsync(out.get_CUDA_Grad_ptr()[i], g.get_CUDA_Grad_ptr()[i], out.getGradShape() * nElm * sizeof(T), cudaMemcpyDeviceToDevice);
+                            cudaMemcpyAsync(out.getCUDAGradPtr()[i], g.getCUDAGradPtr()[i], out.getGradShape() * nElm * sizeof(T), cudaMemcpyDeviceToDevice);
                             Jet_PVector_add_JetVector_Kernel<T><<<gridDim, blockDim>>>(
                                     nElm,
-                                    f.get_CUDA_Res_ptr()[i], f.get_Grad_Position(),
-                                    g.get_CUDA_Res_ptr()[i],
-                                    out.get_CUDA_Res_ptr()[i], out.get_CUDA_Grad_ptr()[i]);
+                                    f.getCUDAResPtr()[i],
+                                    f.getGradPosition(),
+                                    g.getCUDAResPtr()[i],
+                                    out.getCUDAResPtr()[i], out.getCUDAGradPtr()[i]);
                         }
                     } else {
                         // f is not JPV, g is JPV
-                        if (g.get_Grad_Position() != -1) {
-                            cudaMemcpyAsync(out.get_CUDA_Grad_ptr()[i], f.get_CUDA_Grad_ptr()[i], out.getGradShape() * nElm * sizeof(T), cudaMemcpyDeviceToDevice);
+                        if (g.getGradPosition() != -1) {
+                            cudaMemcpyAsync(out.getCUDAGradPtr()[i], f.getCUDAGradPtr()[i], out.getGradShape() * nElm * sizeof(T), cudaMemcpyDeviceToDevice);
                             Jet_PVector_add_JetVector_Kernel<T><<<gridDim, blockDim>>>(
                                     nElm,
-                                    g.get_CUDA_Res_ptr()[i], g.get_Grad_Position(),
-                                    f.get_CUDA_Res_ptr()[i],
-                                    out.get_CUDA_Res_ptr()[i], out.get_CUDA_Grad_ptr()[i]);
+                                    g.getCUDAResPtr()[i],
+                                    g.getGradPosition(),
+                                    f.getCUDAResPtr()[i],
+                                    out.getCUDAResPtr()[i], out.getCUDAGradPtr()[i]);
                         } else {
                             JetVector_add_JetVector_Kernel<T><<<gridDim, blockDim>>>(
                                     out.getGradShape(), nElm,
-                                    f.get_CUDA_Res_ptr()[i], f.get_CUDA_Grad_ptr()[i],
-                                    g.get_CUDA_Res_ptr()[i], g.get_CUDA_Grad_ptr()[i],
-                                    out.get_CUDA_Res_ptr()[i], out.get_CUDA_Grad_ptr()[i]);
+                                    f.getCUDAResPtr()[i], f.getCUDAGradPtr()[i],
+                                    g.getCUDAResPtr()[i], g.getCUDAGradPtr()[i],
+                                    out.getCUDAResPtr()[i], out.getCUDAGradPtr()[i]);
                         }
                     }
                 }
@@ -157,29 +160,30 @@ namespace MegBA {
                                               MegBA::JetVector<T> &out) {
                 for (int i = 0; i < MemoryPool::getWorldSize(); ++i) {
                     cudaSetDevice(i);
-                    const auto nElm = out.get_Elm_Num(i);
+                    const auto nElm = out.getElmNum(i);
                     dim3 gridDim;
                     dim3 blockDim;
                     fit_grid_and_block(nElm, gridDim, blockDim);
-                    if (f.get_Grad_Position() != -1) {
+                    if (f.getGradPosition() != -1) {
                         // f is JPV
-                        cudaMemsetAsync(out.get_CUDA_Grad_ptr()[i], 0, out.getGradShape() * nElm * sizeof(T));
+                        cudaMemsetAsync(out.getCUDAGradPtr()[i], 0, out.getGradShape() * nElm * sizeof(T));
                         Jet_PVector_add_Scalar_Vector_Kernel<T><<<gridDim, blockDim>>>(
                                 nElm,
-                                f.get_CUDA_Res_ptr()[i], f.get_Grad_Position(),
-                                g.get_CUDA_Res_ptr()[i],
-                                out.get_CUDA_Res_ptr()[i], out.get_CUDA_Grad_ptr()[i]);
+                                f.getCUDAResPtr()[i],
+                                f.getGradPosition(),
+                                g.getCUDAResPtr()[i],
+                                out.getCUDAResPtr()[i], out.getCUDAGradPtr()[i]);
                     } else {
                         // f is not JPV
-                        cudaMemcpyAsync(out.get_CUDA_Grad_ptr()[i],
-                                        f.get_CUDA_Grad_ptr()[i],
+                        cudaMemcpyAsync(out.getCUDAGradPtr()[i],
+                                        f.getCUDAGradPtr()[i],
                                         f.getGradShape() * nElm * sizeof(T),
                                         cudaMemcpyDeviceToDevice);
                         JetVector_add_Scalar_Vector_Kernel<T><<<gridDim, blockDim>>>(
                                 nElm,
-                                f.get_CUDA_Res_ptr()[i],
-                                g.get_CUDA_Res_ptr()[i],
-                                out.get_CUDA_Res_ptr()[i]);
+                                f.getCUDAResPtr()[i],
+                                g.getCUDAResPtr()[i],
+                                out.getCUDAResPtr()[i]);
                     }
                 }
             }
@@ -204,20 +208,20 @@ namespace MegBA {
                                                  MegBA::JetVector<T> &out) {
                 for (int i = 0; i < MemoryPool::getWorldSize(); ++i) {
                     cudaSetDevice(i);
-                    const auto nElm = out.get_Elm_Num(i);
+                    const auto nElm = out.getElmNum(i);
                     dim3 gridDim;
                     dim3 blockDim;
                     fit_grid_and_block(nElm, gridDim, blockDim);
                     Scalar_Vector_add_Scalar_Vector_Kernel<T><<<gridDim, blockDim>>>(
                             nElm,
-                            f.get_CUDA_Res_ptr()[i],
-                            g.get_CUDA_Res_ptr()[i],
-                            out.get_CUDA_Res_ptr()[i]);
+                            f.getCUDAResPtr()[i],
+                            g.getCUDAResPtr()[i],
+                            out.getCUDAResPtr()[i]);
                 }
             }
             
             template<typename T>
-            void Vector_add_Vector_CUDA(const MegBA::JetVector<T> &f, const MegBA::JetVector<T> &g,
+            void vectorAddVectorCUDA(const MegBA::JetVector<T> &f, const MegBA::JetVector<T> &g,
                                         MegBA::JetVector<T> &out) {
                 if (f.getGradShape() != 0)
                     if (g.getGradShape() != 0)
@@ -230,11 +234,13 @@ namespace MegBA {
                     else
                         Scalar_Vector_add_Scalar_Vector_CUDA(f, g, out);
             }
-            template void Vector_add_Vector_CUDA<double>(
+            template void
+            vectorAddVectorCUDA<double>(
                     const MegBA::JetVector<double> &f, const MegBA::JetVector<double> &g,
                                            MegBA::JetVector<double> &out);
 
-            template void Vector_add_Vector_CUDA<float>(
+            template void
+            vectorAddVectorCUDA<float>(
                     const MegBA::JetVector<float> &f, const MegBA::JetVector<float> &g,
                                           MegBA::JetVector<float> &out);
 
@@ -310,46 +316,50 @@ namespace MegBA {
                                                   MegBA::JetVector<T> &out) {
                 for (int i = 0; i < MemoryPool::getWorldSize(); ++i) {
                     cudaSetDevice(i);
-                    unsigned int nElm = out.get_Elm_Num(i);
+                    unsigned int nElm = out.getElmNum(i);
                     dim3 gridDim;
                     dim3 blockDim;
                     fit_grid_and_block(nElm, gridDim, blockDim);
-                    if (f.get_Grad_Position() != -1) {
-                        if (g.get_Grad_Position() != -1) {
+                    if (f.getGradPosition() != -1) {
+                        if (g.getGradPosition() != -1) {
                             // f is JPV, g is JPV
-                            cudaMemsetAsync(out.get_CUDA_Grad_ptr()[i], 0, out.getGradShape() * nElm * sizeof(T));
+                            cudaMemsetAsync(out.getCUDAGradPtr()[i], 0, out.getGradShape() * nElm * sizeof(T));
                             Jet_PVector_minus_Jet_PVector_Kernel<T><<< gridDim, blockDim >>>(
                                     nElm,
-                                    f.get_CUDA_Res_ptr()[i], f.get_Grad_Position(),
-                                    g.get_CUDA_Res_ptr()[i], g.get_Grad_Position(),
-                                    out.get_CUDA_Res_ptr()[i], out.get_CUDA_Grad_ptr()[i]);
+                                    f.getCUDAResPtr()[i],
+                                    f.getGradPosition(),
+                                    g.getCUDAResPtr()[i],
+                                    g.getGradPosition(),
+                                    out.getCUDAResPtr()[i], out.getCUDAGradPtr()[i]);
                         } else {
                             // f is JPV, g is not JPV
                             Jet_PVector_minus_JetVector_Kernel<T><<< gridDim, blockDim >>>(
                                     out.getGradShape(), nElm,
-                                    f.get_CUDA_Res_ptr()[i], f.get_Grad_Position(),
-                                    g.get_CUDA_Res_ptr()[i], g.get_CUDA_Grad_ptr()[i],
-                                    out.get_CUDA_Res_ptr()[i], out.get_CUDA_Grad_ptr()[i]);
+                                    f.getCUDAResPtr()[i],
+                                    f.getGradPosition(),
+                                    g.getCUDAResPtr()[i], g.getCUDAGradPtr()[i],
+                                    out.getCUDAResPtr()[i], out.getCUDAGradPtr()[i]);
                         }
                     } else  {
-                        if (g.get_Grad_Position() != -1) {
+                        if (g.getGradPosition() != -1) {
                             // f is not JPV, g is JPV
-                            cudaMemcpyAsync(out.get_CUDA_Grad_ptr()[i],
-                                            f.get_CUDA_Grad_ptr()[i],
+                            cudaMemcpyAsync(out.getCUDAGradPtr()[i],
+                                            f.getCUDAGradPtr()[i],
                                             f.getGradShape() * nElm * sizeof(T),
                                             cudaMemcpyDeviceToDevice);
                             JetVector_minus_Jet_PVector_Kernel<T><<< gridDim, blockDim >>>(
                                     nElm,
-                                    f.get_CUDA_Res_ptr()[i],
-                                    g.get_CUDA_Res_ptr()[i], g.get_Grad_Position(),
-                                    out.get_CUDA_Res_ptr()[i], out.get_CUDA_Grad_ptr()[i]);
+                                    f.getCUDAResPtr()[i],
+                                    g.getCUDAResPtr()[i],
+                                    g.getGradPosition(),
+                                    out.getCUDAResPtr()[i], out.getCUDAGradPtr()[i]);
                         } else {
                             // f is not JPV, g is not JPV
                             JetVector_minus_JetVector_Kernel<T><<<gridDim, blockDim>>>(
                                     out.getGradShape(), nElm,
-                                    f.get_CUDA_Res_ptr()[i], f.get_CUDA_Grad_ptr()[i],
-                                    g.get_CUDA_Res_ptr()[i], g.get_CUDA_Grad_ptr()[i],
-                                    out.get_CUDA_Res_ptr()[i], out.get_CUDA_Grad_ptr()[i]);
+                                    f.getCUDAResPtr()[i], f.getCUDAGradPtr()[i],
+                                    g.getCUDAResPtr()[i], g.getCUDAGradPtr()[i],
+                                    out.getCUDAResPtr()[i], out.getCUDAGradPtr()[i]);
                         }
                     }
                 }
@@ -391,28 +401,29 @@ namespace MegBA {
                                                 MegBA::JetVector<T> &out) {
                 for (int i = 0; i < MemoryPool::getWorldSize(); ++i) {
                     cudaSetDevice(i);
-                    unsigned int nElm = out.get_Elm_Num(i);
+                    unsigned int nElm = out.getElmNum(i);
                     dim3 gridDim;
                     dim3 blockDim;
                     fit_grid_and_block(nElm, gridDim, blockDim);
-                    if (f.get_Grad_Position() != -1) {
-                        cudaMemsetAsync(out.get_CUDA_Grad_ptr()[i], 0, out.getGradShape() * nElm * sizeof(T));
+                    if (f.getGradPosition() != -1) {
+                        cudaMemsetAsync(out.getCUDAGradPtr()[i], 0, out.getGradShape() * nElm * sizeof(T));
                         Jet_PVector_minus_Scalar_Vector_Kernel<T><<<gridDim, blockDim>>>(
                                 nElm,
-                                f.get_CUDA_Res_ptr()[i], f.get_Grad_Position(),
-                                g.get_CUDA_Res_ptr()[i],
-                                out.get_CUDA_Res_ptr()[i], out.get_CUDA_Grad_ptr()[i]);
+                                f.getCUDAResPtr()[i],
+                                f.getGradPosition(),
+                                g.getCUDAResPtr()[i],
+                                out.getCUDAResPtr()[i], out.getCUDAGradPtr()[i]);
 
                     } else {
-                        cudaMemcpyAsync(out.get_CUDA_Grad_ptr()[i],
-                                        f.get_CUDA_Grad_ptr()[i],
+                        cudaMemcpyAsync(out.getCUDAGradPtr()[i],
+                                        f.getCUDAGradPtr()[i],
                                         out.getGradShape() * nElm * sizeof(T),
                                         cudaMemcpyDeviceToDevice);
                         JetVector_minus_Scalar_Vector_Kernel<T><<<gridDim, blockDim>>>(
                                 nElm,
-                                f.get_CUDA_Res_ptr()[i],
-                                g.get_CUDA_Res_ptr()[i],
-                                out.get_CUDA_Res_ptr()[i]);
+                                f.getCUDAResPtr()[i],
+                                g.getCUDAResPtr()[i],
+                                out.getCUDAResPtr()[i]);
                     }
                 }
             }
@@ -455,23 +466,23 @@ namespace MegBA {
                                                 MegBA::JetVector<T> &out) {
                 for (int i = 0; i < MemoryPool::getWorldSize(); ++i) {
                     cudaSetDevice(i);
-                    unsigned int nElm = out.get_Elm_Num(i);
+                    unsigned int nElm = out.getElmNum(i);
                     dim3 gridDim;
                     dim3 blockDim;
                     fit_grid_and_block(nElm, gridDim, blockDim);
-                    if (g.get_Grad_Position() != -1) {
-                        cudaMemsetAsync(out.get_CUDA_Grad_ptr()[i], 0, out.getGradShape() * nElm * sizeof(T));
+                    if (g.getGradPosition() != -1) {
+                        cudaMemsetAsync(out.getCUDAGradPtr()[i], 0, out.getGradShape() * nElm * sizeof(T));
                         Scalar_Vector_minus_PJetVector_Kernel<T><<<gridDim, blockDim>>>(
                                 nElm,
-                                f.get_CUDA_Res_ptr()[i],
-                                g.get_CUDA_Res_ptr()[i], g.get_Grad_Position(),
-                                out.get_CUDA_Res_ptr()[i], out.get_CUDA_Grad_ptr()[i]);
+                                f.getCUDAResPtr()[i],
+                                g.getCUDAResPtr()[i], g.getGradPosition(),
+                                out.getCUDAResPtr()[i], out.getCUDAGradPtr()[i]);
                     } else {
                         Scalar_Vector_minus_JetVector_Kernel<T><<<gridDim, blockDim>>>(
                                 out.getGradShape(), nElm,
-                                f.get_CUDA_Res_ptr()[i],
-                                g.get_CUDA_Res_ptr()[i], g.get_CUDA_Grad_ptr()[i],
-                                out.get_CUDA_Res_ptr()[i], out.get_CUDA_Grad_ptr()[i]);
+                                f.getCUDAResPtr()[i],
+                                g.getCUDAResPtr()[i], g.getCUDAGradPtr()[i],
+                                out.getCUDAResPtr()[i], out.getCUDAGradPtr()[i]);
                     }
                 }
             }
@@ -496,20 +507,20 @@ namespace MegBA {
                 MegBA::JetVector<T> &out) {
                 for (int i = 0; i < MemoryPool::getWorldSize(); ++i) {
                     cudaSetDevice(i);
-                    unsigned int nElm = out.get_Elm_Num(i);
+                    unsigned int nElm = out.getElmNum(i);
                     dim3 gridDim;
                     dim3 blockDim;
                     fit_grid_and_block(nElm, gridDim, blockDim);
                     Scalar_Vector_minus_Scalar_Vector_Kernel<T><<<gridDim, blockDim>>>(
                             nElm,
-                            f.get_CUDA_Res_ptr()[i],
-                            g.get_CUDA_Res_ptr()[i],
-                            out.get_CUDA_Res_ptr()[i]);
+                            f.getCUDAResPtr()[i],
+                            g.getCUDAResPtr()[i],
+                            out.getCUDAResPtr()[i]);
                 }
             }
             
             template<typename T>
-            void Vector_minus_Vector_CUDA(const MegBA::JetVector<T> &f, const MegBA::JetVector<T> &g,
+            void vectorMinusVectorCUDA(const MegBA::JetVector<T> &f, const MegBA::JetVector<T> &g,
                                           MegBA::JetVector<T> &out) {
                 if (f.getGradShape() != 0)
                     if (g.getGradShape() != 0)
@@ -522,11 +533,13 @@ namespace MegBA {
                     else
                         Scalar_Vector_minus_Scalar_Vector_CUDA(f, g, out);
             }
-            template void Vector_minus_Vector_CUDA<double>(
+            template void
+            vectorMinusVectorCUDA<double>(
                     const MegBA::JetVector<double> &f, const MegBA::JetVector<double> &g,
                                              MegBA::JetVector<double> &out);
 
-            template void Vector_minus_Vector_CUDA<float>(
+            template void
+            vectorMinusVectorCUDA<float>(
                     const MegBA::JetVector<float> &f, const MegBA::JetVector<float> &g,
                                             MegBA::JetVector<float> &out);
 
@@ -592,38 +605,40 @@ namespace MegBA {
                                                   MegBA::JetVector<T> &out) {
                 for (int i = 0; i < MemoryPool::getWorldSize(); ++i) {
                     cudaSetDevice(i);
-                    unsigned int nElm = out.get_Elm_Num(i);
+                    unsigned int nElm = out.getElmNum(i);
                     dim3 gridDim;
                     dim3 blockDim;
                     fit_grid_and_block(nElm, gridDim, blockDim);
-                    if (f.get_Grad_Position() != -1) {
-                        if (g.get_Grad_Position() != -1) {
-                            cudaMemsetAsync(out.get_CUDA_Grad_ptr()[i], 0, out.getGradShape() * nElm * sizeof(T));
+                    if (f.getGradPosition() != -1) {
+                        if (g.getGradPosition() != -1) {
+                            cudaMemsetAsync(out.getCUDAGradPtr()[i], 0, out.getGradShape() * nElm * sizeof(T));
                             Jet_PVector_multiplies_Jet_PVector_Kernel<T><<<gridDim, blockDim>>>(
                                     nElm,
-                                    f.get_CUDA_Res_ptr()[i], f.get_Grad_Position(),
-                                    g.get_CUDA_Res_ptr()[i], g.get_Grad_Position(),
-                                    out.get_CUDA_Res_ptr()[i], out.get_CUDA_Grad_ptr()[i]);
+                                    f.getCUDAResPtr()[i],
+                                    f.getGradPosition(),
+                                    g.getCUDAResPtr()[i],
+                                    g.getGradPosition(),
+                                    out.getCUDAResPtr()[i], out.getCUDAGradPtr()[i]);
                         } else {
                             Jet_PVector_multiplies_JetVector_Kernel<T><<<gridDim, blockDim>>>(
                                     out.getGradShape(), nElm,
-                                    f.get_CUDA_Res_ptr()[i], f.get_Grad_Position(),
-                                    g.get_CUDA_Res_ptr()[i], g.get_CUDA_Grad_ptr()[i],
-                                    out.get_CUDA_Res_ptr()[i], out.get_CUDA_Grad_ptr()[i]);
+                                    f.getCUDAResPtr()[i], f.getGradPosition(),
+                                    g.getCUDAResPtr()[i], g.getCUDAGradPtr()[i],
+                                    out.getCUDAResPtr()[i], out.getCUDAGradPtr()[i]);
                         }
                     } else {
-                        if (g.get_Grad_Position() != -1) {
+                        if (g.getGradPosition() != -1) {
                             Jet_PVector_multiplies_JetVector_Kernel<T><<<gridDim, blockDim>>>(
                                     out.getGradShape(), nElm,
-                                    g.get_CUDA_Res_ptr()[i], g.get_Grad_Position(),
-                                    f.get_CUDA_Res_ptr()[i], f.get_CUDA_Grad_ptr()[i],
-                                    out.get_CUDA_Res_ptr()[i], out.get_CUDA_Grad_ptr()[i]);
+                                    g.getCUDAResPtr()[i], g.getGradPosition(),
+                                    f.getCUDAResPtr()[i], f.getCUDAGradPtr()[i],
+                                    out.getCUDAResPtr()[i], out.getCUDAGradPtr()[i]);
                         } else {
                             JetVector_multiplies_JetVector_Kernel<T><<<gridDim, blockDim>>>(
                                     out.getGradShape(), nElm,
-                                    f.get_CUDA_Res_ptr()[i], f.get_CUDA_Grad_ptr()[i],
-                                    g.get_CUDA_Res_ptr()[i], g.get_CUDA_Grad_ptr()[i],
-                                    out.get_CUDA_Res_ptr()[i], out.get_CUDA_Grad_ptr()[i]);
+                                    f.getCUDAResPtr()[i], f.getCUDAGradPtr()[i],
+                                    g.getCUDAResPtr()[i], g.getCUDAGradPtr()[i],
+                                    out.getCUDAResPtr()[i], out.getCUDAGradPtr()[i]);
                         }
                     }
                 }
@@ -672,23 +687,24 @@ namespace MegBA {
                 MegBA::JetVector<T> &out) {
                 for (int i = 0; i < MemoryPool::getWorldSize(); ++i) {
                     cudaSetDevice(i);
-                    unsigned int nElm = out.get_Elm_Num(i);
+                    unsigned int nElm = out.getElmNum(i);
                     dim3 gridDim;
                     dim3 blockDim;
                     fit_grid_and_block(nElm, gridDim, blockDim);
-                    if (f.get_Grad_Position() != -1) {
-                        cudaMemsetAsync(out.get_CUDA_Grad_ptr()[i], 0, out.getGradShape() * nElm * sizeof(T));
+                    if (f.getGradPosition() != -1) {
+                        cudaMemsetAsync(out.getCUDAGradPtr()[i], 0, out.getGradShape() * nElm * sizeof(T));
                         Jet_PVector_multiplies_Scalar_Vector_Kernel<T><<<gridDim, blockDim>>>(
                                 nElm,
-                                f.get_CUDA_Res_ptr()[i], f.get_Grad_Position(),
-                                g.get_CUDA_Res_ptr()[i],
-                                out.get_CUDA_Res_ptr()[i], out.get_CUDA_Grad_ptr()[i]);
+                                f.getCUDAResPtr()[i],
+                                f.getGradPosition(),
+                                g.getCUDAResPtr()[i],
+                                out.getCUDAResPtr()[i], out.getCUDAGradPtr()[i]);
                     } else {
                         JetVector_multiplies_Scalar_Vector_Kernel<T><<<gridDim, blockDim>>>(
                                 out.getGradShape(), nElm,
-                                f.get_CUDA_Res_ptr()[i], f.get_CUDA_Grad_ptr()[i],
-                                g.get_CUDA_Res_ptr()[i],
-                                out.get_CUDA_Res_ptr()[i], out.get_CUDA_Grad_ptr()[i]);
+                                f.getCUDAResPtr()[i], f.getCUDAGradPtr()[i],
+                                g.getCUDAResPtr()[i],
+                                out.getCUDAResPtr()[i], out.getCUDAGradPtr()[i]);
                     }
                 }
             }
@@ -713,20 +729,20 @@ namespace MegBA {
                 MegBA::JetVector<T> &out) {
                 for (int i = 0; i < MemoryPool::getWorldSize(); ++i) {
                     cudaSetDevice(i);
-                    unsigned int nElm = out.get_Elm_Num(i);
+                    unsigned int nElm = out.getElmNum(i);
                     dim3 gridDim;
                     dim3 blockDim;
                     fit_grid_and_block(nElm, gridDim, blockDim);
                     Scalar_Vector_multiplies_Scalar_Vector_Kernel<T><<<gridDim, blockDim>>>(
                             nElm,
-                            f.get_CUDA_Res_ptr()[i],
-                            g.get_CUDA_Res_ptr()[i],
-                            out.get_CUDA_Res_ptr()[i]);
+                            f.getCUDAResPtr()[i],
+                            g.getCUDAResPtr()[i],
+                            out.getCUDAResPtr()[i]);
                 }
             }
             
             template<typename T>
-            void Vector_multiplies_Vector_CUDA(const MegBA::JetVector<T> &f, const MegBA::JetVector<T> &g,
+            void vectorMultipliesVectorCUDA(const MegBA::JetVector<T> &f, const MegBA::JetVector<T> &g,
                                                MegBA::JetVector<T> &out) {
                 if (f.getGradShape() != 0)
                     if (g.getGradShape() != 0)
@@ -739,11 +755,12 @@ namespace MegBA {
                     else
                         Scalar_Vector_multiplies_Scalar_Vector_CUDA(f, g, out);
             }
-            template void Vector_multiplies_Vector_CUDA<double>(
+            template void vectorMultipliesVectorCUDA<double>(
                     const MegBA::JetVector<double> &f, const MegBA::JetVector<double> &g,
                 MegBA::JetVector<double> &out);
 
-            template void Vector_multiplies_Vector_CUDA<float>(
+            template void
+            vectorMultipliesVectorCUDA<float>(
                     const MegBA::JetVector<float> &f, const MegBA::JetVector<float> &g,
                 MegBA::JetVector<float> &out);
 
@@ -835,38 +852,40 @@ namespace MegBA {
                                                MegBA::JetVector<T> &out) {
                 for (int i = 0; i < MemoryPool::getWorldSize(); ++i) {
                     cudaSetDevice(i);
-                    unsigned int nElm = out.get_Elm_Num(i);
+                    unsigned int nElm = out.getElmNum(i);
                     dim3 gridDim;
                     dim3 blockDim;
                     fit_grid_and_block(nElm, gridDim, blockDim);
-                    if (f.get_Grad_Position() != -1) {
-                        if (g.get_Grad_Position() != -1) {
-                            cudaMemsetAsync(out.get_CUDA_Grad_ptr()[i], 0, out.getGradShape() * nElm * sizeof(T));
+                    if (f.getGradPosition() != -1) {
+                        if (g.getGradPosition() != -1) {
+                            cudaMemsetAsync(out.getCUDAGradPtr()[i], 0, out.getGradShape() * nElm * sizeof(T));
                             Jet_PVector_divides_Jet_PVector_Kernel<T><<<gridDim, blockDim>>>(
                                     nElm,
-                                    f.get_CUDA_Res_ptr()[i], f.get_Grad_Position(),
-                                    g.get_CUDA_Res_ptr()[i], g.get_Grad_Position(),
-                                    out.get_CUDA_Res_ptr()[i], out.get_CUDA_Grad_ptr()[i]);
+                                    f.getCUDAResPtr()[i],
+                                    f.getGradPosition(),
+                                    g.getCUDAResPtr()[i],
+                                    g.getGradPosition(),
+                                    out.getCUDAResPtr()[i], out.getCUDAGradPtr()[i]);
                         } else {
                             Jet_PVector_divides_JetVector_Kernel<T><<<gridDim, blockDim>>>(
                                     out.getGradShape(), nElm,
-                                    f.get_CUDA_Res_ptr()[i], f.get_Grad_Position(),
-                                    g.get_CUDA_Res_ptr()[i], g.get_CUDA_Grad_ptr()[i],
-                                    out.get_CUDA_Res_ptr()[i], out.get_CUDA_Grad_ptr()[i]);
+                                    f.getCUDAResPtr()[i], f.getGradPosition(),
+                                    g.getCUDAResPtr()[i], g.getCUDAGradPtr()[i],
+                                    out.getCUDAResPtr()[i], out.getCUDAGradPtr()[i]);
                         }
                     } else {
-                        if (g.get_Grad_Position() != -1) {
+                        if (g.getGradPosition() != -1) {
                             JetVector_divides_Jet_PVector_Kernel<T><<<gridDim, blockDim>>>(
                                     out.getGradShape(), nElm,
-                                    f.get_CUDA_Res_ptr()[i], f.get_CUDA_Grad_ptr()[i],
-                                    g.get_CUDA_Res_ptr()[i], g.get_Grad_Position(),
-                                    out.get_CUDA_Res_ptr()[i], out.get_CUDA_Grad_ptr()[i]);
+                                    f.getCUDAResPtr()[i], f.getCUDAGradPtr()[i],
+                                    g.getCUDAResPtr()[i], g.getGradPosition(),
+                                    out.getCUDAResPtr()[i], out.getCUDAGradPtr()[i]);
                         } else {
                             JetVector_divides_JetVector_Kernel<T><<<gridDim, blockDim>>>(
                                     out.getGradShape(), nElm,
-                                    f.get_CUDA_Res_ptr()[i], f.get_CUDA_Grad_ptr()[i],
-                                    g.get_CUDA_Res_ptr()[i], g.get_CUDA_Grad_ptr()[i],
-                                    out.get_CUDA_Res_ptr()[i], out.get_CUDA_Grad_ptr()[i]);
+                                    f.getCUDAResPtr()[i], f.getCUDAGradPtr()[i],
+                                    g.getCUDAResPtr()[i], g.getCUDAGradPtr()[i],
+                                    out.getCUDAResPtr()[i], out.getCUDAGradPtr()[i]);
                         }
                     }
                 }
@@ -913,23 +932,24 @@ namespace MegBA {
                                                   MegBA::JetVector<T> &out) {
                 for (int i = 0; i < MemoryPool::getWorldSize(); ++i) {
                     cudaSetDevice(i);
-                    unsigned int nElm = out.get_Elm_Num(i);
+                    unsigned int nElm = out.getElmNum(i);
                     dim3 gridDim;
                     dim3 blockDim;
                     fit_grid_and_block(nElm, gridDim, blockDim);
-                    if (f.get_Grad_Position() != 0) {
-                        cudaMemsetAsync(out.get_CUDA_Grad_ptr()[i], 0, out.getGradShape() * nElm * sizeof(T));
+                    if (f.getGradPosition() != 0) {
+                        cudaMemsetAsync(out.getCUDAGradPtr()[i], 0, out.getGradShape() * nElm * sizeof(T));
                         Jet_PVector_divides_Scalar_Vector_Kernel<T><<<gridDim, blockDim>>>(
                                 nElm,
-                                f.get_CUDA_Res_ptr()[i], f.get_Grad_Position(),
-                                g.get_CUDA_Res_ptr()[i],
-                                out.get_CUDA_Res_ptr()[i], out.get_CUDA_Grad_ptr()[i]);
+                                f.getCUDAResPtr()[i],
+                                f.getGradPosition(),
+                                g.getCUDAResPtr()[i],
+                                out.getCUDAResPtr()[i], out.getCUDAGradPtr()[i]);
                     } else {
                         JetVector_divides_Scalar_Vector_Kernel<T><<<gridDim, blockDim>>>(
                                 out.getGradShape(), nElm,
-                                f.get_CUDA_Res_ptr()[i], f.get_CUDA_Grad_ptr()[i],
-                                g.get_CUDA_Res_ptr()[i],
-                                out.get_CUDA_Res_ptr()[i], out.get_CUDA_Grad_ptr()[i]);
+                                f.getCUDAResPtr()[i], f.getCUDAGradPtr()[i],
+                                g.getCUDAResPtr()[i],
+                                out.getCUDAResPtr()[i], out.getCUDAGradPtr()[i]);
                     }
                 }
             }
@@ -954,15 +974,15 @@ namespace MegBA {
                 MegBA::JetVector<T> &out) {
                 for (int i = 0; i < MemoryPool::getWorldSize(); ++i) {
                     cudaSetDevice(i);
-                    unsigned int nElm = out.get_Elm_Num(i);
+                    unsigned int nElm = out.getElmNum(i);
                     dim3 gridDim;
                     dim3 blockDim;
                     fit_grid_and_block(nElm, gridDim, blockDim);
                     Scalar_Vector_divides_Scalar_Vector_Kernel<T><<<gridDim, blockDim>>>(
                             nElm,
-                            f.get_CUDA_Res_ptr()[i],
-                            g.get_CUDA_Res_ptr()[i],
-                            out.get_CUDA_Res_ptr()[i]);
+                            f.getCUDAResPtr()[i],
+                            g.getCUDAResPtr()[i],
+                            out.getCUDAResPtr()[i]);
                 }
             }
 
@@ -1013,29 +1033,29 @@ namespace MegBA {
                                                   MegBA::JetVector<T> &out) {
                 for (int i = 0; i < MemoryPool::getWorldSize(); ++i) {
                     cudaSetDevice(i);
-                    unsigned int nElm = out.get_Elm_Num(i);
+                    unsigned int nElm = out.getElmNum(i);
                     dim3 gridDim;
                     dim3 blockDim;
                     fit_grid_and_block(nElm, gridDim, blockDim);
-                    if (g.get_Grad_Position() != 0) {
-                        cudaMemsetAsync(out.get_CUDA_Grad_ptr()[i], 0, out.getGradShape() * nElm * sizeof(T));
+                    if (g.getGradPosition() != 0) {
+                        cudaMemsetAsync(out.getCUDAGradPtr()[i], 0, out.getGradShape() * nElm * sizeof(T));
                         Scalar_Vector_divides_Jet_PVector_Kernel<T><<<gridDim, blockDim>>>(
                                 nElm,
-                                f.get_CUDA_Res_ptr()[i],
-                                g.get_CUDA_Res_ptr()[i], g.get_Grad_Position(),
-                                out.get_CUDA_Res_ptr()[i], out.get_CUDA_Grad_ptr()[i]);
+                                f.getCUDAResPtr()[i],
+                                g.getCUDAResPtr()[i], g.getGradPosition(),
+                                out.getCUDAResPtr()[i], out.getCUDAGradPtr()[i]);
                     } else {
                         Scalar_Vector_divides_JetVector_Kernel<T><<<gridDim, blockDim>>>(
                                 out.getGradShape(), nElm,
-                                f.get_CUDA_Res_ptr()[i],
-                                g.get_CUDA_Res_ptr()[i], g.get_CUDA_Grad_ptr()[i],
-                                out.get_CUDA_Res_ptr()[i], out.get_CUDA_Grad_ptr()[i]);
+                                f.getCUDAResPtr()[i],
+                                g.getCUDAResPtr()[i], g.getCUDAGradPtr()[i],
+                                out.getCUDAResPtr()[i], out.getCUDAGradPtr()[i]);
                     }
                 }
             }
 
             template<typename T>
-            void Vector_divides_Vector_CUDA(const MegBA::JetVector<T> &f, const MegBA::JetVector<T> &g,
+            void vectorDividesVectorCUDA(const MegBA::JetVector<T> &f, const MegBA::JetVector<T> &g,
                                             MegBA::JetVector<T> &out) {
                 if (f.getGradShape() != 0)
                     if (g.getGradShape() != 0)
@@ -1048,11 +1068,13 @@ namespace MegBA {
                     else
                         Scalar_Vector_divides_Scalar_Vector_CUDA(f, g, out);
             }
-            template void Vector_divides_Vector_CUDA<double>(
+            template void
+            vectorDividesVectorCUDA<double>(
                     const MegBA::JetVector<double> &f, const MegBA::JetVector<double> &g,
                 MegBA::JetVector<double> &out);
 
-            template void Vector_divides_Vector_CUDA<float>(
+            template void
+            vectorDividesVectorCUDA<float>(
                     const MegBA::JetVector<float> &f, const MegBA::JetVector<float> &g,
                                               MegBA::JetVector<float> &out);
 
@@ -1073,25 +1095,25 @@ namespace MegBA {
             }
 
             template<typename T>
-            void JetVector_add_Scalar_CUDA(const MegBA::JetVector<T> &f, T g,
+            void jetVectorAddScalarCUDA(const MegBA::JetVector<T> &f, T g,
                                             MegBA::JetVector<T> &out) {
                 for (int i = 0; i < MemoryPool::getWorldSize(); ++i) {
                     cudaSetDevice(i);
-                    unsigned int nElm = out.get_Elm_Num(i);
+                    unsigned int nElm = out.getElmNum(i);
                     dim3 gridDim;
                     dim3 blockDim;
                     fit_grid_and_block(nElm, gridDim, blockDim);
                     JetVector_add_Scalar_Kernel<T><<<gridDim, blockDim>>>(f.getGradShape(), nElm,
-                                                                           f.get_CUDA_Res_ptr()[i], f.get_CUDA_Grad_ptr()[i],
+                                                                           f.getCUDAResPtr()[i], f.getCUDAGradPtr()[i],
                                                                            g,
-                                                                           out.get_CUDA_Res_ptr()[i], out.get_CUDA_Grad_ptr()[i]);
+                                                                           out.getCUDAResPtr()[i], out.getCUDAGradPtr()[i]);
                 }
             }
-            template void JetVector_add_Scalar_CUDA<double>(
+            template void jetVectorAddScalarCUDA<double>(
                     const MegBA::JetVector<double> &f, double g,
                 MegBA::JetVector<double> &out);
 
-            template void JetVector_add_Scalar_CUDA<float>(
+            template void jetVectorAddScalarCUDA<float>(
                     const MegBA::JetVector<float> &f, float g,
                                               MegBA::JetVector<float> &out);
 
@@ -1111,24 +1133,24 @@ namespace MegBA {
                 out_res[grid_thread_rank] = f_res[grid_thread_rank] - g;
             }
             template<typename T>
-            void JetVector_minus_Scalar_CUDA(const MegBA::JetVector<T> &f, T g, MegBA::JetVector<T> &out) {
+            void jetVectorMinusScalarCUDA(const MegBA::JetVector<T> &f, T g, MegBA::JetVector<T> &out) {
                 for (int i = 0; i < MemoryPool::getWorldSize(); ++i) {
                     cudaSetDevice(i);
-                    unsigned int nElm = out.get_Elm_Num(i);
+                    unsigned int nElm = out.getElmNum(i);
                     dim3 gridDim;
                     dim3 blockDim;
                     fit_grid_and_block(nElm, gridDim, blockDim);
                     JetVector_minus_Scalar_Kernel<T><<<gridDim, blockDim>>>(f.getGradShape(), nElm,
-                                                                             f.get_CUDA_Res_ptr()[i], f.get_CUDA_Grad_ptr()[i],
+                                                                             f.getCUDAResPtr()[i], f.getCUDAGradPtr()[i],
                                                                              g,
-                                                                             out.get_CUDA_Res_ptr()[i], out.get_CUDA_Grad_ptr()[i]);
+                                                                             out.getCUDAResPtr()[i], out.getCUDAGradPtr()[i]);
                 }
             }
-            template void JetVector_minus_Scalar_CUDA<double>(
+            template void jetVectorMinusScalarCUDA<double>(
                     const MegBA::JetVector<double> &f, double g,
                 MegBA::JetVector<double> &out);
 
-            template void JetVector_minus_Scalar_CUDA<float>(
+            template void jetVectorMinusScalarCUDA<float>(
                     const MegBA::JetVector<float> &f, float g,
                 MegBA::JetVector<float> &out);
 
@@ -1148,24 +1170,24 @@ namespace MegBA {
                 out_res[grid_thread_rank] = f_res[grid_thread_rank] * g;
             }
             template<typename T>
-            void JetVector_multiplies_Scalar_CUDA(const MegBA::JetVector<T> &f, T g, MegBA::JetVector<T> &out) {
+            void jetVectorMultipliesScalarCUDA(const MegBA::JetVector<T> &f, T g, MegBA::JetVector<T> &out) {
                 for (int i = 0; i < MemoryPool::getWorldSize(); ++i) {
                     cudaSetDevice(i);
-                    unsigned int nElm = out.get_Elm_Num(i);
+                    unsigned int nElm = out.getElmNum(i);
                     dim3 gridDim;
                     dim3 blockDim;
                     fit_grid_and_block(nElm, gridDim, blockDim);
                     JetVector_multiplies_Scalar_Kernel<T><<<gridDim, blockDim>>>(f.getGradShape(), nElm,
-                                                                                  f.get_CUDA_Res_ptr()[i], f.get_CUDA_Grad_ptr()[i],
+                                                                                  f.getCUDAResPtr()[i], f.getCUDAGradPtr()[i],
                                                                                   g,
-                                                                                  out.get_CUDA_Res_ptr()[i], out.get_CUDA_Grad_ptr()[i]);
+                                                                                  out.getCUDAResPtr()[i], out.getCUDAGradPtr()[i]);
                 }
             }
-            template void JetVector_multiplies_Scalar_CUDA<double>(
+            template void jetVectorMultipliesScalarCUDA<double>(
                     const MegBA::JetVector<double> &f, double g,
                 MegBA::JetVector<double> &out);
 
-            template void JetVector_multiplies_Scalar_CUDA<float>(
+            template void jetVectorMultipliesScalarCUDA<float>(
                     const MegBA::JetVector<float> &f, float g,
                 MegBA::JetVector<float> &out);
 
@@ -1185,25 +1207,25 @@ namespace MegBA {
                 out_res[grid_thread_rank] = f - g_res[grid_thread_rank];
             }
             template<typename T>
-            void Scalar_minus_JetVector_CUDA(T f, const JetVector<T> &g,
+            void scalarMinusJetVectorCUDA(T f, const JetVector<T> &g,
                                               JetVector<T> &out) {
                 for (int i = 0; i < MemoryPool::getWorldSize(); ++i) {
                     cudaSetDevice(i);
-                    unsigned int nElm = out.get_Elm_Num(i);
+                    unsigned int nElm = out.getElmNum(i);
                     dim3 blockDim;
                     dim3 gridDim;
                     fit_grid_and_block(nElm, gridDim, blockDim);
                     Scalar_minus_JetVector_Kernel<T><<<gridDim, blockDim>>>(g.getGradShape(), nElm,
                                                                              f,
-                                                                             g.get_CUDA_Res_ptr()[i], g.get_CUDA_Grad_ptr()[i],
-                                                                             out.get_CUDA_Res_ptr()[i], out.get_CUDA_Grad_ptr()[i]);
+                                                                             g.getCUDAResPtr()[i], g.getCUDAGradPtr()[i],
+                                                                             out.getCUDAResPtr()[i], out.getCUDAGradPtr()[i]);
                 }
             }
-            template void Scalar_minus_JetVector_CUDA<double>(
+            template void scalarMinusJetVectorCUDA<double>(
                     double f, const MegBA::JetVector<double> &g,
                 MegBA::JetVector<double> &out);
 
-            template void Scalar_minus_JetVector_CUDA<float>(
+            template void scalarMinusJetVectorCUDA<float>(
                     float f, const MegBA::JetVector<float> &g,
                 MegBA::JetVector<float> &out);
 
@@ -1225,25 +1247,25 @@ namespace MegBA {
                 out_res[grid_thread_rank] = g_res_inv_times_f_local;
             }
             template<typename T>
-            void Scalar_divides_JetVector_CUDA(T f, const JetVector<T> &g,
+            void scalarDividesJetVectorCUDA(T f, const JetVector<T> &g,
                                                 JetVector<T> &out) {
                 for (int i = 0; i < MemoryPool::getWorldSize(); ++i) {
                     cudaSetDevice(i);
-                    unsigned int nElm = out.get_Elm_Num(i);
+                    unsigned int nElm = out.getElmNum(i);
                     dim3 blockDim;
                     dim3 gridDim;
                     fit_grid_and_block(nElm, gridDim, blockDim);
                     Scalar_divides_JetVector_Kernel<T><<<gridDim, blockDim>>>(g.getGradShape(), nElm,
                                                                                f,
-                                                                               g.get_CUDA_Res_ptr()[i], g.get_CUDA_Grad_ptr()[i],
-                                                                               out.get_CUDA_Res_ptr()[i], out.get_CUDA_Grad_ptr()[i]);
+                                                                               g.getCUDAResPtr()[i], g.getCUDAGradPtr()[i],
+                                                                               out.getCUDAResPtr()[i], out.getCUDAGradPtr()[i]);
                 }
             }
-            template void Scalar_divides_JetVector_CUDA<double>(
+            template void scalarDividesJetVectorCUDA<double>(
                     double f, const MegBA::JetVector<double> &g,
                 MegBA::JetVector<double> &out);
 
-            template void Scalar_divides_JetVector_CUDA<float>(
+            template void scalarDividesJetVectorCUDA<float>(
                     float f, const MegBA::JetVector<float> &g,
                 MegBA::JetVector<float> &out);
 
@@ -1268,13 +1290,13 @@ namespace MegBA {
                                      MegBA::JetVector<T> &out) {
                 for (int i = 0; i < MemoryPool::getWorldSize(); ++i) {
                     cudaSetDevice(i);
-                    unsigned int nElm = out.get_Elm_Num(i);
+                    unsigned int nElm = out.getElmNum(i);
                     dim3 gridDim;
                     dim3 blockDim;
                     fit_grid_and_block(nElm, gridDim, blockDim);
                     abs_JetVector_Kernel<T><<<gridDim, blockDim>>>(f.getGradShape(), nElm,
-                                                                    f.get_CUDA_Res_ptr()[i], f.get_CUDA_Grad_ptr()[i],
-                                                                    out.get_CUDA_Res_ptr()[i], out.get_CUDA_Grad_ptr()[i]);
+                                                                    f.getCUDAResPtr()[i], f.getCUDAGradPtr()[i],
+                                                                    out.getCUDAResPtr()[i], out.getCUDAGradPtr()[i]);
                 }
             }
             template void abs_JetVector_CUDA<double>(
@@ -1305,13 +1327,13 @@ namespace MegBA {
                                      MegBA::JetVector<T> &out) {
                 for (int i = 0; i < MemoryPool::getWorldSize(); ++i) {
                     cudaSetDevice(i);
-                    unsigned int nElm = out.get_Elm_Num(i);
+                    unsigned int nElm = out.getElmNum(i);
                     dim3 gridDim;
                     dim3 blockDim;
                     fit_grid_and_block(nElm, gridDim, blockDim);
                     cos_JetVector_Kernel<T><<<gridDim, blockDim>>>(f.getGradShape(), nElm,
-                                                                    f.get_CUDA_Res_ptr()[i], f.get_CUDA_Grad_ptr()[i],
-                                                                    out.get_CUDA_Res_ptr()[i], out.get_CUDA_Grad_ptr()[i]);
+                                                                    f.getCUDAResPtr()[i], f.getCUDAGradPtr()[i],
+                                                                    out.getCUDAResPtr()[i], out.getCUDAGradPtr()[i]);
                 }
             }
             template void cos_JetVector_CUDA<double>(
@@ -1342,13 +1364,13 @@ namespace MegBA {
                                      MegBA::JetVector<T> &out) {
                 for (int i = 0; i < MemoryPool::getWorldSize(); ++i) {
                     cudaSetDevice(i);
-                    unsigned int nElm = out.get_Elm_Num(i);
+                    unsigned int nElm = out.getElmNum(i);
                     dim3 gridDim;
                     dim3 blockDim;
                     fit_grid_and_block(nElm, gridDim, blockDim);
                     sin_JetVector_Kernel<T><<<gridDim, blockDim>>>(f.getGradShape(), nElm,
-                                                                    f.get_CUDA_Res_ptr()[i], f.get_CUDA_Grad_ptr()[i],
-                                                                    out.get_CUDA_Res_ptr()[i], out.get_CUDA_Grad_ptr()[i]);
+                                                                    f.getCUDAResPtr()[i], f.getCUDAGradPtr()[i],
+                                                                    out.getCUDAResPtr()[i], out.getCUDAGradPtr()[i]);
                 }
             }
             template void sin_JetVector_CUDA<double>(
@@ -1380,13 +1402,13 @@ namespace MegBA {
                                       MegBA::JetVector<T> &out) {
                 for (int i = 0; i < MemoryPool::getWorldSize(); ++i) {
                     cudaSetDevice(i);
-                    unsigned int nElm = out.get_Elm_Num(i);
+                    unsigned int nElm = out.getElmNum(i);
                     dim3 gridDim;
                     dim3 blockDim;
                     fit_grid_and_block(nElm, gridDim, blockDim);
                     sqrt_JetVector_Kernel<T><<<gridDim, blockDim>>>(f.getGradShape(), nElm,
-                                                                     f.get_CUDA_Res_ptr()[i], f.get_CUDA_Grad_ptr()[i],
-                                                                     out.get_CUDA_Res_ptr()[i], out.get_CUDA_Grad_ptr()[i]);
+                                                                     f.getCUDAResPtr()[i], f.getCUDAGradPtr()[i],
+                                                                     out.getCUDAResPtr()[i], out.getCUDAGradPtr()[i]);
                 }
             }
             template void sqrt_JetVector_CUDA<double>(

@@ -219,21 +219,21 @@ namespace MegAutoBA{
                 }
             }
 
-            const auto nElm = JV_Template.get_Elm_Num();
+            const auto nElm = JV_Template.getElmNum();
             const auto N = JV_Template.getGradShape();
             // 512 instead of 1024 for the limitation of registers
             dim3 block_dim(std::min(decltype(nElm)(512), nElm));
             dim3 grid_dim((nElm - 1) / block_dim.x + 1);
             QuaternionToRotation<T> <<< grid_dim, block_dim >>> (
                     nElm, N,
-                    Q.x().get_CUDA_Res_ptr(), Q.y().get_CUDA_Res_ptr(), Q.z().get_CUDA_Res_ptr(), Q.w().get_CUDA_Res_ptr(),
-                    Q.x().get_CUDA_Grad_ptr(), Q.y().get_CUDA_Grad_ptr(), Q.z().get_CUDA_Grad_ptr(), Q.w().get_CUDA_Grad_ptr(),
-                    R(0, 0).get_CUDA_Res_ptr(), R(0, 1).get_CUDA_Res_ptr(), R(0, 2).get_CUDA_Res_ptr(),
-                    R(1, 0).get_CUDA_Res_ptr(), R(1, 1).get_CUDA_Res_ptr(), R(1, 2).get_CUDA_Res_ptr(),
-                    R(2, 0).get_CUDA_Res_ptr(), R(2, 1).get_CUDA_Res_ptr(), R(2, 2).get_CUDA_Res_ptr(),
-                    R(0, 0).get_CUDA_Grad_ptr(), R(0, 1).get_CUDA_Grad_ptr(), R(0, 2).get_CUDA_Grad_ptr(),
-                    R(1, 0).get_CUDA_Grad_ptr(), R(1, 1).get_CUDA_Grad_ptr(), R(1, 2).get_CUDA_Grad_ptr(),
-                    R(2, 0).get_CUDA_Grad_ptr(), R(2, 1).get_CUDA_Grad_ptr(), R(2, 2).get_CUDA_Grad_ptr()
+                    Q.x().getCUDAResPtr(), Q.y().getCUDAResPtr(), Q.z().getCUDAResPtr(), Q.w().getCUDAResPtr(),
+                    Q.x().getCUDAGradPtr(), Q.y().getCUDAGradPtr(), Q.z().getCUDAGradPtr(), Q.w().getCUDAGradPtr(),
+                    R(0, 0).getCUDAResPtr(), R(0, 1).getCUDAResPtr(), R(0, 2).getCUDAResPtr(),
+                    R(1, 0).getCUDAResPtr(), R(1, 1).getCUDAResPtr(), R(1, 2).getCUDAResPtr(),
+                    R(2, 0).getCUDAResPtr(), R(2, 1).getCUDAResPtr(), R(2, 2).getCUDAResPtr(),
+                    R(0, 0).getCUDAGradPtr(), R(0, 1).getCUDAGradPtr(), R(0, 2).getCUDAGradPtr(),
+                    R(1, 0).getCUDAGradPtr(), R(1, 1).getCUDAGradPtr(), R(1, 2).getCUDAGradPtr(),
+                    R(2, 0).getCUDAGradPtr(), R(2, 1).getCUDAGradPtr(), R(2, 2).getCUDAGradPtr()
             );
 
             // TODO: use stream sync later
@@ -248,14 +248,14 @@ namespace MegAutoBA{
             cudaStream_t stream;
             cudaStreamCreateWithFlags(&stream, CU_STREAM_NON_BLOCKING);
             const T *const address_R[3][3] {
-                    {R(0, 0).get_CUDA_Res_ptr(), R(0, 1).get_CUDA_Res_ptr(), R(0, 2).get_CUDA_Res_ptr()},
-                    {R(1, 0).get_CUDA_Res_ptr(), R(1, 1).get_CUDA_Res_ptr(), R(1, 2).get_CUDA_Res_ptr()},
-                    {R(2, 0).get_CUDA_Res_ptr(), R(2, 1).get_CUDA_Res_ptr(), R(2, 2).get_CUDA_Res_ptr()}
+                    {R(0, 0).getCUDAResPtr(), R(0, 1).getCUDAResPtr(), R(0, 2).getCUDAResPtr()},
+                    {R(1, 0).getCUDAResPtr(), R(1, 1).getCUDAResPtr(), R(1, 2).getCUDAResPtr()},
+                    {R(2, 0).getCUDAResPtr(), R(2, 1).getCUDAResPtr(), R(2, 2).getCUDAResPtr()}
             };
             const T *const address_dR[3][3] {
-                    {R(0, 0).get_CUDA_Grad_ptr(), R(0, 1).get_CUDA_Grad_ptr(), R(0, 2).get_CUDA_Grad_ptr()},
-                    {R(1, 0).get_CUDA_Grad_ptr(), R(1, 1).get_CUDA_Grad_ptr(), R(1, 2).get_CUDA_Grad_ptr()},
-                    {R(2, 0).get_CUDA_Grad_ptr(), R(2, 1).get_CUDA_Grad_ptr(), R(2, 2).get_CUDA_Grad_ptr()}
+                    {R(0, 0).getCUDAGradPtr(), R(0, 1).getCUDAGradPtr(), R(0, 2).getCUDAGradPtr()},
+                    {R(1, 0).getCUDAGradPtr(), R(1, 1).getCUDAGradPtr(), R(1, 2).getCUDAGradPtr()},
+                    {R(2, 0).getCUDAGradPtr(), R(2, 1).getCUDAGradPtr(), R(2, 2).getCUDAGradPtr()}
             };
             cudaMemcpyToSymbolAsync(W::get_R(), address_R, 9 * sizeof(T *), 0, cudaMemcpyHostToDevice, stream);
             cudaMemcpyToSymbolAsync(W::get_dR(), address_dR, 9 * sizeof(T *), 0, cudaMemcpyHostToDevice, stream);
@@ -265,16 +265,16 @@ namespace MegAutoBA{
             }
 
             T *const address_Q[4] {
-                    Q.x().get_CUDA_Res_ptr(), Q.y().get_CUDA_Res_ptr(), Q.z().get_CUDA_Res_ptr(), Q.w().get_CUDA_Res_ptr()
+                    Q.x().getCUDAResPtr(), Q.y().getCUDAResPtr(), Q.z().getCUDAResPtr(), Q.w().getCUDAResPtr()
             };
             T *const address_dQ[4] {
-                    Q.x().get_CUDA_Grad_ptr(), Q.y().get_CUDA_Grad_ptr(), Q.z().get_CUDA_Grad_ptr(), Q.w().get_CUDA_Grad_ptr()
+                    Q.x().getCUDAGradPtr(), Q.y().getCUDAGradPtr(), Q.z().getCUDAGradPtr(), Q.w().getCUDAGradPtr()
             };
 
             cudaMemcpyToSymbolAsync(W::get_Q(), address_Q, 4 * sizeof(T *), 0, cudaMemcpyHostToDevice, stream);
             cudaMemcpyToSymbolAsync(W::get_dQ(), address_dQ, 4 * sizeof(T *), 0, cudaMemcpyHostToDevice, stream);
 
-            const auto nElm = JV_Template.get_Elm_Num();
+            const auto nElm = JV_Template.getElmNum();
             const auto N = JV_Template.getGradShape();
             // 512 instead of 1024 for the limitation of registers
             dim3 block_dim(std::min(decltype(nElm)(512), nElm));
@@ -292,15 +292,15 @@ namespace MegAutoBA{
             cudaStream_t stream;
             cudaStreamCreateWithFlags(&stream, CU_STREAM_NON_BLOCKING);
 
-            const auto nElm = Q(0).get_Elm_Num();
+            const auto nElm = Q(0).getElmNum();
             const auto N = Q(0).getGradShape();
             // 512 instead of 1024 for the limitation of registers
             dim3 block_dim(std::min(decltype(nElm)(768), nElm));
             dim3 grid_dim((nElm - 1) / block_dim.x + 1);
             Normalize_<T> <<< grid_dim, block_dim, 0, stream >>> (
                     nElm, N,
-                    Q.x().get_CUDA_Res_ptr(), Q.y().get_CUDA_Res_ptr(), Q.z().get_CUDA_Res_ptr(), Q.w().get_CUDA_Res_ptr(),
-                    Q.x().get_CUDA_Grad_ptr(), Q.y().get_CUDA_Grad_ptr(), Q.z().get_CUDA_Grad_ptr(), Q.w().get_CUDA_Grad_ptr()
+                    Q.x().getCUDAResPtr(), Q.y().getCUDAResPtr(), Q.z().getCUDAResPtr(), Q.w().getCUDAResPtr(),
+                    Q.x().getCUDAGradPtr(), Q.y().getCUDAGradPtr(), Q.z().getCUDAGradPtr(), Q.w().getCUDAGradPtr()
             );
 
             cudaStreamSynchronize(stream);

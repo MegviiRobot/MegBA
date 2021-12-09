@@ -9,9 +9,6 @@
 #include "problem/BaseProblem.h"
 #include "cublas_v2.h"
 #include "cusparse_v2.h"
-#include <thrust/transform.h>
-#include <thrust/device_ptr.h>
-#include "operator/Thrust_Transform.h"
 #include <Wrapper.hpp>
 #include <resource/Manager.h>
 #include <Macro.h>

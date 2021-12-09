@@ -103,43 +103,43 @@ void RadialDistortionImpl(const JV3<T> &point, const JV3<T> &intrinsic,
   const auto N = out.getGradShape();
   bool use_fast_grad{true};
   for (int i = 0; i < 3; ++i)
-    use_fast_grad &= intrinsic(i).get_Grad_Position() != -1;
+    use_fast_grad &= intrinsic(i).getGradPosition() != -1;
 
   for (int i = 0; i < MemoryPool::getWorldSize(); ++i) {
     cudaSetDevice(i);
-    const auto nElm = out.get_Elm_Num(i);
+    const auto nElm = out.getElmNum(i);
     dim3 block_dim(std::min(decltype(nElm)(256), nElm));
     dim3 grid_dim((nElm - 1) / block_dim.x + 1);
     if (intrinsic(0).getGradShape() == 0) {
       RadialDistortionNoGradKernel<T><<<grid_dim, block_dim>>>(
-          nElm, N, point(0).get_CUDA_Res_ptr()[i],
-          point(1).get_CUDA_Res_ptr()[i], point(0).get_CUDA_Grad_ptr()[i],
-          point(1).get_CUDA_Grad_ptr()[i], intrinsic(0).get_CUDA_Res_ptr()[i],
-          intrinsic(1).get_CUDA_Res_ptr()[i],
-          intrinsic(2).get_CUDA_Res_ptr()[i], out.get_CUDA_Res_ptr()[i],
-          out.get_CUDA_Grad_ptr()[i]);
+          nElm, N, point(0).getCUDAResPtr()[i],
+          point(1).getCUDAResPtr()[i], point(0).getCUDAGradPtr()[i],
+          point(1).getCUDAGradPtr()[i], intrinsic(0).getCUDAResPtr()[i],
+          intrinsic(1).getCUDAResPtr()[i],
+          intrinsic(2).getCUDAResPtr()[i], out.getCUDAResPtr()[i],
+          out.getCUDAGradPtr()[i]);
     } else {
       if (use_fast_grad) {
         RadialDistortionFastGradKernel<T><<<grid_dim, block_dim>>>(
-            nElm, N, point(0).get_CUDA_Res_ptr()[i],
-            point(1).get_CUDA_Res_ptr()[i], point(0).get_CUDA_Grad_ptr()[i],
-            point(1).get_CUDA_Grad_ptr()[i], intrinsic(0).get_CUDA_Res_ptr()[i],
-            intrinsic(1).get_CUDA_Res_ptr()[i],
-            intrinsic(2).get_CUDA_Res_ptr()[i],
-            intrinsic(0).get_Grad_Position(), intrinsic(1).get_Grad_Position(),
-            intrinsic(2).get_Grad_Position(), out.get_CUDA_Res_ptr()[i],
-            out.get_CUDA_Grad_ptr()[i]);
+            nElm, N, point(0).getCUDAResPtr()[i],
+            point(1).getCUDAResPtr()[i], point(0).getCUDAGradPtr()[i],
+            point(1).getCUDAGradPtr()[i], intrinsic(0).getCUDAResPtr()[i],
+            intrinsic(1).getCUDAResPtr()[i],
+            intrinsic(2).getCUDAResPtr()[i],
+            intrinsic(0).getGradPosition(), intrinsic(1).getGradPosition(),
+            intrinsic(2).getGradPosition(), out.getCUDAResPtr()[i],
+            out.getCUDAGradPtr()[i]);
       } else {
         RadialDistortionKernel<T><<<grid_dim, block_dim>>>(
-            nElm, N, point(0).get_CUDA_Res_ptr()[i],
-            point(1).get_CUDA_Res_ptr()[i], point(0).get_CUDA_Grad_ptr()[i],
-            point(1).get_CUDA_Grad_ptr()[i], intrinsic(0).get_CUDA_Res_ptr()[i],
-            intrinsic(1).get_CUDA_Res_ptr()[i],
-            intrinsic(2).get_CUDA_Res_ptr()[i],
-            intrinsic(0).get_CUDA_Grad_ptr()[i],
-            intrinsic(1).get_CUDA_Grad_ptr()[i],
-            intrinsic(2).get_CUDA_Grad_ptr()[i], out.get_CUDA_Res_ptr()[i],
-            out.get_CUDA_Grad_ptr()[i]);
+            nElm, N, point(0).getCUDAResPtr()[i],
+            point(1).getCUDAResPtr()[i], point(0).getCUDAGradPtr()[i],
+            point(1).getCUDAGradPtr()[i], intrinsic(0).getCUDAResPtr()[i],
+            intrinsic(1).getCUDAResPtr()[i],
+            intrinsic(2).getCUDAResPtr()[i],
+            intrinsic(0).getCUDAGradPtr()[i],
+            intrinsic(1).getCUDAGradPtr()[i],
+            intrinsic(2).getCUDAGradPtr()[i], out.getCUDAResPtr()[i],
+            out.getCUDAGradPtr()[i]);
       }
     }
   }
@@ -152,43 +152,43 @@ void RadialDistortionImpl(const JV3<T> &point,
   const auto N = out.getGradShape();
   bool use_fast_grad{true};
   for (int i = 0; i < 3; ++i)
-    use_fast_grad &= intrinsic(i).get_Grad_Position() != -1;
+    use_fast_grad &= intrinsic(i).getGradPosition() != -1;
 
   for (int i = 0; i < MemoryPool::getWorldSize(); ++i) {
     cudaSetDevice(i);
-    const auto nElm = out.get_Elm_Num(i);
+    const auto nElm = out.getElmNum(i);
     dim3 block_dim(std::min(decltype(nElm)(256), nElm));
     dim3 grid_dim((nElm - 1) / block_dim.x + 1);
     if (intrinsic(0).getGradShape() == 0) {
       RadialDistortionNoGradKernel<T><<<grid_dim, block_dim>>>(
-          nElm, N, point(0).get_CUDA_Res_ptr()[i],
-          point(1).get_CUDA_Res_ptr()[i], point(0).get_CUDA_Grad_ptr()[i],
-          point(1).get_CUDA_Grad_ptr()[i], intrinsic(0).get_CUDA_Res_ptr()[i],
-          intrinsic(1).get_CUDA_Res_ptr()[i],
-          intrinsic(2).get_CUDA_Res_ptr()[i], out.get_CUDA_Res_ptr()[i],
-          out.get_CUDA_Grad_ptr()[i]);
+          nElm, N, point(0).getCUDAResPtr()[i],
+          point(1).getCUDAResPtr()[i], point(0).getCUDAGradPtr()[i],
+          point(1).getCUDAGradPtr()[i], intrinsic(0).getCUDAResPtr()[i],
+          intrinsic(1).getCUDAResPtr()[i],
+          intrinsic(2).getCUDAResPtr()[i], out.getCUDAResPtr()[i],
+          out.getCUDAGradPtr()[i]);
     } else {
       if (use_fast_grad) {
         RadialDistortionFastGradKernel<T><<<grid_dim, block_dim>>>(
-            nElm, N, point(0).get_CUDA_Res_ptr()[i],
-            point(1).get_CUDA_Res_ptr()[i], point(0).get_CUDA_Grad_ptr()[i],
-            point(1).get_CUDA_Grad_ptr()[i], intrinsic(0).get_CUDA_Res_ptr()[i],
-            intrinsic(1).get_CUDA_Res_ptr()[i],
-            intrinsic(2).get_CUDA_Res_ptr()[i],
-            intrinsic(0).get_Grad_Position(), intrinsic(1).get_Grad_Position(),
-            intrinsic(2).get_Grad_Position(), out.get_CUDA_Res_ptr()[i],
-            out.get_CUDA_Grad_ptr()[i]);
+            nElm, N, point(0).getCUDAResPtr()[i],
+            point(1).getCUDAResPtr()[i], point(0).getCUDAGradPtr()[i],
+            point(1).getCUDAGradPtr()[i], intrinsic(0).getCUDAResPtr()[i],
+            intrinsic(1).getCUDAResPtr()[i],
+            intrinsic(2).getCUDAResPtr()[i],
+            intrinsic(0).getGradPosition(), intrinsic(1).getGradPosition(),
+            intrinsic(2).getGradPosition(), out.getCUDAResPtr()[i],
+            out.getCUDAGradPtr()[i]);
       } else {
         RadialDistortionKernel<T><<<grid_dim, block_dim>>>(
-            nElm, N, point(0).get_CUDA_Res_ptr()[i],
-            point(1).get_CUDA_Res_ptr()[i], point(0).get_CUDA_Grad_ptr()[i],
-            point(1).get_CUDA_Grad_ptr()[i], intrinsic(0).get_CUDA_Res_ptr()[i],
-            intrinsic(1).get_CUDA_Res_ptr()[i],
-            intrinsic(2).get_CUDA_Res_ptr()[i],
-            intrinsic(0).get_CUDA_Grad_ptr()[i],
-            intrinsic(1).get_CUDA_Grad_ptr()[i],
-            intrinsic(2).get_CUDA_Grad_ptr()[i], out.get_CUDA_Res_ptr()[i],
-            out.get_CUDA_Grad_ptr()[i]);
+            nElm, N, point(0).getCUDAResPtr()[i],
+            point(1).getCUDAResPtr()[i], point(0).getCUDAGradPtr()[i],
+            point(1).getCUDAGradPtr()[i], intrinsic(0).getCUDAResPtr()[i],
+            intrinsic(1).getCUDAResPtr()[i],
+            intrinsic(2).getCUDAResPtr()[i],
+            intrinsic(0).getCUDAGradPtr()[i],
+            intrinsic(1).getCUDAGradPtr()[i],
+            intrinsic(2).getCUDAGradPtr()[i], out.getCUDAResPtr()[i],
+            out.getCUDAGradPtr()[i]);
       }
     }
   }
@@ -201,43 +201,43 @@ void RadialDistortionImpl(const JV3<T> &point,
   const auto N = out.getGradShape();
   bool use_fast_grad{true};
   for (int i = 0; i < 3; ++i)
-    use_fast_grad &= intrinsic(i).get_Grad_Position() != -1;
+    use_fast_grad &= intrinsic(i).getGradPosition() != -1;
 
   for (int i = 0; i < MemoryPool::getWorldSize(); ++i) {
     cudaSetDevice(i);
-    const auto nElm = out.get_Elm_Num(i);
+    const auto nElm = out.getElmNum(i);
     dim3 block_dim(std::min(decltype(nElm)(256), nElm));
     dim3 grid_dim((nElm - 1) / block_dim.x + 1);
     if (intrinsic(0).getGradShape() == 0) {
       RadialDistortionNoGradKernel<T><<<grid_dim, block_dim>>>(
-          nElm, N, point(0).get_CUDA_Res_ptr()[i],
-          point(1).get_CUDA_Res_ptr()[i], point(0).get_CUDA_Grad_ptr()[i],
-          point(1).get_CUDA_Grad_ptr()[i], intrinsic(0).get_CUDA_Res_ptr()[i],
-          intrinsic(1).get_CUDA_Res_ptr()[i],
-          intrinsic(2).get_CUDA_Res_ptr()[i], out.get_CUDA_Res_ptr()[i],
-          out.get_CUDA_Grad_ptr()[i]);
+          nElm, N, point(0).getCUDAResPtr()[i],
+          point(1).getCUDAResPtr()[i], point(0).getCUDAGradPtr()[i],
+          point(1).getCUDAGradPtr()[i], intrinsic(0).getCUDAResPtr()[i],
+          intrinsic(1).getCUDAResPtr()[i],
+          intrinsic(2).getCUDAResPtr()[i], out.getCUDAResPtr()[i],
+          out.getCUDAGradPtr()[i]);
     } else {
       if (use_fast_grad) {
         RadialDistortionFastGradKernel<T><<<grid_dim, block_dim>>>(
-            nElm, N, point(0).get_CUDA_Res_ptr()[i],
-            point(1).get_CUDA_Res_ptr()[i], point(0).get_CUDA_Grad_ptr()[i],
-            point(1).get_CUDA_Grad_ptr()[i], intrinsic(0).get_CUDA_Res_ptr()[i],
-            intrinsic(1).get_CUDA_Res_ptr()[i],
-            intrinsic(2).get_CUDA_Res_ptr()[i],
-            intrinsic(0).get_Grad_Position(), intrinsic(1).get_Grad_Position(),
-            intrinsic(2).get_Grad_Position(), out.get_CUDA_Res_ptr()[i],
-            out.get_CUDA_Grad_ptr()[i]);
+            nElm, N, point(0).getCUDAResPtr()[i],
+            point(1).getCUDAResPtr()[i], point(0).getCUDAGradPtr()[i],
+            point(1).getCUDAGradPtr()[i], intrinsic(0).getCUDAResPtr()[i],
+            intrinsic(1).getCUDAResPtr()[i],
+            intrinsic(2).getCUDAResPtr()[i],
+            intrinsic(0).getGradPosition(), intrinsic(1).getGradPosition(),
+            intrinsic(2).getGradPosition(), out.getCUDAResPtr()[i],
+            out.getCUDAGradPtr()[i]);
       } else {
         RadialDistortionKernel<T><<<grid_dim, block_dim>>>(
-            nElm, N, point(0).get_CUDA_Res_ptr()[i],
-            point(1).get_CUDA_Res_ptr()[i], point(0).get_CUDA_Grad_ptr()[i],
-            point(1).get_CUDA_Grad_ptr()[i], intrinsic(0).get_CUDA_Res_ptr()[i],
-            intrinsic(1).get_CUDA_Res_ptr()[i],
-            intrinsic(2).get_CUDA_Res_ptr()[i],
-            intrinsic(0).get_CUDA_Grad_ptr()[i],
-            intrinsic(1).get_CUDA_Grad_ptr()[i],
-            intrinsic(2).get_CUDA_Grad_ptr()[i], out.get_CUDA_Res_ptr()[i],
-            out.get_CUDA_Grad_ptr()[i]);
+            nElm, N, point(0).getCUDAResPtr()[i],
+            point(1).getCUDAResPtr()[i], point(0).getCUDAGradPtr()[i],
+            point(1).getCUDAGradPtr()[i], intrinsic(0).getCUDAResPtr()[i],
+            intrinsic(1).getCUDAResPtr()[i],
+            intrinsic(2).getCUDAResPtr()[i],
+            intrinsic(0).getCUDAGradPtr()[i],
+            intrinsic(1).getCUDAGradPtr()[i],
+            intrinsic(2).getCUDAGradPtr()[i], out.getCUDAResPtr()[i],
+            out.getCUDAGradPtr()[i]);
       }
     }
   }

@@ -77,7 +77,7 @@ namespace MegBA {
     }
 
     template<typename T>
-    const device_t &BaseProblem<T>::get_Device() const {
+    const device_t &BaseProblem<T>::getDevice() const {
         return option_.device;
     }
 

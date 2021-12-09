@@ -43,22 +43,22 @@ namespace MegBA {
     SE2<T> inverse_SE2_CUDA(const SE2<T> &se2) {
         SE2<T> se2_inv{};
         const auto &init_template = se2.rotation().angle();
-        se2_inv.rotation().angle().InitAs(init_template);
-        se2_inv.translation()(0).InitAs(init_template);
-        se2_inv.translation()(1).InitAs(init_template);
+        se2_inv.rotation().angle().initAs(init_template);
+        se2_inv.translation()(0).initAs(init_template);
+        se2_inv.translation()(1).initAs(init_template);
 
         const auto N = init_template.getGradShape();
 
         for (int i = 0; i < MemoryPool::getWorldSize(); ++i) {
             cudaSetDevice(i);
-            const auto nElm = init_template.get_Elm_Num(i);
+            const auto nElm = init_template.getElmNum(i);
             dim3 block_dim(std::min(decltype(nElm)(512), nElm));
             dim3 grid_dim((nElm - 1) / block_dim.x + 1);
 
             normalize_rotation2D_Kernel<T><<<grid_dim, block_dim>>>(
                     nElm, N,
-                    se2.rotation().angle().get_CUDA_Res_ptr()[i], se2.rotation().angle().get_CUDA_Grad_ptr()[i],
-                    se2_inv.rotation().angle().get_CUDA_Res_ptr()[i], se2_inv.rotation().angle().get_CUDA_Grad_ptr()[i]);
+                    se2.rotation().angle().getCUDAResPtr()[i], se2.rotation().angle().getCUDAGradPtr()[i],
+                    se2_inv.rotation().angle().getCUDAResPtr()[i], se2_inv.rotation().angle().getCUDAGradPtr()[i]);
         }
 
         auto R = geo::Rotation2DToRotationMatrix(se2_inv.rotation());

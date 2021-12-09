@@ -189,7 +189,7 @@ public:
 
   void updateSchur(const std::vector<T *> &deltaXPtr);
 
-  void rebindDaPtrs();
+  void regetCUDAGradPtrs();
 
   std::vector<SchurEquationContainer> schurEquationContainer;
 

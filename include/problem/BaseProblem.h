@@ -48,7 +48,7 @@ namespace MegBA {
 
         ~BaseProblem() = default;
 
-        const device_t &get_Device() const;
+        const device_t &getDevice() const;
 
         void append_Vertex(int ID, BaseVertex<T> &vertex);
 

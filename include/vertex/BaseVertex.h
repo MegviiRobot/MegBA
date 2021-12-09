@@ -138,7 +138,7 @@ public:
     for (int i = 0; i < _estimationRows; ++i) {
       for (int j = 0; j < _estimationCols; ++j) {
         _JVEstimation(i, j).set_Grad_Shape(fixed ? 0 : N);
-        _JVEstimation(i, j).set_Grad_Position(
+        _JVEstimation(i, j).setGradPosition(
             fixed ? -1 : offset + i * _estimationCols + j);
       }
     }

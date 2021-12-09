@@ -120,7 +120,7 @@ inline void manage_caching_sizes(Action action, std::ptrdiff_t* l1, std::ptrdiff
  * - the register level blocking sizes defined by gebp_traits,
  * - the number of scalars that fit into a packet (when vectorization is enabled).
  *
- * \sa setCpuCacheSizes */
+ * \sa setCPUCacheSizes */
 
 template<typename LhsScalar, typename RhsScalar, int KcFactor, typename Index>
 void evaluateProductBlockingSizesHeuristic(Index& k, Index& m, Index& n, Index num_threads = 1)
@@ -335,7 +335,7 @@ inline bool useSpecificBlockingSizes(Index& k, Index& m, Index& n)
   *   - either by a heuristic based on cache sizes;
   *   - or using fixed prescribed values (for testing purposes).
   *
-  * \sa setCpuCacheSizes */
+  * \sa setCPUCacheSizes */
 
 template<typename LhsScalar, typename RhsScalar, int KcFactor, typename Index>
 void computeProductBlockingSizes(Index& k, Index& m, Index& n, Index num_threads = 1)
@@ -2605,7 +2605,7 @@ struct gemm_pack_rhs<Scalar, Index, DataMapper, nr, RowMajor, Conjugate, PanelMo
 } // end namespace internal
 
 /** \returns the currently set level 1 cpu cache size (in bytes) used to estimate the ideal blocking size parameters.
-  * \sa setCpuCacheSize */
+  * \sa setCPUCacheSize */
 inline std::ptrdiff_t l1CacheSize()
 {
   std::ptrdiff_t l1, l2, l3;
@@ -2614,7 +2614,7 @@ inline std::ptrdiff_t l1CacheSize()
 }
 
 /** \returns the currently set level 2 cpu cache size (in bytes) used to estimate the ideal blocking size parameters.
-  * \sa setCpuCacheSize */
+  * \sa setCPUCacheSize */
 inline std::ptrdiff_t l2CacheSize()
 {
   std::ptrdiff_t l1, l2, l3;
@@ -2624,7 +2624,7 @@ inline std::ptrdiff_t l2CacheSize()
 
 /** \returns the currently set level 3 cpu cache size (in bytes) used to estimate the ideal blocking size paramete\
 rs.                                                                                                                
-* \sa setCpuCacheSize */
+* \sa setCPUCacheSize */
 inline std::ptrdiff_t l3CacheSize()
 {
   std::ptrdiff_t l1, l2, l3;
@@ -2637,7 +2637,7 @@ inline std::ptrdiff_t l3CacheSize()
   * for the algorithms working per blocks.
   *
   * \sa computeProductBlockingSizes */
-inline void setCpuCacheSizes(std::ptrdiff_t l1, std::ptrdiff_t l2, std::ptrdiff_t l3)
+inline void setCPUCacheSizes(std::ptrdiff_t l1, std::ptrdiff_t l2, std::ptrdiff_t l3)
 {
   internal::manage_caching_sizes(SetAction, &l1, &l2, &l3);
 }

@@ -14,7 +14,7 @@ namespace MegAutoBA {
 
     template<typename T>
     SE2<T> SE2<T>::inverse() {
-        switch (R_.angle().get_Device()) {
+        switch (R_.angle().getDevice()) {
             case CUDA_t:
                 return inverse_SE2_CUDA(*this);
             default:

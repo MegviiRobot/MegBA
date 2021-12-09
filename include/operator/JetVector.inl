@@ -11,33 +11,35 @@ namespace MegBA {
     namespace CHK {
         template<typename T>
         inline bool Device_Same(const JetVector<T> &f, const JetVector<T> &g) {
-            return f.get_Device() == g.get_Device();
+            return f.getDevice() == g.getDevice();
         }
 
         template<typename T>
-        inline void Device_Throw(const JetVector<T> &f, const JetVector<T> &g) {
+        inline void deviceThrow(const JetVector<T> &f, const JetVector<T> &g) {
 
             if (!Device_Same(f, g))
                 throw std::runtime_error(
-                        "Different device_ for item #1 is on " + std::to_string(f.get_Device()) + " item #2 is on " +
-                        std::to_string(g.get_Device()));
+                        "Different _device for item #1 is on " + std::to_string(f.getDevice()) + " item #2 is on " +
+                        std::to_string(g.getDevice()));
         }
 
         template<typename T>
         inline bool Shape_Same(const JetVector<T> &f, const JetVector<T> &g) {
-            const auto f_Grad_Shape = f.getGradShape();
-            const auto g_Grad_Shape = g.getGradShape();
-            return (f_Grad_Shape == 0 || g_Grad_Shape == 0 || f_Grad_Shape == g_Grad_Shape) && f.get_Elm_Num() == g.get_Elm_Num() ? true : false;
+            const auto fGradShape = f.getGradShape();
+            const auto gGradShape = g.getGradShape();
+            return (fGradShape == 0 || gGradShape == 0 ||
+                    fGradShape == gGradShape) &&
+                   f.getElmNum() == g.getElmNum();
         }
 
         template<typename T>
-        inline void Shape_Throw(const JetVector<T> &f, const JetVector<T> &g) {
+        inline void shapeThrow(const JetVector<T> &f, const JetVector<T> &g) {
             if (!Shape_Same(f, g))
                 throw std::runtime_error(
                         "Different shape for gradient of item #1 is " + std::to_string(f.getGradShape()) +
                         " item #2 is " + std::to_string(g.getGradShape()) +
-                        ", element number of item #1 is " + std::to_string(f.get_Elm_Num()) +
-                        " item #2 is " + std::to_string(g.get_Elm_Num()));
+                        ", element number of item #1 is " + std::to_string(f.getElmNum()) +
+                        " item #2 is " + std::to_string(g.getElmNum()));
         }
     }
 }

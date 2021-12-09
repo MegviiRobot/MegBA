@@ -11,59 +11,59 @@ namespace MegBA {
     namespace math {
         namespace function {
             template<typename T>
-            void Vector_add_Vector_CPU(const JetVector<T> &f, const JetVector<T> &g,
+            void vectorAddVectorCPU(const JetVector<T> &f, const JetVector<T> &g,
                                    JetVector<T> &out);
 
             template<typename T>
-            void Vector_minus_Vector_CPU(const JetVector<T> &f, const JetVector<T> &g,
+            void vectorMinusVectorCPU(const JetVector<T> &f, const JetVector<T> &g,
                                          JetVector<T> &out);
 
             template<typename T>
-            void Vector_multiplies_Vector_CPU(const JetVector<T> &f, const JetVector<T> &g,
+            void vectorMultipliesVectorCPU(const JetVector<T> &f, const JetVector<T> &g,
                                               JetVector<T> &out);
 
             template<typename T>
-            void Vector_divides_Vector_CPU(const JetVector<T> &f, const JetVector<T> &g,
+            void vectorDividesVectorCPU(const JetVector<T> &f, const JetVector<T> &g,
                                            JetVector<T> &out);
 
             template<typename T>
-            void JetVector_add_Scalar_CPU(const JetVector<T> &f, T g,
+            void jetVectorAddScalarCPU(const JetVector<T> &f, T g,
                                            JetVector<T> &out);
 
             template<typename T>
-            void JetVector_minus_Scalar_CPU(const JetVector<T> &f, T g,
+            void jetVectorMinusScalarCPU(const JetVector<T> &f, T g,
                                              JetVector<T> &out);
 
             template<typename T>
-            void JetVector_multiplies_Scalar_CPU(const JetVector<T> &f, T g,
+            void jetVectorMultipliesScalarCPU(const JetVector<T> &f, T g,
                                                   JetVector<T> &out);
 
             template<typename T>
-            void JetVector_divides_Scalar_CPU(const JetVector<T> &f, T g,
+            void jetVectorDividesScalarCPU(const JetVector<T> &f, T g,
                                                JetVector<T> &out);
 
             template<typename T>
-            void Scalar_minus_JetVector_CPU(T f, const JetVector<T> &g,
+            void scalarMinusJetVectorCPU(T f, const JetVector<T> &g,
                                              JetVector<T> &out);
 
             template<typename T>
-            void Scalar_divides_JetVector_CPU(T f, const JetVector<T> &g,
+            void scalarDividesJetVectorCPU(T f, const JetVector<T> &g,
                                                JetVector<T> &out);
 
             template<typename T>
-            void abs_JetVector_CPU(const MegBA::JetVector<T> &f,
+            void absJetVectorCPU(const MegBA::JetVector<T> &f,
                                     MegBA::JetVector<T> &out);
 
             template<typename T>
-            void cos_JetVector_CPU(const MegBA::JetVector<T> &f,
+            void cosJetVectorCPU(const MegBA::JetVector<T> &f,
                                     MegBA::JetVector<T> &out);
 
             template<typename T>
-            void sin_JetVector_CPU(const MegBA::JetVector<T> &f,
+            void sinJetVectorCPU(const MegBA::JetVector<T> &f,
                                     MegBA::JetVector<T> &out);
 
             template<typename T>
-            void sqrt_JetVector_CPU(const MegBA::JetVector<T> &f,
+            void sqrtJetVectorCPU(const MegBA::JetVector<T> &f,
                                      MegBA::JetVector<T> &out);
         }
     }

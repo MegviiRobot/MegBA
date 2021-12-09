@@ -14,7 +14,6 @@
 #include <thrust/device_ptr.h>
 #include <thrust/reduce.h>
 #include <thrust/inner_product.h>
-#include "operator/Thrust_Transform.h"
 #include <Eigen/Sparse>
 
 #if __CUDA_ARCH__ < 600 && defined(__CUDA_ARCH__)
@@ -159,7 +158,6 @@ namespace MegBA {
     template<typename T>
     void EdgeVector<T>::buildLinearSystemSchurCUDA(const JVD<T> &jetEstimation) {
         const auto rows = jetEstimation.rows(), cols = jetEstimation.cols();
-        const double LR = 1.;
         const auto camera_dim = edges[0].getGradShape();
         const auto point_dim = edges[1].getGradShape();
         const auto camera_num = num[0];
@@ -210,8 +208,8 @@ namespace MegBA {
             for (int i = 0; i < rows; ++i)
                 for (int j = 0; j < cols; ++j) {
                     const auto &Jet_Estimation_inner = jetEstimation(i, j);
-                    val_ptrs[device_rank][j + i * cols] = Jet_Estimation_inner.get_CUDA_Grad_ptr()[device_rank];
-                    error_ptrs[device_rank][j + i * cols] = Jet_Estimation_inner.get_CUDA_Res_ptr()[device_rank];
+                    val_ptrs[device_rank][j + i * cols] = Jet_Estimation_inner.getCUDAGradPtr()[device_rank];
+                    error_ptrs[device_rank][j + i * cols] = Jet_Estimation_inner.getCUDAResPtr()[device_rank];
                 }
             cudaMemcpyAsync(device_total_ptrs[device_rank], total_ptrs[device_rank].get(), res_dim * 2 * sizeof(T *), cudaMemcpyHostToDevice);
         }

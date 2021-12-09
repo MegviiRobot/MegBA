@@ -63,7 +63,7 @@ void EdgeVector<T>::updateSchur(const std::vector<T *> &deltaXPtr) {
   }
 }
 
-template <typename T> void EdgeVector<T>::rebindDaPtrs() {
+template <typename T> void EdgeVector<T>::regetCUDAGradPtrs() {
   int vertexKindIdxUnfixed = 0;
   for (auto &vertexVector : edges) {
     if (vertexVector[0]->fixed)
@@ -73,7 +73,7 @@ template <typename T> void EdgeVector<T>::rebindDaPtrs() {
 
     const auto worldSize = MemoryPool::getWorldSize();
     for (int i = 0; i < vertexVector[0]->getEstimation().size(); ++i) {
-      // bind da_ptr_ for CUDA
+      // bind _daPtr for CUDA
       if (_option.useSchur) {
         std::vector<T *> daPtrs;
         daPtrs.resize(worldSize);
@@ -81,7 +81,7 @@ template <typename T> void EdgeVector<T>::rebindDaPtrs() {
           daPtrs[k] = &schurDaPtrs[vertexKindIdxUnfixed][k]
                                   [i * MemoryPool::getElmNum(k)];
         }
-        jetEstimation(i).bind_da_ptr(std::move(daPtrs));
+        jetEstimation(i).bindDaPtr(std::move(daPtrs));
       } else {
         // TODO: implement this
       }

@@ -42,24 +42,24 @@ namespace MegBA {
             const auto &JV_Template = Rotation2D.angle();
             for (int i = 0; i < 2; ++i) {
                 for (int j = 0; j < 2; ++j) {
-                  R(i, j).InitAs(JV_Template);
+                  R(i, j).initAs(JV_Template);
                 }
             }
 
             const auto N = JV_Template.getGradShape();
             for (int i = 0; i < MemoryPool::getWorldSize(); ++i) {
                 cudaSetDevice(i);
-                const auto nElm = JV_Template.get_Elm_Num(i);
+                const auto nElm = JV_Template.getElmNum(i);
                 // 512 instead of 1024 for the limitation of registers
                 dim3 block_dim(std::min(decltype(nElm)(768), nElm));
                 dim3 grid_dim((nElm - 1) / block_dim.x + 1);
                 Rotation2DToRotation<T><<<grid_dim, block_dim>>>(
                         nElm, N,
-                        Rotation2D.angle().get_CUDA_Res_ptr()[i], Rotation2D.angle().get_CUDA_Grad_ptr()[i],
-                        R(0, 0).get_CUDA_Res_ptr()[i], R(1, 0).get_CUDA_Res_ptr()[i],
-                        R(0, 1).get_CUDA_Res_ptr()[i], R(1, 1).get_CUDA_Res_ptr()[i],
-                        R(0, 0).get_CUDA_Grad_ptr()[i], R(1, 0).get_CUDA_Grad_ptr()[i],
-                        R(0, 1).get_CUDA_Grad_ptr()[i], R(1, 1).get_CUDA_Grad_ptr()[i]);
+                        Rotation2D.angle().getCUDAResPtr()[i], Rotation2D.angle().getCUDAGradPtr()[i],
+                        R(0, 0).getCUDAResPtr()[i], R(1, 0).getCUDAResPtr()[i],
+                        R(0, 1).getCUDAResPtr()[i], R(1, 1).getCUDAResPtr()[i],
+                        R(0, 0).getCUDAGradPtr()[i], R(1, 0).getCUDAGradPtr()[i],
+                        R(0, 1).getCUDAGradPtr()[i], R(1, 1).getCUDAGradPtr()[i]);
             }
 
             // TODO: use stream sync later

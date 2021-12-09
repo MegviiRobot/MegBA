@@ -288,18 +288,18 @@ JM33<T> AngleAxisToRotationKernelMatrix(const JV3<T> &AxisAngle) {
   const MegBA::JetVector<T> &JV_Template = AxisAngle(0, 0);
   for (int i = 0; i < 3; ++i) {
     for (int j = 0; j < 3; ++j) {
-      R(i, j).InitAs(JV_Template);
+      R(i, j).initAs(JV_Template);
     }
   }
 
   bool use_fast_grad{true};
   for (int i = 0; i < 3; ++i)
-    use_fast_grad &= AxisAngle(i).get_Grad_Position() != -1;
+    use_fast_grad &= AxisAngle(i).getGradPosition() != -1;
 
   const auto N = JV_Template.getGradShape();
   for (int i = 0; i < MemoryPool::getWorldSize(); ++i) {
     cudaSetDevice(i);
-    const auto nElm = JV_Template.get_Elm_Num(i);
+    const auto nElm = JV_Template.getElmNum(i);
     // 512 instead of 1024 for the limitation of registers
     dim3 block_dim(std::min(decltype(nElm)(512), nElm));
     dim3 grid_dim((nElm - 1) / block_dim.x + 1);
@@ -307,36 +307,36 @@ JM33<T> AngleAxisToRotationKernelMatrix(const JV3<T> &AxisAngle) {
 
     if (use_fast_grad)
       AngleAxisToRotationKernelFastGradKernel<T><<<grid_dim, block_dim>>>(
-          nElm, N, AxisAngle(0).get_CUDA_Res_ptr()[i],
-          AxisAngle(1).get_CUDA_Res_ptr()[i],
-          AxisAngle(2).get_CUDA_Res_ptr()[i], AxisAngle(0).get_Grad_Position(),
-          AxisAngle(1).get_Grad_Position(), AxisAngle(2).get_Grad_Position(),
-          R(0, 0).get_CUDA_Res_ptr()[i], R(1, 0).get_CUDA_Res_ptr()[i],
-          R(2, 0).get_CUDA_Res_ptr()[i], R(0, 1).get_CUDA_Res_ptr()[i],
-          R(1, 1).get_CUDA_Res_ptr()[i], R(2, 1).get_CUDA_Res_ptr()[i],
-          R(0, 2).get_CUDA_Res_ptr()[i], R(1, 2).get_CUDA_Res_ptr()[i],
-          R(2, 2).get_CUDA_Res_ptr()[i], R(0, 0).get_CUDA_Grad_ptr()[i],
-          R(1, 0).get_CUDA_Grad_ptr()[i], R(2, 0).get_CUDA_Grad_ptr()[i],
-          R(0, 1).get_CUDA_Grad_ptr()[i], R(1, 1).get_CUDA_Grad_ptr()[i],
-          R(2, 1).get_CUDA_Grad_ptr()[i], R(0, 2).get_CUDA_Grad_ptr()[i],
-          R(1, 2).get_CUDA_Grad_ptr()[i], R(2, 2).get_CUDA_Grad_ptr()[i]);
+          nElm, N, AxisAngle(0).getCUDAResPtr()[i],
+          AxisAngle(1).getCUDAResPtr()[i],
+          AxisAngle(2).getCUDAResPtr()[i], AxisAngle(0).getGradPosition(),
+          AxisAngle(1).getGradPosition(), AxisAngle(2).getGradPosition(),
+          R(0, 0).getCUDAResPtr()[i], R(1, 0).getCUDAResPtr()[i],
+          R(2, 0).getCUDAResPtr()[i], R(0, 1).getCUDAResPtr()[i],
+          R(1, 1).getCUDAResPtr()[i], R(2, 1).getCUDAResPtr()[i],
+          R(0, 2).getCUDAResPtr()[i], R(1, 2).getCUDAResPtr()[i],
+          R(2, 2).getCUDAResPtr()[i], R(0, 0).getCUDAGradPtr()[i],
+          R(1, 0).getCUDAGradPtr()[i], R(2, 0).getCUDAGradPtr()[i],
+          R(0, 1).getCUDAGradPtr()[i], R(1, 1).getCUDAGradPtr()[i],
+          R(2, 1).getCUDAGradPtr()[i], R(0, 2).getCUDAGradPtr()[i],
+          R(1, 2).getCUDAGradPtr()[i], R(2, 2).getCUDAGradPtr()[i]);
     else
       AngleAxisToRotationKernel<T><<<grid_dim, block_dim>>>(
-          nElm, N, AxisAngle(0, 0).get_CUDA_Res_ptr()[i],
-          AxisAngle(1, 0).get_CUDA_Res_ptr()[i],
-          AxisAngle(2, 0).get_CUDA_Res_ptr()[i],
-          AxisAngle(0, 0).get_CUDA_Grad_ptr()[i],
-          AxisAngle(1, 0).get_CUDA_Grad_ptr()[i],
-          AxisAngle(2, 0).get_CUDA_Grad_ptr()[i], R(0, 0).get_CUDA_Res_ptr()[i],
-          R(1, 0).get_CUDA_Res_ptr()[i], R(2, 0).get_CUDA_Res_ptr()[i],
-          R(0, 1).get_CUDA_Res_ptr()[i], R(1, 1).get_CUDA_Res_ptr()[i],
-          R(2, 1).get_CUDA_Res_ptr()[i], R(0, 2).get_CUDA_Res_ptr()[i],
-          R(1, 2).get_CUDA_Res_ptr()[i], R(2, 2).get_CUDA_Res_ptr()[i],
-          R(0, 0).get_CUDA_Grad_ptr()[i], R(1, 0).get_CUDA_Grad_ptr()[i],
-          R(2, 0).get_CUDA_Grad_ptr()[i], R(0, 1).get_CUDA_Grad_ptr()[i],
-          R(1, 1).get_CUDA_Grad_ptr()[i], R(2, 1).get_CUDA_Grad_ptr()[i],
-          R(0, 2).get_CUDA_Grad_ptr()[i], R(1, 2).get_CUDA_Grad_ptr()[i],
-          R(2, 2).get_CUDA_Grad_ptr()[i]);
+          nElm, N, AxisAngle(0, 0).getCUDAResPtr()[i],
+          AxisAngle(1, 0).getCUDAResPtr()[i],
+          AxisAngle(2, 0).getCUDAResPtr()[i],
+          AxisAngle(0, 0).getCUDAGradPtr()[i],
+          AxisAngle(1, 0).getCUDAGradPtr()[i],
+          AxisAngle(2, 0).getCUDAGradPtr()[i], R(0, 0).getCUDAResPtr()[i],
+          R(1, 0).getCUDAResPtr()[i], R(2, 0).getCUDAResPtr()[i],
+          R(0, 1).getCUDAResPtr()[i], R(1, 1).getCUDAResPtr()[i],
+          R(2, 1).getCUDAResPtr()[i], R(0, 2).getCUDAResPtr()[i],
+          R(1, 2).getCUDAResPtr()[i], R(2, 2).getCUDAResPtr()[i],
+          R(0, 0).getCUDAGradPtr()[i], R(1, 0).getCUDAGradPtr()[i],
+          R(2, 0).getCUDAGradPtr()[i], R(0, 1).getCUDAGradPtr()[i],
+          R(1, 1).getCUDAGradPtr()[i], R(2, 1).getCUDAGradPtr()[i],
+          R(0, 2).getCUDAGradPtr()[i], R(1, 2).getCUDAGradPtr()[i],
+          R(2, 2).getCUDAGradPtr()[i]);
     ASSERT_CUDA_NO_ERROR();
   }
 
@@ -350,18 +350,18 @@ AngleAxisToRotationKernelMatrix(const Eigen::Map<const JVD<T>> &AxisAngle) {
   const MegBA::JetVector<T> &JV_Template = AxisAngle(0, 0);
   for (int i = 0; i < 3; ++i) {
     for (int j = 0; j < 3; ++j) {
-      R(i, j).InitAs(JV_Template);
+      R(i, j).initAs(JV_Template);
     }
   }
 
   bool use_fast_grad{true};
   for (int i = 0; i < 3; ++i)
-    use_fast_grad &= AxisAngle(i).get_Grad_Position() != -1;
+    use_fast_grad &= AxisAngle(i).getGradPosition() != -1;
 
   const auto N = JV_Template.getGradShape();
   for (int i = 0; i < MemoryPool::getWorldSize(); ++i) {
     cudaSetDevice(i);
-    const auto nElm = JV_Template.get_Elm_Num(i);
+    const auto nElm = JV_Template.getElmNum(i);
     // 512 instead of 1024 for the limitation of registers
     dim3 block_dim(std::min(decltype(nElm)(512), nElm));
     dim3 grid_dim((nElm - 1) / block_dim.x + 1);
@@ -369,36 +369,36 @@ AngleAxisToRotationKernelMatrix(const Eigen::Map<const JVD<T>> &AxisAngle) {
 
     if (use_fast_grad)
       AngleAxisToRotationKernelFastGradKernel<T><<<grid_dim, block_dim>>>(
-          nElm, N, AxisAngle(0).get_CUDA_Res_ptr()[i],
-          AxisAngle(1).get_CUDA_Res_ptr()[i],
-          AxisAngle(2).get_CUDA_Res_ptr()[i], AxisAngle(0).get_Grad_Position(),
-          AxisAngle(1).get_Grad_Position(), AxisAngle(2).get_Grad_Position(),
-          R(0, 0).get_CUDA_Res_ptr()[i], R(1, 0).get_CUDA_Res_ptr()[i],
-          R(2, 0).get_CUDA_Res_ptr()[i], R(0, 1).get_CUDA_Res_ptr()[i],
-          R(1, 1).get_CUDA_Res_ptr()[i], R(2, 1).get_CUDA_Res_ptr()[i],
-          R(0, 2).get_CUDA_Res_ptr()[i], R(1, 2).get_CUDA_Res_ptr()[i],
-          R(2, 2).get_CUDA_Res_ptr()[i], R(0, 0).get_CUDA_Grad_ptr()[i],
-          R(1, 0).get_CUDA_Grad_ptr()[i], R(2, 0).get_CUDA_Grad_ptr()[i],
-          R(0, 1).get_CUDA_Grad_ptr()[i], R(1, 1).get_CUDA_Grad_ptr()[i],
-          R(2, 1).get_CUDA_Grad_ptr()[i], R(0, 2).get_CUDA_Grad_ptr()[i],
-          R(1, 2).get_CUDA_Grad_ptr()[i], R(2, 2).get_CUDA_Grad_ptr()[i]);
+          nElm, N, AxisAngle(0).getCUDAResPtr()[i],
+          AxisAngle(1).getCUDAResPtr()[i],
+          AxisAngle(2).getCUDAResPtr()[i], AxisAngle(0).getGradPosition(),
+          AxisAngle(1).getGradPosition(), AxisAngle(2).getGradPosition(),
+          R(0, 0).getCUDAResPtr()[i], R(1, 0).getCUDAResPtr()[i],
+          R(2, 0).getCUDAResPtr()[i], R(0, 1).getCUDAResPtr()[i],
+          R(1, 1).getCUDAResPtr()[i], R(2, 1).getCUDAResPtr()[i],
+          R(0, 2).getCUDAResPtr()[i], R(1, 2).getCUDAResPtr()[i],
+          R(2, 2).getCUDAResPtr()[i], R(0, 0).getCUDAGradPtr()[i],
+          R(1, 0).getCUDAGradPtr()[i], R(2, 0).getCUDAGradPtr()[i],
+          R(0, 1).getCUDAGradPtr()[i], R(1, 1).getCUDAGradPtr()[i],
+          R(2, 1).getCUDAGradPtr()[i], R(0, 2).getCUDAGradPtr()[i],
+          R(1, 2).getCUDAGradPtr()[i], R(2, 2).getCUDAGradPtr()[i]);
     else
       AngleAxisToRotationKernel<T><<<grid_dim, block_dim>>>(
-          nElm, N, AxisAngle(0, 0).get_CUDA_Res_ptr()[i],
-          AxisAngle(1, 0).get_CUDA_Res_ptr()[i],
-          AxisAngle(2, 0).get_CUDA_Res_ptr()[i],
-          AxisAngle(0, 0).get_CUDA_Grad_ptr()[i],
-          AxisAngle(1, 0).get_CUDA_Grad_ptr()[i],
-          AxisAngle(2, 0).get_CUDA_Grad_ptr()[i], R(0, 0).get_CUDA_Res_ptr()[i],
-          R(1, 0).get_CUDA_Res_ptr()[i], R(2, 0).get_CUDA_Res_ptr()[i],
-          R(0, 1).get_CUDA_Res_ptr()[i], R(1, 1).get_CUDA_Res_ptr()[i],
-          R(2, 1).get_CUDA_Res_ptr()[i], R(0, 2).get_CUDA_Res_ptr()[i],
-          R(1, 2).get_CUDA_Res_ptr()[i], R(2, 2).get_CUDA_Res_ptr()[i],
-          R(0, 0).get_CUDA_Grad_ptr()[i], R(1, 0).get_CUDA_Grad_ptr()[i],
-          R(2, 0).get_CUDA_Grad_ptr()[i], R(0, 1).get_CUDA_Grad_ptr()[i],
-          R(1, 1).get_CUDA_Grad_ptr()[i], R(2, 1).get_CUDA_Grad_ptr()[i],
-          R(0, 2).get_CUDA_Grad_ptr()[i], R(1, 2).get_CUDA_Grad_ptr()[i],
-          R(2, 2).get_CUDA_Grad_ptr()[i]);
+          nElm, N, AxisAngle(0, 0).getCUDAResPtr()[i],
+          AxisAngle(1, 0).getCUDAResPtr()[i],
+          AxisAngle(2, 0).getCUDAResPtr()[i],
+          AxisAngle(0, 0).getCUDAGradPtr()[i],
+          AxisAngle(1, 0).getCUDAGradPtr()[i],
+          AxisAngle(2, 0).getCUDAGradPtr()[i], R(0, 0).getCUDAResPtr()[i],
+          R(1, 0).getCUDAResPtr()[i], R(2, 0).getCUDAResPtr()[i],
+          R(0, 1).getCUDAResPtr()[i], R(1, 1).getCUDAResPtr()[i],
+          R(2, 1).getCUDAResPtr()[i], R(0, 2).getCUDAResPtr()[i],
+          R(1, 2).getCUDAResPtr()[i], R(2, 2).getCUDAResPtr()[i],
+          R(0, 0).getCUDAGradPtr()[i], R(1, 0).getCUDAGradPtr()[i],
+          R(2, 0).getCUDAGradPtr()[i], R(0, 1).getCUDAGradPtr()[i],
+          R(1, 1).getCUDAGradPtr()[i], R(2, 1).getCUDAGradPtr()[i],
+          R(0, 2).getCUDAGradPtr()[i], R(1, 2).getCUDAGradPtr()[i],
+          R(2, 2).getCUDAGradPtr()[i]);
     ASSERT_CUDA_NO_ERROR();
   }
 

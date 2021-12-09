@@ -18,7 +18,7 @@ namespace MegBA {
 
     template<typename T>
     inline JetVector<T> operator-(T g, const JetVector<T> &f) {
-        return f.Scalar_minus_this(g);
+        return f.scalarMinusThis(g);
     }
 
     template<typename T>
@@ -28,7 +28,7 @@ namespace MegBA {
 
     template<typename T>
     inline JetVector<T> operator/(T g, const JetVector<T> &f) {
-        return f.Scalar_divides_this(g);
+        return f.scalarDividesThis(g);
     }
 
     namespace math {
@@ -39,16 +39,16 @@ namespace MegBA {
         inline JetVector<T> abs(const JetVector<T> &f) {
           JetVector<T> out;
             out.Init_as(f);
-            switch (f.get_Device()) {
+            switch (f.getDevice()) {
                 case CPU_t: {
-                    function::abs_JetVector_CPU(f, out);
+                  function::absJetVectorCPU(f, out);
                     break;
                 }
                 case CUDA_t: {
                     function::abs_JetVector_CUDA(f, out);
                     break;
                 }
-            }  // switch device_
+            }  // switch _device
             return out;
         }
 
@@ -77,16 +77,16 @@ namespace MegBA {
         inline JetVector<T> sqrt(JetVector<T> f) {
           JetVector<T> out;
             out.Init_as(f);
-            switch (f.get_Device()) {
+            switch (f.getDevice()) {
                 case CPU_t: {
-                    function::sqrt_JetVector_CPU(f, out);
+                  function::sqrtJetVectorCPU(f, out);
                     break;
                 }
                 case CUDA_t: {
                     function::sqrt_JetVector_CUDA(f, out);
                     break;
                 }
-            }  // switch device_
+            }  // switch _device
             return out;
         }
 
@@ -95,16 +95,16 @@ namespace MegBA {
         inline JetVector<T> cos(JetVector<T> f) {
           JetVector<T> out;
             out.Init_as(f);
-            switch (f.get_Device()) {
+            switch (f.getDevice()) {
                 case CPU_t: {
-                    function::cos_JetVector_CPU(f, out);
+                  function::cosJetVectorCPU(f, out);
                     break;
                 }
                 case CUDA_t: {
                     function::cos_JetVector_CUDA(f, out);
                     break;
                 }
-            }  // switch device_
+            }  // switch _device
             return out;
         }
 //
@@ -123,16 +123,16 @@ namespace MegBA {
         inline JetVector<T> sin(JetVector<T> f) {
           JetVector<T> out;
             out.Init_as(f);
-            switch (f.get_Device()) {
+            switch (f.getDevice()) {
                 case CPU_t: {
-                    function::sin_JetVector_CPU(f, out);
+                  function::sinJetVectorCPU(f, out);
                     break;
                 }
                 case CUDA_t: {
                     function::sin_JetVector_CUDA(f, out);
                     break;
                 }
-            }  // switch device_
+            }  // switch _device
             return out;
         }
 //

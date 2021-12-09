@@ -101,7 +101,7 @@ template <typename T> void EdgeVector<T>::rollback() {
   } else {
     // TODO: implement this
   }
-  rebindDaPtrs();
+  regetCUDAGradPtrs();
   backupDaPtrs();
 }
 
@@ -328,12 +328,12 @@ template <typename T> JVD<T> EdgeVector<T>::forward() {
 
 template <typename T> void EdgeVector<T>::fitDevice() {
   if (_option.device == CUDA_t)
-    rebindDaPtrs();
+    regetCUDAGradPtrs();
 
   for (int vertex_kind_idx = 0; vertex_kind_idx < edges.size();
        ++vertex_kind_idx) {
     const auto &vertex_vector = edges[vertex_kind_idx];
-    // set device_
+    // set _device
     auto &Jet_estimation = edges[vertex_kind_idx].getJVEstimation();
     auto &Jet_observation = edges[vertex_kind_idx].getJVObservation();
 

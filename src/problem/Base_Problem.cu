@@ -9,7 +9,6 @@
 #include "Wrapper.hpp"
 #include <thrust/device_ptr.h>
 #include <thrust/inner_product.h>
-#include "operator/Thrust_Transform.h"
 #include <resource/Manager.h>
 #include <Macro.h>
 #include <thrust/async/reduce.h>
@@ -185,7 +184,7 @@ void BaseProblem<T>::SolveLM(int iter, double solver_tol,
   T residual_norm = 0;
 
   edges.backupDaPtrs();
-  edges.rebindDaPtrs();
+  edges.regetCUDAGradPtrs();
   JV_backup = edges.forward();
   if (option_.useSchur) {
     edges.buildLinearSystemSchur(JV_backup);
@@ -200,7 +199,7 @@ void BaseProblem<T>::SolveLM(int iter, double solver_tol,
   for (int i = 0; i < JV_backup.rows(); ++i) {
     for (int j = 0; j < MemoryPool::getWorldSize(); ++j) {
       cudaSetDevice(j);
-      const T *Res_ptr = JV_backup(i).get_CUDA_Res_ptr()[j];
+      const T *Res_ptr = JV_backup(i).getCUDAResPtr()[j];
       Wrapper::cublasGdot::call(cublasHandle[j], MemoryPool::getElmNum(j),
                                 Res_ptr, 1, Res_ptr, 1,
                                 &new_residual_norm_in_flight[j][i]);
@@ -326,8 +325,8 @@ void BaseProblem<T>::SolveLM(int iter, double solver_tol,
             dim3 block(std::min((std::size_t)256, nElm));
             dim3 grid((nElm - 1) / block.x + 1);
             JdxpF<<<grid, block>>>(
-                J.get_CUDA_Grad_ptr()[i], schur_delta_x_ptr[i],
-                J.get_CUDA_Res_ptr()[i],
+                J.getCUDAGradPtr()[i], schur_delta_x_ptr[i],
+                J.getCUDAResPtr()[i],
                 position_container.absolutePositionCamera,
                 position_container.absolutePositionPoint, nElm, camera_dim,
                 camera_num, point_dim, ptr);
@@ -355,7 +354,7 @@ void BaseProblem<T>::SolveLM(int iter, double solver_tol,
       for (int i = 0; i < JV.size(); ++i) {
         for (int j = 0; j < MemoryPool::getWorldSize(); ++j) {
           cudaSetDevice(j);
-          const T *Res_ptr = JV(i).get_CUDA_Res_ptr()[j];
+          const T *Res_ptr = JV(i).getCUDAResPtr()[j];
           Wrapper::cublasGdot::call(cublasHandle[j], MemoryPool::getElmNum(j),
                                     Res_ptr, 1, Res_ptr, 1,
                                     &new_residual_norm_in_flight[j][i]);
