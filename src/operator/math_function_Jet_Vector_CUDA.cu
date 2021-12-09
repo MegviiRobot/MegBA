@@ -11,7 +11,7 @@
 namespace MegBA {
 namespace math {
 namespace function {
-inline std::array<dim3, 2> fit_grid_and_block(unsigned int nElm) {
+inline std::array<dim3, 2> fitGridAndBlock(const unsigned int nElm) {
   std::array<dim3, 2> gridAndDim;
   if (nElm < 256) {
     gridAndDim[1] = dim3(nElm);
@@ -83,7 +83,7 @@ void JetVector_add_JetVector_CUDA(const MegBA::JetVector<T> &f,
     cudaSetDevice(i);
     unsigned int nElm = out->getElmNum(i);
 
-    std::array<dim3, 2> gridAndDim = fit_grid_and_block(nElm);
+    std::array<dim3, 2> gridAndDim = fitGridAndBlock(nElm);
     if (f.getGradPosition() != -1) {
       if (g.getGradPosition() != -1) {
         // f is JPV, g is JPV
@@ -158,7 +158,7 @@ void JetVector_add_Scalar_Vector_CUDA(const MegBA::JetVector<T> &f,
     cudaSetDevice(i);
     const auto nElm = out->getElmNum(i);
 
-    std::array<dim3, 2> gridAndDim = fit_grid_and_block(nElm);
+    std::array<dim3, 2> gridAndDim = fitGridAndBlock(nElm);
     if (f.getGradPosition() != -1) {
       // f is JPV
       cudaMemsetAsync(out->getCUDAGradPtr()[i], 0,
@@ -198,7 +198,7 @@ void Scalar_Vector_add_Scalar_Vector_CUDA(const MegBA::JetVector<T> &f,
     cudaSetDevice(i);
     const auto nElm = out->getElmNum(i);
 
-    std::array<dim3, 2> gridAndDim = fit_grid_and_block(nElm);
+    std::array<dim3, 2> gridAndDim = fitGridAndBlock(nElm);
     Scalar_Vector_add_Scalar_Vector_Kernel<T><<<gridAndDim[0], gridAndDim[1]>>>(
         nElm, f.getCUDAResPtr()[i], g.getCUDAResPtr()[i],
         out->getCUDAResPtr()[i]);
@@ -307,7 +307,7 @@ void JetVector_minus_JetVector_CUDA(const MegBA::JetVector<T> &f,
     cudaSetDevice(i);
     unsigned int nElm = out->getElmNum(i);
 
-    std::array<dim3, 2> gridAndDim = fit_grid_and_block(nElm);
+    std::array<dim3, 2> gridAndDim = fitGridAndBlock(nElm);
     if (f.getGradPosition() != -1) {
       if (g.getGradPosition() != -1) {
         // f is JPV, g is JPV
@@ -380,7 +380,7 @@ void JetVector_minus_Scalar_Vector_CUDA(const MegBA::JetVector<T> &f,
     cudaSetDevice(i);
     unsigned int nElm = out->getElmNum(i);
 
-    std::array<dim3, 2> gridAndDim = fit_grid_and_block(nElm);
+    std::array<dim3, 2> gridAndDim = fitGridAndBlock(nElm);
     if (f.getGradPosition() != -1) {
       cudaMemsetAsync(out->getCUDAGradPtr()[i], 0,
                       out->getGradShape() * nElm * sizeof(T));
@@ -439,7 +439,7 @@ void Scalar_Vector_minus_JetVector_CUDA(const MegBA::JetVector<T> &f,
     cudaSetDevice(i);
     unsigned int nElm = out->getElmNum(i);
 
-    std::array<dim3, 2> gridAndDim = fit_grid_and_block(nElm);
+    std::array<dim3, 2> gridAndDim = fitGridAndBlock(nElm);
     if (g.getGradPosition() != -1) {
       cudaMemsetAsync(out->getCUDAGradPtr()[i], 0,
                       out->getGradShape() * nElm * sizeof(T));
@@ -476,7 +476,7 @@ void Scalar_Vector_minus_Scalar_Vector_CUDA(const MegBA::JetVector<T> &f,
     cudaSetDevice(i);
     unsigned int nElm = out->getElmNum(i);
 
-    std::array<dim3, 2> gridAndDim = fit_grid_and_block(nElm);
+    std::array<dim3, 2> gridAndDim = fitGridAndBlock(nElm);
     Scalar_Vector_minus_Scalar_Vector_Kernel<T>
         <<<gridAndDim[0], gridAndDim[1]>>>(nElm, f.getCUDAResPtr()[i],
                                            g.getCUDAResPtr()[i],
@@ -575,7 +575,7 @@ void JetVector_multiplies_JetVector_CUDA(const MegBA::JetVector<T> &f,
     cudaSetDevice(i);
     unsigned int nElm = out->getElmNum(i);
 
-    std::array<dim3, 2> gridAndDim = fit_grid_and_block(nElm);
+    std::array<dim3, 2> gridAndDim = fitGridAndBlock(nElm);
     if (f.getGradPosition() != -1) {
       if (g.getGradPosition() != -1) {
         cudaMemsetAsync(out->getCUDAGradPtr()[i], 0,
@@ -655,7 +655,7 @@ void JetVector_multiplies_Scalar_Vector_CUDA(const MegBA::JetVector<T> &f,
     cudaSetDevice(i);
     unsigned int nElm = out->getElmNum(i);
 
-    std::array<dim3, 2> gridAndDim = fit_grid_and_block(nElm);
+    std::array<dim3, 2> gridAndDim = fitGridAndBlock(nElm);
     if (f.getGradPosition() != -1) {
       cudaMemsetAsync(out->getCUDAGradPtr()[i], 0,
                       out->getGradShape() * nElm * sizeof(T));
@@ -693,7 +693,7 @@ void Scalar_Vector_multiplies_Scalar_Vector_CUDA(const MegBA::JetVector<T> &f,
     cudaSetDevice(i);
     unsigned int nElm = out->getElmNum(i);
 
-    std::array<dim3, 2> gridAndDim = fit_grid_and_block(nElm);
+    std::array<dim3, 2> gridAndDim = fitGridAndBlock(nElm);
     Scalar_Vector_multiplies_Scalar_Vector_Kernel<T>
         <<<gridAndDim[0], gridAndDim[1]>>>(nElm, f.getCUDAResPtr()[i],
                                            g.getCUDAResPtr()[i],
@@ -827,7 +827,7 @@ void JetVector_divides_JetVector_CUDA(const MegBA::JetVector<T> &f,
     cudaSetDevice(i);
     unsigned int nElm = out->getElmNum(i);
 
-    std::array<dim3, 2> gridAndDim = fit_grid_and_block(nElm);
+    std::array<dim3, 2> gridAndDim = fitGridAndBlock(nElm);
     if (f.getGradPosition() != -1) {
       if (g.getGradPosition() != -1) {
         cudaMemsetAsync(out->getCUDAGradPtr()[i], 0,
@@ -903,7 +903,7 @@ void JetVector_divides_Scalar_Vector_CUDA(const MegBA::JetVector<T> &f,
     cudaSetDevice(i);
     unsigned int nElm = out->getElmNum(i);
 
-    std::array<dim3, 2> gridAndDim = fit_grid_and_block(nElm);
+    std::array<dim3, 2> gridAndDim = fitGridAndBlock(nElm);
     if (f.getGradPosition() != 0) {
       cudaMemsetAsync(out->getCUDAGradPtr()[i], 0,
                       out->getGradShape() * nElm * sizeof(T));
@@ -941,7 +941,7 @@ void Scalar_Vector_divides_Scalar_Vector_CUDA(const MegBA::JetVector<T> &f,
     cudaSetDevice(i);
     unsigned int nElm = out->getElmNum(i);
 
-    std::array<dim3, 2> gridAndDim = fit_grid_and_block(nElm);
+    std::array<dim3, 2> gridAndDim = fitGridAndBlock(nElm);
     Scalar_Vector_divides_Scalar_Vector_Kernel<T>
         <<<gridAndDim[0], gridAndDim[1]>>>(nElm, f.getCUDAResPtr()[i],
                                            g.getCUDAResPtr()[i],
@@ -997,7 +997,7 @@ void Scalar_Vector_divides_JetVector_CUDA(const MegBA::JetVector<T> &f,
     cudaSetDevice(i);
     unsigned int nElm = out->getElmNum(i);
 
-    std::array<dim3, 2> gridAndDim = fit_grid_and_block(nElm);
+    std::array<dim3, 2> gridAndDim = fitGridAndBlock(nElm);
     if (g.getGradPosition() != 0) {
       cudaMemsetAsync(out->getCUDAGradPtr()[i], 0,
                       out->getGradShape() * nElm * sizeof(T));
@@ -1065,7 +1065,7 @@ void jetVectorAddScalarCUDA(const MegBA::JetVector<T> &f, T g,
     cudaSetDevice(i);
     unsigned int nElm = out->getElmNum(i);
 
-    std::array<dim3, 2> gridAndDim = fit_grid_and_block(nElm);
+    std::array<dim3, 2> gridAndDim = fitGridAndBlock(nElm);
     JetVector_add_Scalar_Kernel<T><<<gridAndDim[0], gridAndDim[1]>>>(
         f.getGradShape(), nElm, f.getCUDAResPtr()[i], f.getCUDAGradPtr()[i], g,
         out->getCUDAResPtr()[i], out->getCUDAGradPtr()[i]);
@@ -1101,7 +1101,7 @@ void jetVectorMinusScalarCUDA(const MegBA::JetVector<T> &f, T g,
     cudaSetDevice(i);
     unsigned int nElm = out->getElmNum(i);
 
-    std::array<dim3, 2> gridAndDim = fit_grid_and_block(nElm);
+    std::array<dim3, 2> gridAndDim = fitGridAndBlock(nElm);
     JetVector_minus_Scalar_Kernel<T><<<gridAndDim[0], gridAndDim[1]>>>(
         f.getGradShape(), nElm, f.getCUDAResPtr()[i], f.getCUDAGradPtr()[i], g,
         out->getCUDAResPtr()[i], out->getCUDAGradPtr()[i]);
@@ -1139,7 +1139,7 @@ void jetVectorMultipliesScalarCUDA(const MegBA::JetVector<T> &f, T g,
     cudaSetDevice(i);
     unsigned int nElm = out->getElmNum(i);
 
-    std::array<dim3, 2> gridAndDim = fit_grid_and_block(nElm);
+    std::array<dim3, 2> gridAndDim = fitGridAndBlock(nElm);
     JetVector_multiplies_Scalar_Kernel<T><<<gridAndDim[0], gridAndDim[1]>>>(
         f.getGradShape(), nElm, f.getCUDAResPtr()[i], f.getCUDAGradPtr()[i], g,
         out->getCUDAResPtr()[i], out->getCUDAGradPtr()[i]);
@@ -1176,7 +1176,7 @@ void scalarMinusJetVectorCUDA(T f, const JetVector<T> &g, JetVector<T> *out) {
     unsigned int nElm = out->getElmNum(i);
     dim3 blockDim;
     dim3 gridDim;
-    std::array<dim3, 2> gridAndDim = fit_grid_and_block(nElm);
+    std::array<dim3, 2> gridAndDim = fitGridAndBlock(nElm);
     Scalar_minus_JetVector_Kernel<T><<<gridAndDim[0], gridAndDim[1]>>>(
         g.getGradShape(), nElm, f, g.getCUDAResPtr()[i], g.getCUDAGradPtr()[i],
         out->getCUDAResPtr()[i], out->getCUDAGradPtr()[i]);
@@ -1216,7 +1216,7 @@ void scalarDividesJetVectorCUDA(T f, const JetVector<T> &g, JetVector<T> *out) {
     unsigned int nElm = out->getElmNum(i);
     dim3 blockDim;
     dim3 gridDim;
-    std::array<dim3, 2> gridAndDim = fit_grid_and_block(nElm);
+    std::array<dim3, 2> gridAndDim = fitGridAndBlock(nElm);
     Scalar_divides_JetVector_Kernel<T><<<gridAndDim[0], gridAndDim[1]>>>(
         g.getGradShape(), nElm, f, g.getCUDAResPtr()[i], g.getCUDAGradPtr()[i],
         out->getCUDAResPtr()[i], out->getCUDAGradPtr()[i]);
@@ -1254,7 +1254,7 @@ void abs_JetVector_CUDA(const MegBA::JetVector<T> &f,
     cudaSetDevice(i);
     unsigned int nElm = out->getElmNum(i);
 
-    std::array<dim3, 2> gridAndDim = fit_grid_and_block(nElm);
+    std::array<dim3, 2> gridAndDim = fitGridAndBlock(nElm);
     abs_JetVector_Kernel<T><<<gridAndDim[0], gridAndDim[1]>>>(
         f.getGradShape(), nElm, f.getCUDAResPtr()[i], f.getCUDAGradPtr()[i],
         out->getCUDAResPtr()[i], out->getCUDAGradPtr()[i]);
@@ -1289,7 +1289,7 @@ void cos_JetVector_CUDA(const MegBA::JetVector<T> &f,
     cudaSetDevice(i);
     unsigned int nElm = out->getElmNum(i);
 
-    std::array<dim3, 2> gridAndDim = fit_grid_and_block(nElm);
+    std::array<dim3, 2> gridAndDim = fitGridAndBlock(nElm);
     cos_JetVector_Kernel<T><<<gridAndDim[0], gridAndDim[1]>>>(
         f.getGradShape(), nElm, f.getCUDAResPtr()[i], f.getCUDAGradPtr()[i],
         out->getCUDAResPtr()[i], out->getCUDAGradPtr()[i]);
@@ -1324,7 +1324,7 @@ void sin_JetVector_CUDA(const MegBA::JetVector<T> &f,
     cudaSetDevice(i);
     unsigned int nElm = out->getElmNum(i);
 
-    std::array<dim3, 2> gridAndDim = fit_grid_and_block(nElm);
+    std::array<dim3, 2> gridAndDim = fitGridAndBlock(nElm);
     sin_JetVector_Kernel<T><<<gridAndDim[0], gridAndDim[1]>>>(
         f.getGradShape(), nElm, f.getCUDAResPtr()[i], f.getCUDAGradPtr()[i],
         out->getCUDAResPtr()[i], out->getCUDAGradPtr()[i]);
@@ -1361,7 +1361,7 @@ void sqrt_JetVector_CUDA(const MegBA::JetVector<T> &f,
     cudaSetDevice(i);
     unsigned int nElm = out->getElmNum(i);
 
-    std::array<dim3, 2> gridAndDim = fit_grid_and_block(nElm);
+    std::array<dim3, 2> gridAndDim = fitGridAndBlock(nElm);
     sqrt_JetVector_Kernel<T><<<gridAndDim[0], gridAndDim[1]>>>(
         f.getGradShape(), nElm, f.getCUDAResPtr()[i], f.getCUDAGradPtr()[i],
         out->getCUDAResPtr()[i], out->getCUDAGradPtr()[i]);
