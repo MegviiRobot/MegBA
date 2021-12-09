@@ -6,10 +6,6 @@
 **/
 
 #pragma once
-
-#include <cuda_runtime_api.h>
-#include <cusolver_common.h>
-#include <cusolverSp.h>
 #include <cublas_v2.h>
 #include <cusparse_v2.h>
 #include <nccl.h>
@@ -108,10 +104,6 @@ namespace MegBA {
         CUXXX_WRAPPER(cublasGgetrfBatched, cublasSgetrfBatched, cublasDgetrfBatched);
 
         CUXXX_WRAPPER(cublasGgetriBatched, cublasSgetriBatched, cublasDgetriBatched);
-
-        CUXXX_WRAPPER(cusolverSpGcsrlsvqr, cusolverSpScsrlsvqr, cusolverSpDcsrlsvqr);
-
-        CUXXX_WRAPPER(cusolverSpGcsrlsvchol, cusolverSpScsrlsvchol, cusolverSpDcsrlsvchol);
 
         CUXXX_WRAPPER(cublasGmatinvBatched, cublasSmatinvBatched, cublasDmatinvBatched);
 
