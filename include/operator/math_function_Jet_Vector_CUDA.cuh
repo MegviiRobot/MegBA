@@ -54,6 +54,6 @@ void sin_JetVector_CUDA(const MegBA::JetVector<T> &f, MegBA::JetVector<T> *out);
 template <typename T>
 void sqrt_JetVector_CUDA(const MegBA::JetVector<T> &f,
                          MegBA::JetVector<T> *out);
-}
-}
-}
+}  // namespace function
+}  // namespace math
+}  // namespace MegBA
