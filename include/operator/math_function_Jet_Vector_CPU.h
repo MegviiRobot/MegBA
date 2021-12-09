@@ -57,5 +57,5 @@ void sinJetVectorCPU(const MegBA::JetVector<T> &f, MegBA::JetVector<T> &out);
 template <typename T>
 void sqrtJetVectorCPU(const MegBA::JetVector<T> &f, MegBA::JetVector<T> &out);
 }
-    }
+}
 }

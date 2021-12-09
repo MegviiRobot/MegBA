@@ -7,7 +7,6 @@
 
 #pragma once
 #include "Common.h"
-#include "cuda_runtime.h"
 namespace MegBA {
 namespace math {
 namespace function {
@@ -56,5 +55,5 @@ template <typename T>
 void sqrt_JetVector_CUDA(const MegBA::JetVector<T> &f,
                          MegBA::JetVector<T> &out);
 }
-    }
+}
 }
