@@ -9,36 +9,47 @@
 #include <cublas_v2.h>
 #include <cusparse_v2.h>
 #include <nccl.h>
+#include <utility>
+#include <tuple>
 
 __device__ float rsqrtf(float a);
 __device__ double rsqrt(double a);
 
-#define CUXXX_WRAPPER(name, functionFP32, functionFP64)                                         \
-class name {                                                                                    \
-    using features = FunctionArgsType<decltype(functionFP32), decltype(functionFP64)>::features;\
-    template<typename CommonTuple>                                                              \
-    struct wrapper;                                                                             \
-    template<typename ...Common>                                                                \
-    struct wrapper<std::tuple<Common...>> {                                                     \
-        template<typename ...After>                                                             \
-        static auto call(Common ...before, features::FP32 here, After &&...after) {             \
-            return functionFP32(before..., here, std::forward<After>(after)...);                \
-        }                                                                                       \
-        template<typename ...After>                                                             \
-        static auto call(Common ...before, features::FP64 here, After &&...after) {             \
-            return functionFP64(before..., here, std::forward<After>(after)...);                \
-        }                                                                                       \
-    };                                                                                          \
-    public:                                                                                     \
-    template<typename ...Args>                                                                  \
-    static auto call(Args&&... args) {                                                          \
-        return wrapper<features::CommonTuple>::call(std::forward<Args>(args)...);               \
-    };                                                                                          \
+#define CUXXX_WRAPPER(name, functionFP32, functionFP64) \
+class name { \
+  using features = FunctionArgsType< \
+    decltype(functionFP32), \
+    decltype(functionFP64)>::features; \
+  template<typename CommonTuple> \
+  struct wrapper; \
+  template<typename ...Common> \
+  struct wrapper<std::tuple<Common...>> { \
+    template<typename ...After> \
+    static auto call(Common ...before, \
+                   features::FP32 here, \
+                   After &&...after) { \
+      return functionFP32(before..., \
+                      here, \
+                      std::forward<After>(after)...); \
+      } \
+    template<typename ...After> \
+    static auto call(Common ...before, \
+                   features::FP64 here, \
+                   After &&...after) { \
+      return functionFP64(before..., \
+                      here, \
+                      std::forward<After>(after)...); \
+      } \
+  }; \
+ public: \
+  template<typename ...Args> \
+  static auto call(Args&&... args) { \
+    return wrapper<features::CommonTuple>::call(std::forward<Args>(args)...); \
+  } \
 };
 
 namespace MegBA {
 namespace Wrapper {
-namespace {
 template <typename BeforeTuple, typename FP32AfterTuple,
           typename FP64AfterTuple>
 struct CommonArgsHelper;
@@ -90,7 +101,6 @@ template <typename ReturnFP32, typename... ArgsFP32, typename ReturnFP64,
 struct FunctionArgsType<ReturnFP32(ArgsFP32...), ReturnFP64(ArgsFP64...)> {
   typedef CommonArgs<std::tuple<ArgsFP32...>, std::tuple<ArgsFP64...>> features;
 };
-}
 
 CUXXX_WRAPPER(cublasGaxpy, cublasSaxpy_v2, cublasDaxpy_v2);
 
@@ -176,7 +186,7 @@ template <> struct rsqrtG<float> {
 
 template <> struct rsqrtG<double> {
   constexpr static double (*const call)(double) = rsqrt;
-};
-}
-}
+};  // namespace
+}  // namespace Wrapper
+}  // namespace MegBA
 #undef CUXXX_WRAPPER
