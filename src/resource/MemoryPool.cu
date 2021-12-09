@@ -5,15 +5,15 @@
 *
 **/
 
+#include "resource/MemoryPool.h"
 #include <unordered_map>
-#include <resource/MemoryPool.h>
-#include <resource/Manager.h>
 #include <stack>
+#include "resource/Manager.h"
 
 namespace MegBA {
 namespace {
 union Ptr {
-  explicit Ptr(void *address) : address(address){};
+  explicit Ptr(void *address) : address(address) {}
   void *address;
 #if __SIZEOF_POINTER__ == 8
   std::uint64_t number;
@@ -33,11 +33,11 @@ std::vector<std::size_t> memOverflowedCounter{};
 
 std::vector<std::size_t> memOverflowedPeak{};
 
-}
+}  // namespace
 
     void MemoryPool::resetPool(int N, std::size_t nElm, std::int8_t sizeofType,
                             int worldSize) {
-  // TODO: maybe destroy only once
+  // TODO(Jie Ren): maybe destroy only once
   std::unique_lock<std::mutex> lock{_mutex};
   _N = N;
   _nElm = nElm;
@@ -207,4 +207,4 @@ std::size_t MemoryPool::_nElm{0};
 std::uint8_t MemoryPool::_sizeofType{0};
 int MemoryPool::_worldSize{1};
 std::size_t MemoryPool::_ptrInUseCounter{0};
-}
+}  // namespace MegBA
