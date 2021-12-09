@@ -10,12 +10,13 @@
 #include "operator/math_function_Jet_Vector_CPU.h"
 #include "operator/math_function_Jet_Vector_CUDA.cuh"
 
-#define PURE_SCALAR_OP(f, op, g) \
+#define PURE_SCALAR_OP(f, op, g)                  \
 if ((f)._pureScalarFlag || (g)._pureScalarFlag) { \
-    if ((f)._pureScalarFlag) \
-        return (f)._pureScalar op (g); \
-    else \
-        return (f) op (g)._pureScalar; \
+  if ((f)._pureScalarFlag) {                      \
+    return (f)._pureScalar op(g);                 \
+  } else {                                        \
+    return (f)op(g)._pureScalar;                  \
+  }                                               \
 }
 
 namespace MegBA {
@@ -85,11 +86,11 @@ void JetVector<T>::initAs(const JetVector<T> &initTemplate) {
     case CUDA_t:
       initAsCUDA(initTemplate);
       break;
-    } // switch _device
-  }   // empty
-  else
+    }  // switch _device
+  } else {
     throw std::runtime_error(
-        "You can not init a vector that is not empty."); // !empty
+        "You can not init a vector that is not empty.");  // !empty
+  }
 }
 
 template <typename T> JetVector<T> &JetVector<T>::to(device_t device) {
@@ -120,8 +121,8 @@ template <typename T> JetVector<T> &JetVector<T>::CPU() {
       _N = N;
       _nElm = nElm;
       break;
-    } // switch _device
-  }   // !empty
+    }  // switch _device
+  }  // !empty
   _device = CPU_t;
   return *this;
 }
@@ -132,14 +133,16 @@ template <typename T> bool JetVector<T>::IsEmpty() {
 
 template <typename T> void JetVector<T>::set_Grad_Shape(unsigned int N) {
   if (_N != 0)
-    throw std::runtime_error("Can not set Grad Shape on a working JetVector, use 'Clear()' method first.");
+    throw std::runtime_error("Can not set Grad Shape on a working JetVector, "
+                             "use 'Clear()' method first.");
   _N = N;
   _hvData.resize(N);
 }
 
 template <typename T> void JetVector<T>::setGradPosition(int gradPosition) {
   assert(_gradPosition == -1 && IsEmpty() &&
-         "Can not set Grad Position on a working JetVector, use 'clear()' method first.");
+         "Can not set Grad Position on a working JetVector, "
+         "use 'clear()' method first.");
   _gradPosition = gradPosition;
 }
 
@@ -167,9 +170,11 @@ template <typename T> void JetVector<T>::append_Jet(T a, int n) {
   /*
          * This method not support negative index so far. If n < 0, it has the same effect as a _pureScalar. 'if (std::abs(n) > _N)' guarantees a negative index won't raise error.
    */
-  assert(_N != 0 && "JetVector does not allow insert Jet while the gradient shape is not initialized.");
+  assert(_N != 0 && "JetVector does not allow insert Jet "
+                    "while the gradient shape is not initialized.");
   assert(_device != CUDA_t &&
-         "You can not insert Jet into a JetVector in using on CUDA, if you want, use 'clear()' first.");
+         "You can not insert Jet into a JetVector in using on CUDA, "
+         "if you want, use 'clear()' first.");
 
   _haData.push_back(a);
   for (int i = 0; i < _N; ++i)
@@ -199,7 +204,7 @@ JetVector<T> JetVector<T>::operator+(const JetVector<T> &g) const {
                           return math::function::vectorAddVectorCUDA(*this, g,
                                                                      out);
                         }};
-  } // switch _device
+  }  // switch _device
 }
 
 template <typename T>
@@ -218,7 +223,7 @@ JetVector<T> JetVector<T>::operator-(const JetVector<T> &g) const {
                           return math::function::vectorMinusVectorCUDA(*this, g,
                                                                        out);
                         }};
-  } // switch _device
+  }  // switch _device
 }
 
 template <typename T>
@@ -237,7 +242,7 @@ JetVector<T> JetVector<T>::operator*(const JetVector<T> &g) const {
                           return math::function::vectorMultipliesVectorCUDA(
                               *this, g, out);
                         }};
-  } // switch _device
+  }  // switch _device
 }
 
 template <typename T>
@@ -256,7 +261,7 @@ JetVector<T> JetVector<T>::operator/(const JetVector<T> &g) const {
                           return math::function::vectorDividesVectorCUDA(
                               *this, g, out);
                         }};
-  } // switch _device
+  }  // switch _device
 }
 
 template <typename T>
@@ -270,7 +275,7 @@ JetVector<T> &JetVector<T>::operator+=(const JetVector<T> &g) {
   case CUDA_t:
     math::function::vectorAddVectorCUDA(*this, g, *this);
     break;
-  } // switch _device
+  }  // switch _device
   return *this;
 }
 
@@ -285,7 +290,7 @@ JetVector<T> &JetVector<T>::operator-=(const JetVector<T> &g) {
   case CUDA_t:
     math::function::vectorMinusVectorCUDA(*this, g, *this);
     break;
-  } // switch _device
+  }  // switch _device
   return *this;
 }
 
@@ -300,7 +305,7 @@ JetVector<T> &JetVector<T>::operator*=(const JetVector<T> &g) {
   case CUDA_t:
     math::function::vectorMultipliesVectorCUDA(*this, g, *this);
     break;
-  } // switch _device
+  }  // switch _device
   return *this;
 }
 
@@ -315,7 +320,7 @@ JetVector<T> &JetVector<T>::operator/=(const JetVector<T> &g) {
   case CUDA_t:
     math::function::vectorDividesVectorCUDA(*this, g, *this);
     break;
-  } // switch _device
+  }  // switch _device
   return *this;
 }
 
@@ -335,7 +340,7 @@ template <typename T> JetVector<T> JetVector<T>::operator+(T g) const {
                           return math::function::jetVectorAddScalarCUDA(*this,
                                                                         g, out);
                         }};
-  } // switch _device
+  }  // switch _device
 }
 
 template <typename T> JetVector<T> JetVector<T>::operator-(T g) const {
@@ -350,7 +355,7 @@ template <typename T> JetVector<T> JetVector<T>::operator-(T g) const {
                           return math::function::jetVectorMinusScalarCUDA(
                               *this, g, out);
                         }};
-  } // switch _device
+  }  // switch _device
 }
 
 template <typename T> JetVector<T> JetVector<T>::operator*(T g) const {
@@ -365,7 +370,7 @@ template <typename T> JetVector<T> JetVector<T>::operator*(T g) const {
                           return math::function::jetVectorMultipliesScalarCUDA(
                               *this, g, out);
                         }};
-  } // switch _device
+  }  // switch _device
 }
 
 template <typename T> JetVector<T> JetVector<T>::operator/(T g) const {
@@ -380,7 +385,7 @@ template <typename T> JetVector<T> &JetVector<T>::operator+=(T g) {
   case CUDA_t:
     math::function::jetVectorAddScalarCUDA(*this, g, *this);
     break;
-  } // switch _device
+  }  // switch _device
   return *this;
 }
 
@@ -392,7 +397,7 @@ template <typename T> JetVector<T> &JetVector<T>::operator-=(T g) {
   case CUDA_t:
     math::function::jetVectorMinusScalarCUDA(*this, g, *this);
     break;
-  } // switch _device
+  }  // switch _device
   return *this;
 }
 
@@ -404,7 +409,7 @@ template <typename T> JetVector<T> &JetVector<T>::operator*=(T g) {
   case CUDA_t:
     math::function::jetVectorMultipliesScalarCUDA(*this, g, *this);
     break;
-  } // switch _device
+  }  // switch _device
   return *this;
 }
 
@@ -425,7 +430,7 @@ template <typename T> JetVector<T> JetVector<T>::scalarMinusThis(T f) const {
                           return math::function::scalarMinusJetVectorCUDA(
                               f, *this, out);
                         }};
-  } // switch _device
+  }  // switch _device
 }
 
 template <typename T> JetVector<T> JetVector<T>::scalarDividesThis(T f) const {
@@ -440,7 +445,7 @@ template <typename T> JetVector<T> JetVector<T>::scalarDividesThis(T f) const {
                           return math::function::scalarDividesJetVectorCUDA(
                               f, *this, out);
                         }};
-  } // switch _device
+  }  // switch _device
 }
 
 template class JetVector<float>;
