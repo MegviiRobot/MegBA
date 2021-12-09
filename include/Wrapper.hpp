@@ -62,14 +62,14 @@ struct CommonArgsHelper<std::tuple<Before...>, std::tuple<T, AfterFP32...>,
   typedef typename Next_Helper::FP64 FP64;
 };
 
-template <typename FP32, typename FP64, typename... Before,
+template <typename FP32_, typename FP64_, typename... Before,
           typename... AfterFP32, typename... AfterFP64>
 struct CommonArgsHelper<std::tuple<Before...>,
-                        std::tuple<FP32, AfterFP32...>,
-                        std::tuple<FP64, AfterFP64...>> {
+                        std::tuple<FP32_, AfterFP32...>,
+                        std::tuple<FP64_, AfterFP64...>> {
   typedef std::tuple<Before...> CommonTuple;
-  typedef FP32 FP32;
-  typedef FP64 FP64;
+  typedef FP32_ FP32;
+  typedef FP64_ FP64;
 };
 
 template <typename TupleFP32, typename TupleFP64> struct CommonArgs {
@@ -120,12 +120,12 @@ CUXXX_WRAPPER(cublasGmatinvBatched, cublasSmatinvBatched, cublasDmatinvBatched);
 template <typename T> struct declared_cudaDatatype {};
 
 template <> struct declared_cudaDatatype<float> {
-  constexpr static const ncclDataType nccl_dtype{ncclFloat32};
+  constexpr static const ncclDataType_t nccl_dtype{ncclFloat32};
   constexpr static const cudaDataType cuda_dtype{CUDA_R_32F};
 };
 
 template <> struct declared_cudaDatatype<double> {
-  constexpr static const ncclDataType nccl_dtype{ncclFloat64};
+  constexpr static const ncclDataType_t nccl_dtype{ncclFloat64};
   constexpr static const cudaDataType cuda_dtype{CUDA_R_64F};
 };
 
