@@ -6,36 +6,37 @@
 **/
 
 #pragma once
-#include <mutex>
-#include <vector>
-#include <map>
 #include <cusparse_v2.h>
 #include <cublas_v2.h>
 #include <nccl.h>
+#include <mutex>
+#include <vector>
+#include <map>
 
 namespace MegBA {
-    class HandleManager {
-        static std::vector<ncclComm_t> comms_;
-        static std::vector<cublasHandle_t> cublasHandle_;
-        static std::vector<cusparseHandle_t> cusparseHandle_;
-        static std::mutex mutex_;
-    public:
-        static void create_ncclComm();
+class HandleManager {
+  static std::vector<ncclComm_t> comms_;
+  static std::vector<cublasHandle_t> cublasHandle_;
+  static std::vector<cusparseHandle_t> cusparseHandle_;
+  static std::mutex mutex_;
 
-        static const std::vector<ncclComm_t> &get_ncclComm();
+ public:
+  static void create_ncclComm();
 
-        static void destroy_ncclComm();
+  static const std::vector<ncclComm_t> &get_ncclComm();
 
-        static void create_cublasHandle();
+  static void destroy_ncclComm();
 
-        static const std::vector<cublasHandle_t> &get_cublasHandle();
+  static void create_cublasHandle();
 
-        static void destroy_cublasHandle();
+  static const std::vector<cublasHandle_t> &get_cublasHandle();
 
-        static void create_cusparseHandle();
+  static void destroy_cublasHandle();
 
-        static const std::vector<cusparseHandle_t> &get_cusparseHandle();
+  static void create_cusparseHandle();
 
-        static void destroy_cusparseHandle();
-    };
-}
+  static const std::vector<cusparseHandle_t> &get_cusparseHandle();
+
+  static void destroy_cusparseHandle();
+};
+}  // namespace MegBA
