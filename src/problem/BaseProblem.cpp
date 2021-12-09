@@ -93,9 +93,9 @@ namespace MegBA {
 
     template<typename T>
     void BaseProblem<T>::append_Edge(BaseEdge<T> &edge) {
-        bool success = edges.tryPushBack(edge);
+        bool success = edges.tryPushBack(&edge);
         if (!success) {
-          edges.tryPushBack(edge);
+          edges.tryPushBack(&edge);
         }
         for (int vertex_idx = edge.size() - 1; vertex_idx >= 0; --vertex_idx) {
             auto vertex = edge[vertex_idx];

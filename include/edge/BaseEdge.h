@@ -6,20 +6,21 @@
 **/
 
 #pragma once
+#include <cusparse_v2.h>
+#include <utility>
+#include <set>
+#include <vector>
 #include <memory>
 #include <unordered_map>
-#include <cuda_runtime.h>
-#include <cusparse_v2.h>
-
 #include <Common.h>
-#include <operator/JetVector.h>
-#include <vertex/BaseVertex.h>
-#include <problem/HEntrance.h>
+#include "operator/JetVector.h"
+#include "vertex/BaseVertex.h"
+#include "problem/HEntrance.h"
 
 namespace MegBA {
-namespace {
+
 enum EdgeKind { ONE, ONE_CAMERA_ONE_POINT, TWO_CAMERA, MULTI };
-}
+
 template <typename T> class EdgeVector;
 
 template <typename T> class BaseEdge : public std::vector<BaseVertex<T> *> {
@@ -33,10 +34,10 @@ template <typename T> class BaseEdge : public std::vector<BaseVertex<T> *> {
   PlainMatrix _measurement;
   PlainMatrix _information;
 
-public:
+ public:
   virtual ~BaseEdge() = default;
 
-  void appendVertex(BaseVertex<T> &vertex);
+  void appendVertex(BaseVertex<T> *vertex);
 
   bool existVertex(const BaseVertex<T> &vertex) const;
 
@@ -45,16 +46,16 @@ public:
   template <typename PlainMatrix>
   void setMeasurement(PlainMatrix &&measurement) {
     _measurement = std::forward<PlainMatrix>(measurement);
-  };
+  }
 
-  JVD<T> const &getMeasurement() const { return _edge.getMeasurement(); };
+  JVD<T> const &getMeasurement() const { return _edge.getMeasurement(); }
 
   template <typename PlainMatrix>
   void setInformation(PlainMatrix &&information) {
     _information = std::forward<PlainMatrix>(information);
-  };
+  }
 
-protected:
+ protected:
   const BaseEdgeWrapper<T> &getVertices() { return _edge; }
 };
 
@@ -88,16 +89,17 @@ template <typename T> class EdgeVector {
 
   void decideEdgeKind();
 
-public:
+ public:
   EdgeVector() = delete;
 
-  EdgeVector(const ProblemOption &option, const std::vector<SchurHEntrance<T>> &schurHEntrance);
+  EdgeVector(const ProblemOption &option,
+             const std::vector<SchurHEntrance<T>> &schurHEntrance);
 
   struct SchurEquationContainer {
-    explicit SchurEquationContainer(const device_t &device) : _device(device){};
+    explicit SchurEquationContainer(const device_t &device) : _device(device) {}
 
     SchurEquationContainer(const SchurEquationContainer &container)
-        : _device(container._device){};
+        : _device(container._device) {}
 
     ~SchurEquationContainer() { clear(); }
 
@@ -115,7 +117,7 @@ public:
 
   struct PositionAndRelationContainer {
     explicit PositionAndRelationContainer(const device_t &device)
-        : _device(device){};
+        : _device(device) {}
 
     ~PositionAndRelationContainer() { clear(); }
 
@@ -133,31 +135,31 @@ public:
 
   void rollback();
 
-  std::vector<VertexVector<T>> &getEdges() { return edges; };
+  std::vector<VertexVector<T>> &getEdges() { return edges; }
 
-  const std::vector<VertexVector<T>> &getEdges() const { return edges; };
+  const std::vector<VertexVector<T>> &getEdges() const { return edges; }
 
-  JVD<T> &getEstimation(int i) { return edges[i].getJVEstimation(); };
+  JVD<T> &getEstimation(int i) { return edges[i].getJVEstimation(); }
 
   const JVD<T> &getEstimation(int i) const {
     return edges[i].getJVEstimation();
-  };
+  }
 
-  JVD<T> &getObservation(int i) { return edges[i].getJVObservation(); };
+  JVD<T> &getObservation(int i) { return edges[i].getJVObservation(); }
 
   const JVD<T> &getObservation(int i) const {
     return edges[i].getJVObservation();
-  };
+  }
 
-  JVD<T> &getMeasurement() { return jetMeasurement; };
+  JVD<T> &getMeasurement() { return jetMeasurement; }
 
-  const JVD<T> &getMeasurement() const { return jetMeasurement; };
+  const JVD<T> &getMeasurement() const { return jetMeasurement; }
 
-  JVD<T> &getInformation() { return jetInformation; };
+  JVD<T> &getInformation() { return jetInformation; }
 
-  const JVD<T> &getInformation() const { return jetInformation; };
+  const JVD<T> &getInformation() const { return jetInformation; }
 
-  bool tryPushBack(BaseEdge<T> &edge);
+  bool tryPushBack(BaseEdge<T> *edge);
 
   void eraseVertex(const BaseVertex<T> &vertex);
 
@@ -195,4 +197,4 @@ public:
 
   std::vector<PositionAndRelationContainer> schurPositionAndRelationContainer;
 };
-}
+}  // namespace MegBA

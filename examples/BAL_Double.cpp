@@ -163,8 +163,8 @@ int main(int argc, char *arcv[]) {
 
     for (int j = 0; j < num_observations; ++j) {
         auto edge_ptr = new BAL_Edge<T>;
-        edge_ptr->appendVertex(problem.get_Vertex(std::get<0>(edge[j])));
-        edge_ptr->appendVertex(problem.get_Vertex(std::get<1>(edge[j])));
+        edge_ptr->appendVertex(&problem.get_Vertex(std::get<0>(edge[j])));
+        edge_ptr->appendVertex(&problem.get_Vertex(std::get<1>(edge[j])));
         edge_ptr->setMeasurement(std::get<2>(std::move(edge[j])));
         problem.append_Edge(edge_ptr);
     }
