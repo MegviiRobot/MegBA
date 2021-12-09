@@ -13,27 +13,27 @@
 __device__ float rsqrtf(float a);
 __device__ double rsqrt(double a);
 
-#define CUXXX_WRAPPER(name, Function_FP32, Function_FP64)                                           \
-class name {                                                                                        \
-    using features = FunctionArgsType<decltype(Function_FP32), decltype(Function_FP64)>::features;\
-    template<typename CommonTuple>                                                               \
-    struct wrapper;                                                                                 \
-    template<typename ...Common>                                                                  \
-    struct wrapper<std::tuple<Common...>> {                                                       \
-        template<typename ...After>                                                               \
-        static auto call(Common ...before, features::FP32 here, After &&...after) {           \
-            return Function_FP32(before..., here, std::forward<After>(after)...);                 \
-        }                                                                                           \
-        template<typename ...After>                                                               \
-        static auto call(Common ...before, features::FP64 here, After &&...after) {           \
-            return Function_FP64(before..., here, std::forward<After>(after)...);                 \
-        }                                                                                           \
-    };                                                                                              \
-    public:                                                                                         \
-    template<typename ...Args>                                                                      \
-    static auto call(Args&&... args) {                                                              \
-        return wrapper<features::CommonTuple>::call(std::forward<Args>(args)...);                \
-    };                                                                                              \
+#define CUXXX_WRAPPER(name, functionFP32, functionFP64)                                         \
+class name {                                                                                    \
+    using features = FunctionArgsType<decltype(functionFP32), decltype(functionFP64)>::features;\
+    template<typename CommonTuple>                                                              \
+    struct wrapper;                                                                             \
+    template<typename ...Common>                                                                \
+    struct wrapper<std::tuple<Common...>> {                                                     \
+        template<typename ...After>                                                             \
+        static auto call(Common ...before, features::FP32 here, After &&...after) {             \
+            return functionFP32(before..., here, std::forward<After>(after)...);                \
+        }                                                                                       \
+        template<typename ...After>                                                             \
+        static auto call(Common ...before, features::FP64 here, After &&...after) {             \
+            return functionFP64(before..., here, std::forward<After>(after)...);                \
+        }                                                                                       \
+    };                                                                                          \
+    public:                                                                                     \
+    template<typename ...Args>                                                                  \
+    static auto call(Args&&... args) {                                                          \
+        return wrapper<features::CommonTuple>::call(std::forward<Args>(args)...);               \
+    };                                                                                          \
 };
 
 namespace MegBA {
@@ -64,8 +64,7 @@ struct CommonArgsHelper<std::tuple<Before...>, std::tuple<T, AfterFP32...>,
 
 template <typename FP32_, typename FP64_, typename... Before,
           typename... AfterFP32, typename... AfterFP64>
-struct CommonArgsHelper<std::tuple<Before...>,
-                        std::tuple<FP32_, AfterFP32...>,
+struct CommonArgsHelper<std::tuple<Before...>, std::tuple<FP32_, AfterFP32...>,
                         std::tuple<FP64_, AfterFP64...>> {
   typedef std::tuple<Before...> CommonTuple;
   typedef FP32_ FP32;
@@ -84,15 +83,12 @@ template <typename TupleFP32, typename TupleFP64> struct CommonArgs {
                 "same arguments type");
 };
 
-template <typename FunctionFP32, typename FunctionFP64>
-struct FunctionArgsType;
+template <typename FunctionFP32, typename FunctionFP64> struct FunctionArgsType;
 
-template <typename ReturnFP32, typename... ArgsFP32,
-          typename ReturnFP64, typename... ArgsFP64>
-struct FunctionArgsType<ReturnFP32(ArgsFP32...),
-                        ReturnFP64(ArgsFP64...)> {
-  typedef CommonArgs<std::tuple<ArgsFP32...>, std::tuple<ArgsFP64...>>
-      features;
+template <typename ReturnFP32, typename... ArgsFP32, typename ReturnFP64,
+          typename... ArgsFP64>
+struct FunctionArgsType<ReturnFP32(ArgsFP32...), ReturnFP64(ArgsFP64...)> {
+  typedef CommonArgs<std::tuple<ArgsFP32...>, std::tuple<ArgsFP64...>> features;
 };
 }
 
