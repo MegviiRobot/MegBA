@@ -15,7 +15,7 @@ namespace MegBA {
 template <typename T> void JetVector<T>::initAsCUDA(const JetVector<T> &f) {
   const auto world_size = MemoryPool::getWorldSize();
   std::vector<void *> da_ptr, dv_ptr;
-  MemoryPool::allocateJetVector(da_ptr, dv_ptr, _N, _nElm, sizeof(T));
+  MemoryPool::allocateJetVector(&da_ptr, &dv_ptr, _N, _nElm, sizeof(T));
   _dvPtr.clear();
   _daPtr.clear();
   _dvPtr.resize(world_size);
@@ -88,7 +88,7 @@ template <typename T> void JetVector<T>::CPU2CUDA(const JetVector<T> &f) {
       return;
     }
     std::vector<void *> da_ptr{}, dv_ptr{};
-    MemoryPool::allocateJetVector(da_ptr, dv_ptr, _N, _nElm, sizeof(T));
+    MemoryPool::allocateJetVector(&da_ptr, &dv_ptr, _N, _nElm, sizeof(T));
     // _dvPtr must be nullptr
     _dvPtr.clear();
     _dvPtr.reserve(world_size);
@@ -127,7 +127,7 @@ template <typename T> void JetVector<T>::CUDA2CUDA(const JetVector<T> &f) {
   const auto world_size = MemoryPool::getWorldSize();
   if (_daPtr.empty()) {
     std::vector<void *> da_ptr{}, dv_ptr{};
-    MemoryPool::allocateJetVector(da_ptr, dv_ptr, _N, _nElm, sizeof(T));
+    MemoryPool::allocateJetVector(&da_ptr, &dv_ptr, _N, _nElm, sizeof(T));
     _dvPtr.clear();
     _daPtr.clear();
     _dvPtr.reserve(world_size);

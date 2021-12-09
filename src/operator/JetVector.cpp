@@ -156,7 +156,7 @@ template <typename T> void JetVector<T>::clear() {
     case CUDA_t:
       cudaStreamSynchronize(nullptr);
       std::vector<void *> ptrs{_dvPtr.begin(), _dvPtr.end()};
-      MemoryPool::deallocateJetVector(ptrs);
+      MemoryPool::deallocateJetVector(&ptrs);
       _daPtr.clear();
       _dvPtr.clear();
       break;

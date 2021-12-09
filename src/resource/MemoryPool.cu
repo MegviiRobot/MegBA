@@ -33,10 +33,10 @@ std::vector<std::size_t> memOverflowedCounter{};
 
 std::vector<std::size_t> memOverflowedPeak{};
 
-}  // namespace
+} // namespace
 
-    void MemoryPool::resetPool(int N, std::size_t nElm, std::int8_t sizeofType,
-                            int worldSize) {
+void MemoryPool::resetPool(int N, std::size_t nElm, std::int8_t sizeofType,
+                           int worldSize) {
   // TODO(Jie Ren): maybe destroy only once
   std::unique_lock<std::mutex> lock{_mutex};
   _N = N;
@@ -51,15 +51,14 @@ std::vector<std::size_t> memOverflowedPeak{};
   HandleManager::create_cusparseHandle();
 }
 
-void MemoryPool::allocateJetVector(std::vector<void *> &daPtr,
-                                    std::vector<void *> &dvPtr,
-                                    std::size_t N, std::size_t nElm,
-                                    std::int8_t sizeofType) {
+void MemoryPool::allocateJetVector(std::vector<void *> *daPtr,
+                                   std::vector<void *> *dvPtr, std::size_t N,
+                                   std::size_t nElm, std::int8_t sizeofType) {
   std::unique_lock<std::mutex> lock{_mutex};
-  daPtr.clear();
-  daPtr.resize(_worldSize);
-  dvPtr.clear();
-  dvPtr.resize(_worldSize);
+  daPtr->clear();
+  daPtr->resize(_worldSize);
+  dvPtr->clear();
+  dvPtr->resize(_worldSize);
   assert((N == _N || N == 0) && nElm == _nElm && sizeofType == _sizeofType);
   for (auto offset : memOffsetCounter)
     if (offset != 0)
@@ -70,9 +69,9 @@ void MemoryPool::allocateJetVector(std::vector<void *> &daPtr,
       cudaSetDevice(i);
       Ptr ptr{nullptr};
       cudaMalloc(&ptr.address, (_N + 1) * nElm * _sizeofType);
-      dvPtr[i] = ptr.address;
+      dvPtr->operator[](i) = ptr.address;
       ptr.number += _N * nElm * _sizeofType;
-      daPtr[i] = ptr.address;
+      daPtr->operator[](i) = ptr.address;
     }
   } else {
     std::vector<void *> back = std::move(_ptr.back());
@@ -81,17 +80,17 @@ void MemoryPool::allocateJetVector(std::vector<void *> &daPtr,
       const auto nElm = getElmNum(i);
       cudaSetDevice(i);
       Ptr ptr{back[i]};
-      dvPtr[i] = ptr.address;
+      dvPtr->operator[](i) = ptr.address;
       ptr.number += _N * nElm * _sizeofType;
-      daPtr[i] = ptr.address;
+      daPtr->operator[](i) = ptr.address;
     }
   }
   _ptrInUseCounter++;
 }
 
-void MemoryPool::deallocateJetVector(std::vector<void *> &ptr) {
+void MemoryPool::deallocateJetVector(std::vector<void *> *ptr) {
   std::unique_lock<std::mutex> lock{_mutex};
-  _ptr.push_back(std::move(ptr));
+  _ptr.push_back(std::move(*ptr));
   _ptrInUseCounter--;
 }
 
