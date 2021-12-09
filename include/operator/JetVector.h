@@ -11,7 +11,7 @@
 #include "JetVector.inl"
 #include "vector"
 #include "Jet_Vector_math.inl"
-#include <resource/Memory_Pool.h>
+#include <resource/MemoryPool.h>
 #include <functional>
 #include <resource/Manager.h>
 
@@ -102,7 +102,7 @@ namespace MegBA {
         const unsigned int& getGradShape() const { return N_; };
         const unsigned int& get_Elm_Num() const { return nElm_; };
         std::size_t get_Elm_Num(int rank) const {
-            return Memory_Pool::getElmNum(rank);
+            return MemoryPool::getElmNum(rank);
         };
         int get_Grad_Position() const { return grad_position_; };
         const device_t& get_Device() const { return device_; };
@@ -118,7 +118,7 @@ namespace MegBA {
         const std::vector<T *>& get_CUDA_Res_ptr() const { return da_ptr_; };
 
         // TODO: input a array vector
-        void bind_da_ptr(T* da_ptr) { da_ptr_.resize(Memory_Pool::getWorldSize()); da_ptr_[0] = da_ptr; };
+        void bind_da_ptr(T* da_ptr) { da_ptr_.resize(MemoryPool::getWorldSize()); da_ptr_[0] = da_ptr; };
 
         void bind_da_ptr(std::vector<T *> &&da_ptr) { da_ptr_ = std::move(da_ptr); };
 

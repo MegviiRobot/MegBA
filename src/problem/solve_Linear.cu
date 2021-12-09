@@ -60,7 +60,7 @@ namespace MegBA {
         template<typename T>
         void invertDistributed(const std::vector<T *> A_dflat, int n, const int point_num, std::vector<T *>C_dflat) {
             const auto &handle = HandleManager::get_cublasHandle();
-            const auto world_size = Memory_Pool::getWorldSize();
+            const auto world_size = MemoryPool::getWorldSize();
 
             std::vector<const T **> A{static_cast<std::size_t>(world_size)};
             std::vector<T **> Ainv{static_cast<std::size_t>(world_size)};
@@ -71,9 +71,11 @@ namespace MegBA {
 
             for (int i = 0; i < world_size; ++i) {
 //                cudaSetDevice(i);
-                Memory_Pool::allocate_normal((void **)&A[i], point_num * sizeof(T *), i);
-                Memory_Pool::allocate_normal((void **)&Ainv[i], point_num * sizeof(T *), i);
-                Memory_Pool::allocate_normal((void **)&INFO[i], point_num * sizeof(int), i);
+MemoryPool::allocateNormal((void **)&A[i], point_num * sizeof(T *), i);
+MemoryPool::allocateNormal((void **)&Ainv[i],
+                                            point_num * sizeof(T *), i);
+MemoryPool::allocateNormal((void **)&INFO[i],
+                                            point_num * sizeof(int), i);
 
 //                cudaMalloc(&A[i], point_num * sizeof(T *));
 //                cudaMalloc(&Ainv[i], point_num * sizeof(T *));
@@ -91,9 +93,9 @@ namespace MegBA {
             for (int i = 0; i < world_size; ++i){
                 cudaSetDevice(i);
                 cudaDeviceSynchronize();
-                Memory_Pool::deallocate_normal(INFO[i], i);
-                Memory_Pool::deallocate_normal(Ainv[i], i);
-                Memory_Pool::deallocate_normal(A[i], i);
+                MemoryPool::deallocateNormal(INFO[i], i);
+                MemoryPool::deallocateNormal(Ainv[i], i);
+                MemoryPool::deallocateNormal(A[i], i);
 //                cudaFree(A[i]);
 //                cudaFree(Ainv[i]);
 //                cudaFree(INFO[i]);
@@ -152,7 +154,7 @@ namespace MegBA {
                 const std::vector<T *> &g,
                 const std::vector<T *> &d_x) {
             const auto &comms = HandleManager::get_ncclComm();
-            const auto world_size = Memory_Pool::getWorldSize();
+            const auto world_size = MemoryPool::getWorldSize();
             constexpr auto cudaDataType = Wrapper::declared_cudaDatatype<T>::cuda_dtype;
             const auto &cusparseHandle = HandleManager::get_cusparseHandle();
             const auto &cublasHandle = HandleManager::get_cublasHandle();
@@ -182,13 +184,20 @@ namespace MegBA {
                 cudaSetDevice(i);
                 cusparseGetStream(cusparseHandle[i], &cusparseStream[i]);
                 cublasGetStream_v2(cublasHandle[i], &cublasStream[i]);
-                Memory_Pool::allocate_normal((void **)&hpp_inv_csrVal[i], hpp_rows * camera_dim * sizeof(T), i);
-                Memory_Pool::allocate_normal((void **)&p_n[i], hpp_rows * sizeof(T), i);
-                Memory_Pool::allocate_normal((void **)&r_n[i], hpp_rows * sizeof(T), i);
-                Memory_Pool::allocate_normal((void **)&Ax_n[i], hpp_rows * sizeof(T), i);
-                Memory_Pool::allocate_normal((void **)&temp[i], hll_rows * sizeof(T), i);
+                MemoryPool::allocateNormal((void **)&hpp_inv_csrVal[i],
+                                            hpp_rows * camera_dim * sizeof(T),
+                                            i);
+                MemoryPool::allocateNormal((void **)&p_n[i],
+                                            hpp_rows * sizeof(T), i);
+                MemoryPool::allocateNormal((void **)&r_n[i],
+                                            hpp_rows * sizeof(T), i);
+                MemoryPool::allocateNormal((void **)&Ax_n[i],
+                                            hpp_rows * sizeof(T), i);
+                MemoryPool::allocateNormal((void **)&temp[i],
+                                            hll_rows * sizeof(T), i);
 
-                Memory_Pool::allocate_normal((void **)&d_x_backup[i], hll_rows * sizeof(T), i);
+                MemoryPool::allocateNormal((void **)&d_x_backup[i],
+                                            hll_rows * sizeof(T), i);
 
 //                cudaMalloc(&hpp_inv_csrVal[i], hpp_rows * camera_dim * sizeof(T));
 //                cudaMalloc((void **) &p_n[i], hpp_rows * sizeof(T));
@@ -273,7 +282,7 @@ namespace MegBA {
 //                    cudaMemcpyAsync(Ax_n[i], r_n[i], hpp_rows * sizeof(T), cudaMemcpyDeviceToDevice);
 
                     // rho_n = rTr
-                    const auto nElm = Memory_Pool::getElmNum(i, hpp_rows);
+                    const auto nElm = MemoryPool::getElmNum(i, hpp_rows);
                     Wrapper::cublasGdot::call(cublasHandle[i], nElm, &r_n[i][offset], 1, &Ax_n[i][offset], 1, &rho_n_item[i]);
                     offset += nElm;
                 }
@@ -349,7 +358,7 @@ namespace MegBA {
                     cudaSetDevice(i);
                     cudaStreamSynchronize(cusparseStream[i]);
                     //dot :dTq
-                    const auto nElm = Memory_Pool::getElmNum(i, hpp_rows);
+                    const auto nElm = MemoryPool::getElmNum(i, hpp_rows);
                     Wrapper::cublasGdot::call(cublasHandle[i], nElm, &p_n[i][offset], 1, &Ax_n[i][offset], 1, &dot[i]);
                     offset += nElm;
                 }
@@ -442,12 +451,12 @@ namespace MegBA {
                 cusparseDestroyDnVec(vecp[i]);
                 cusparseDestroyDnVec(vectemp[i]);
 
-                Memory_Pool::deallocate_normal(d_x_backup[i], i);
-                Memory_Pool::deallocate_normal(temp[i], i);
-                Memory_Pool::deallocate_normal(Ax_n[i], i);
-                Memory_Pool::deallocate_normal(r_n[i], i);
-                Memory_Pool::deallocate_normal(p_n[i], i);
-                Memory_Pool::deallocate_normal(hpp_inv_csrVal[i], i);
+                MemoryPool::deallocateNormal(d_x_backup[i], i);
+                MemoryPool::deallocateNormal(temp[i], i);
+                MemoryPool::deallocateNormal(Ax_n[i], i);
+                MemoryPool::deallocateNormal(r_n[i], i);
+                MemoryPool::deallocateNormal(p_n[i], i);
+                MemoryPool::deallocateNormal(hpp_inv_csrVal[i], i);
 
 //                cudaFree(p_n[i]);
 //                cudaFree(r_n[i]);
@@ -469,7 +478,7 @@ namespace MegBA {
                 const std::vector<T *> &hll_inv_csrVal,
                 const std::vector<T *> &d_r) {
             const auto &comms = HandleManager::get_ncclComm();
-            const auto world_size = Memory_Pool::getWorldSize();
+            const auto world_size = MemoryPool::getWorldSize();
             const auto &cusparseHandle = HandleManager::get_cusparseHandle();
             constexpr auto cudaDataType = Wrapper::declared_cudaDatatype<T>::cuda_dtype;
 
@@ -512,7 +521,8 @@ namespace MegBA {
 //                PRINT_DMEMORY(w[i], hll_rows, T);
                 size_t bufferSize = 0;
                 cusparseSpMV_bufferSize(cusparseHandle[i], CUSPARSE_OPERATION_NON_TRANSPOSE, &alpha, hpl[i], vecw[i], &beta, vecv[i], cudaDataType, CUSPARSE_SPMV_ALG_DEFAULT, &bufferSize);
-                Memory_Pool::allocate_normal((void **)&SpMVbuffer[i], bufferSize, i);
+                MemoryPool::allocateNormal((void **)&SpMVbuffer[i], bufferSize,
+                                            i);
 //                cudaMalloc(&SpMVbuffer[i], bufferSize);
                 cusparseSpMV(cusparseHandle[i], CUSPARSE_OPERATION_NON_TRANSPOSE, &alpha, hpl[i], vecw[i], &beta, vecv[i], cudaDataType, CUSPARSE_SPMV_ALG_DEFAULT, SpMVbuffer[i]);
 //                PRINT_DMEMORY(v[i], hpp_rows, T);
@@ -599,7 +609,7 @@ namespace MegBA {
                 const std::vector<T *> &d_r,
                 const std::vector<T *> &d_x) {
             const auto comms = HandleManager::get_ncclComm();
-            const auto world_size = Memory_Pool::getWorldSize();
+            const auto world_size = MemoryPool::getWorldSize();
             constexpr auto cudaDataType = Wrapper::declared_cudaDatatype<T>::cuda_dtype;
 
             std::vector<T *> xc, xp, w;
@@ -680,7 +690,7 @@ namespace MegBA {
             const std::vector<T *> &delta_x) {
         ASSERT_CUDA_NO_ERROR();
         // hll inverse-----------------------------------------------------------
-        const auto world_size = Memory_Pool::getWorldSize();
+        const auto world_size = MemoryPool::getWorldSize();
 
         ASSERT_CUDA_NO_ERROR();
 //        cudaSetDevice(0);
@@ -690,7 +700,8 @@ namespace MegBA {
         std::vector<T *> Hll_inv_csrVal;
         Hll_inv_csrVal.resize(world_size);
         for (int i = 0; i < world_size; ++i) {
-            Memory_Pool::allocate_normal((void **)&Hll_inv_csrVal[i], Hll_rows * point_dim * sizeof(T), i);
+          MemoryPool::allocateNormal((void **)&Hll_inv_csrVal[i],
+                                      Hll_rows * point_dim * sizeof(T), i);
         }
         invertDistributed(Hll_csrVal, point_dim, point_num, Hll_inv_csrVal);
 
@@ -732,8 +743,8 @@ namespace MegBA {
         for (int i = 0; i < world_size; ++i) {
             cudaSetDevice(i);
             cudaDeviceSynchronize();
-            Memory_Pool::deallocate_normal(SpMVbuffer[i], i);
-            Memory_Pool::deallocate_normal(Hll_inv_csrVal[i], i);
+            MemoryPool::deallocateNormal(SpMVbuffer[i], i);
+            MemoryPool::deallocateNormal(Hll_inv_csrVal[i], i);
         }
 //        cudaSetDevice(0);
 //        PRINT_DMEMORY(delta_x[0], 9, T);
@@ -746,7 +757,7 @@ namespace MegBA {
 
         if (option_.useSchur) {
             // TODO: need great change
-            const auto world_size = Memory_Pool::getWorldSize();
+            const auto world_size = MemoryPool::getWorldSize();
             std::vector<T *> Hpp_csrVal{static_cast<std::size_t>(world_size)};
             std::vector<T *> Hll_csrVal{static_cast<std::size_t>(world_size)};
             std::vector<T *> Hpl_csrVal{static_cast<std::size_t>(world_size)};

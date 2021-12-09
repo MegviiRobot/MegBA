@@ -221,7 +221,7 @@ namespace MegBA {
         } else {
             for (int i = 0; i < _option.worldSize; ++i) {
                 cudaSetDevice(i);
-                const auto edge_num = Memory_Pool::getElmNum(i);
+                const auto edge_num = MemoryPool::getElmNum(i);
                 dim3 block(std::min((decltype(edge_num))32, edge_num), camera_dim + point_dim);
                 dim3 grid((edge_num - 1) / block.x + 1);
                 problem::CUDA::make_H_schur<<<grid, block, block.x * block.y * sizeof(T)>>>(

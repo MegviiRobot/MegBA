@@ -12,10 +12,10 @@ namespace MegBA {
 template <typename T> void EdgeVector<T>::backupDaPtrs() {
   if (_option.useSchur) {
     const auto gradShape = getGradShape();
-    for (int i = 0; i < Memory_Pool::getWorldSize(); ++i) {
+    for (int i = 0; i < MemoryPool::getWorldSize(); ++i) {
       cudaSetDevice(i);
       cudaMemcpyAsync(schurDaPtrsOld[0][i], schurDaPtrs[0][i],
-                      Memory_Pool::getElmNum(i) * gradShape * sizeof(T),
+                      MemoryPool::getElmNum(i) * gradShape * sizeof(T),
                       cudaMemcpyDeviceToDevice, schurStreamLmMemcpy[i]);
     }
   } else {
@@ -42,7 +42,7 @@ template <typename T> void EdgeVector<T>::preparePositionAndRelationDataCUDA() {
     compressedCsrColInd.resize(_option.worldSize);
     for (int i = 0; i < _option.worldSize; ++i) {
       cudaSetDevice(i);
-      const auto edgeNum = Memory_Pool::getElmNum(i);
+      const auto edgeNum = MemoryPool::getElmNum(i);
 
       cudaMalloc(&schurEquationContainer[i].csrRowPtr[0],
                  (num[0] * schurEquationContainer[i].dim[0] + 1) * sizeof(int));
@@ -145,7 +145,7 @@ template <typename T> void EdgeVector<T>::preparePositionAndRelationDataCUDA() {
 
 template <typename T> void EdgeVector<T>::PrepareUpdateDataCUDA() {
   if (_option.useSchur) {
-    const auto worldSize = Memory_Pool::getWorldSize();
+    const auto worldSize = MemoryPool::getWorldSize();
     const auto gradShape = getGradShape();
     schurStreamLmMemcpy.resize(worldSize);
     std::vector<T *> daPtrs, daPtrsOld;
@@ -156,7 +156,7 @@ template <typename T> void EdgeVector<T>::PrepareUpdateDataCUDA() {
       cudaStreamCreateWithFlags(&schurStreamLmMemcpy[i],
                                 CU_STREAM_NON_BLOCKING);
       T *daPtr, *daPtrOld;
-      const auto nElm = Memory_Pool::getElmNum(i);
+      const auto nElm = MemoryPool::getElmNum(i);
       cudaMalloc(&daPtr, nElm * gradShape * sizeof(T));
       cudaMalloc(&daPtrOld, nElm * gradShape * sizeof(T));
       daPtrs[i] = daPtr;
@@ -172,7 +172,7 @@ template <typename T> void EdgeVector<T>::PrepareUpdateDataCUDA() {
       if (edges[i][0]->fixed)
         continue;
       for (int j = 0; j < worldSize; ++j) {
-        const auto nElm = Memory_Pool::getElmNum(j);
+        const auto nElm = MemoryPool::getElmNum(j);
         schurDaPtrs[iUnfixed][j] = &daPtrs[j][offset * nElm];
         schurDaPtrsOld[iUnfixed][j] = &daPtrsOld[j][offset * nElm];
       }
@@ -187,7 +187,7 @@ template <typename T> void EdgeVector<T>::PrepareUpdateDataCUDA() {
 
 template <typename T> void EdgeVector<T>::deallocateResourceCUDA() {
   if (_option.useSchur) {
-    for (int i = 0; i < Memory_Pool::getWorldSize(); ++i) {
+    for (int i = 0; i < MemoryPool::getWorldSize(); ++i) {
       cudaSetDevice(i);
       schurPositionAndRelationContainer[i].clearCUDA();
       cudaFree(schurDaPtrs[0][i]);

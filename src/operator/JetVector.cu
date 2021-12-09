@@ -7,16 +7,16 @@
 
 #include <Common.h>
 #include <operator/JetVector.h>
-#include <resource/Memory_Pool.h>
+#include <resource/MemoryPool.h>
 #include <Macro.h>
 #include <memory>
 
 namespace MegBA {
     template<typename T>
     void JetVector<T>::cudaInitAs(const JetVector<T> &f) {
-        const auto world_size = Memory_Pool::getWorldSize();
+        const auto world_size = MemoryPool::getWorldSize();
         std::vector<void *> da_ptr, dv_ptr;
-        Memory_Pool::allocate_JetVector(da_ptr, dv_ptr, N_, nElm_, sizeof(T));
+        MemoryPool::allocateJetVector(da_ptr, dv_ptr, N_, nElm_, sizeof(T));
         dv_ptr_.clear();
         da_ptr_.clear();
         dv_ptr_.resize(world_size);
@@ -51,7 +51,7 @@ namespace MegBA {
 
     template<typename T>
     void JetVector<T>::CUDA2CPU(const JetVector<T> &f) {
-        const auto world_size = Memory_Pool::getWorldSize();
+        const auto world_size = MemoryPool::getWorldSize();
         ha_data.resize(nElm_);
         hv_data.resize(N_);
         for (auto &v : hv_data)
@@ -72,7 +72,7 @@ namespace MegBA {
 
     template<typename T>
     void JetVector<T>::cuCPU_to_CUDA(const JetVector<T> &f) {
-        const auto world_size = Memory_Pool::getWorldSize();
+        const auto world_size = MemoryPool::getWorldSize();
         // if da_ptr_ != nullptr if binded
         if (da_ptr_.empty()) {
             if (pure_scalar_flag_) {
@@ -88,7 +88,8 @@ namespace MegBA {
                 return;
             }
             std::vector<void *> da_ptr{}, dv_ptr{};
-            Memory_Pool::allocate_JetVector(da_ptr, dv_ptr, N_, nElm_, sizeof(T));
+            MemoryPool::allocateJetVector(da_ptr, dv_ptr, N_, nElm_,
+                                           sizeof(T));
             // dv_ptr_ must be nullptr
             dv_ptr_.clear();
             dv_ptr_.reserve(world_size);
@@ -122,10 +123,11 @@ namespace MegBA {
 
     template<typename T>
     void JetVector<T>::CUDA2CUDA(const JetVector<T> &f) {
-        const auto world_size = Memory_Pool::getWorldSize();
+        const auto world_size = MemoryPool::getWorldSize();
         if (da_ptr_.empty()) {
             std::vector<void *> da_ptr{}, dv_ptr{};
-            Memory_Pool::allocate_JetVector(da_ptr, dv_ptr, N_, nElm_, sizeof(T));
+            MemoryPool::allocateJetVector(da_ptr, dv_ptr, N_, nElm_,
+                                           sizeof(T));
             dv_ptr_.clear();
             da_ptr_.clear();
             dv_ptr_.reserve(world_size);
@@ -153,7 +155,7 @@ namespace MegBA {
         for (int i = 0; i < N; ++i)
             Grad.emplace_back(new T[nElm]);
         std::size_t start_idx{0};
-        for (int i = 0; i < Memory_Pool::getWorldSize(); ++i) {
+        for (int i = 0; i < MemoryPool::getWorldSize(); ++i) {
             cudaSetDevice(i);
             std::size_t nElm = z.get_Elm_Num(i);
             cudaMemcpyAsync(&Res[start_idx], z.get_CUDA_Res_ptr()[i], nElm * sizeof(T), cudaMemcpyDeviceToHost);

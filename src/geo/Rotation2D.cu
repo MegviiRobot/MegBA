@@ -47,7 +47,7 @@ namespace MegBA {
             }
 
             const auto N = JV_Template.getGradShape();
-            for (int i = 0; i < Memory_Pool::getWorldSize(); ++i) {
+            for (int i = 0; i < MemoryPool::getWorldSize(); ++i) {
                 cudaSetDevice(i);
                 const auto nElm = JV_Template.get_Elm_Num(i);
                 // 512 instead of 1024 for the limitation of registers

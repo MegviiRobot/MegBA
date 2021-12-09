@@ -66,7 +66,8 @@ namespace MegBA {
     template<typename T>
     BaseProblem<T>::BaseProblem(ProblemOption option) : option_(option) {
         if (option.N != -1 && option.nElm != -1)
-            Memory_Pool::reset_Pool(option.N, option.nElm, sizeof(T), option.worldSize);
+          MemoryPool::resetPool(option.N, option.nElm, sizeof(T),
+                                 option.worldSize);
         if (option.useSchur) {
             schur_ws_.split_size_ = option.nElm / option.worldSize + 1;
             schur_ws_.working_device_ = 0;
@@ -244,7 +245,7 @@ namespace MegBA {
             }
         }
         if (option_.useSchur) {
-            for (int i = 0; i < Memory_Pool::getWorldSize(); ++i) {
+            for (int i = 0; i < MemoryPool::getWorldSize(); ++i) {
                 cudaSetDevice(i);
                 cudaMemcpyAsync(schur_x_ptr[i], hx_ptr, Hessian_shape_ * sizeof(T), cudaMemcpyHostToDevice);
             }

@@ -6,17 +6,17 @@
 **/
 
 #include <cassert>
-#include <resource/Memory_Pool.h>
+#include <resource/MemoryPool.h>
 #include <resource/Manager.h>
 
 namespace MegBA {
     void HandleManager::create_ncclComm() {
         std::vector<int> devs;
-        devs.resize(Memory_Pool::getWorldSize());
-        comms_.resize(Memory_Pool::getWorldSize());
-        for (int i = 0; i < Memory_Pool::getWorldSize(); ++i)
+        devs.resize(MemoryPool::getWorldSize());
+        comms_.resize(MemoryPool::getWorldSize());
+        for (int i = 0; i < MemoryPool::getWorldSize(); ++i)
             devs[i] = i;
-        ncclCommInitAll(comms_.data(), Memory_Pool::getWorldSize(), devs.data());
+        ncclCommInitAll(comms_.data(), MemoryPool::getWorldSize(), devs.data());
     }
 
     const std::vector<ncclComm_t> &HandleManager::get_ncclComm() {
@@ -32,8 +32,8 @@ namespace MegBA {
     void HandleManager::create_cublasHandle() {
         std::unique_lock<std::mutex> lock{mutex_};
         assert(cublasHandle_.empty());
-        cublasHandle_.resize(Memory_Pool::getWorldSize());
-        for (int i = 0; i < Memory_Pool::getWorldSize(); ++i) {
+        cublasHandle_.resize(MemoryPool::getWorldSize());
+        for (int i = 0; i < MemoryPool::getWorldSize(); ++i) {
             cudaSetDevice(i);
             cublasCreate_v2(&cublasHandle_[i]);
         }
@@ -57,8 +57,8 @@ namespace MegBA {
     void HandleManager::create_cusparseHandle() {
         std::unique_lock<std::mutex> lock{mutex_};
         assert(cusparseHandle_.empty());
-        cusparseHandle_.resize(Memory_Pool::getWorldSize());
-        for (int i = 0; i < Memory_Pool::getWorldSize(); ++i) {
+        cusparseHandle_.resize(MemoryPool::getWorldSize());
+        for (int i = 0; i < MemoryPool::getWorldSize(); ++i) {
             cudaSetDevice(i);
             cusparseCreate(&cusparseHandle_[i]);
         }

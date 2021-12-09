@@ -205,17 +205,17 @@ template <typename T> void EdgeVector<T>::allocateResourcePre() {
   if (_option.useSchur) {
     schurAbsolutePosition.resize(2);
     for (auto &vs : schurAbsolutePosition) {
-      vs.resize(Memory_Pool::getWorldSize());
-      for (int i = 0; i < Memory_Pool::getWorldSize(); ++i) {
-        vs[i].resize(Memory_Pool::getElmNum(i));
+      vs.resize(MemoryPool::getWorldSize());
+      for (int i = 0; i < MemoryPool::getWorldSize(); ++i) {
+        vs[i].resize(MemoryPool::getElmNum(i));
       }
     }
 
     schurRelativePosition.resize(2);
     for (auto &vs : schurRelativePosition) {
-      vs.resize(Memory_Pool::getWorldSize());
-      for (int i = 0; i < Memory_Pool::getWorldSize(); ++i) {
-        vs[i].resize(Memory_Pool::getElmNum(i));
+      vs.resize(MemoryPool::getWorldSize());
+      for (int i = 0; i < MemoryPool::getWorldSize(); ++i) {
+        vs[i].resize(MemoryPool::getElmNum(i));
       }
     }
   } else {

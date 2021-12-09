@@ -17,7 +17,7 @@
 namespace MegBA {
 template <typename T> void BaseProblem<T>::cudaDeallocateResource() {
   if (option_.useSchur) {
-    for (int i = 0; i < Memory_Pool::getWorldSize(); ++i) {
+    for (int i = 0; i < MemoryPool::getWorldSize(); ++i) {
       cudaSetDevice(i);
       cudaFree(schur_x_ptr[i]);
       cudaFree(schur_delta_x_ptr[i]);
@@ -33,7 +33,7 @@ template <typename T> void BaseProblem<T>::cudaDeallocateResource() {
 
 template <typename T> void BaseProblem<T>::cudaPrepareUpdateData() {
   if (option_.useSchur) {
-    const auto world_size = Memory_Pool::getWorldSize();
+    const auto world_size = MemoryPool::getWorldSize();
     schur_x_ptr.resize(world_size);
     schur_delta_x_ptr.resize(world_size);
     schur_delta_x_ptr_backup.resize(world_size);
@@ -194,19 +194,19 @@ void BaseProblem<T>::SolveLM(int iter, double solver_tol,
   }
 
   std::vector<std::vector<T>> new_residual_norm_in_flight;
-  new_residual_norm_in_flight.resize(Memory_Pool::getWorldSize());
+  new_residual_norm_in_flight.resize(MemoryPool::getWorldSize());
   for (auto &vec : new_residual_norm_in_flight)
     vec.resize(JV_backup.size());
   for (int i = 0; i < JV_backup.rows(); ++i) {
-    for (int j = 0; j < Memory_Pool::getWorldSize(); ++j) {
+    for (int j = 0; j < MemoryPool::getWorldSize(); ++j) {
       cudaSetDevice(j);
       const T *Res_ptr = JV_backup(i).get_CUDA_Res_ptr()[j];
-      Wrapper::cublasGdot::call(cublasHandle[j], Memory_Pool::getElmNum(j),
+      Wrapper::cublasGdot::call(cublasHandle[j], MemoryPool::getElmNum(j),
                                 Res_ptr, 1, Res_ptr, 1,
                                 &new_residual_norm_in_flight[j][i]);
     }
   }
-  for (int i = 0; i < Memory_Pool::getWorldSize(); ++i) {
+  for (int i = 0; i < MemoryPool::getWorldSize(); ++i) {
     cudaStream_t stream;
     cudaSetDevice(i);
     cublasGetStream_v2(cublasHandle[i], &stream);
@@ -220,15 +220,15 @@ void BaseProblem<T>::SolveLM(int iter, double solver_tol,
             << ", log error: " << std::log10(new_residual_norm / 2)
             << std::endl;
 
-  Memory_Pool::redistribute();
+  MemoryPool::redistribute();
   bool stop{false};
   T u = tau;
   T v = 2;
   T rho = 0;
 
   std::vector<std::array<T *, 2>> ExtractedDiag;
-  ExtractedDiag.resize(Memory_Pool::getWorldSize());
-  for (int i = 0; i < Memory_Pool::getWorldSize(); ++i) {
+  ExtractedDiag.resize(MemoryPool::getWorldSize());
+  for (int i = 0; i < MemoryPool::getWorldSize(); ++i) {
     cudaSetDevice(i);
     auto &container = edges.schurEquationContainer[i];
     cudaMalloc(&ExtractedDiag[i][0],
@@ -241,7 +241,7 @@ void BaseProblem<T>::SolveLM(int iter, double solver_tol,
     k++;
     if (option_.useSchur) {
       if (recover_diag) {
-        for (int i = 0; i < Memory_Pool::getWorldSize(); ++i) {
+        for (int i = 0; i < MemoryPool::getWorldSize(); ++i) {
           cudaSetDevice(i);
           auto &container = edges.schurEquationContainer[i];
           ASSERT_CUDA_NO_ERROR();
@@ -256,7 +256,7 @@ void BaseProblem<T>::SolveLM(int iter, double solver_tol,
         }
         recover_diag = false;
       } else {
-        for (int i = 0; i < Memory_Pool::getWorldSize(); ++i) {
+        for (int i = 0; i < MemoryPool::getWorldSize(); ++i) {
           cudaSetDevice(i);
           auto &container = edges.schurEquationContainer[i];
           ExtractOldAndApplyNewDiag(
@@ -272,7 +272,7 @@ void BaseProblem<T>::SolveLM(int iter, double solver_tol,
     }
     bool solver_success =
         SolveLinear(solver_tol, solver_refuse_ratio, solver_max_iter);
-    Memory_Pool::redistribute();
+    MemoryPool::redistribute();
     ASSERT_CUDA_NO_ERROR();
 
     T delta_x_l2, x_l2;
@@ -302,7 +302,7 @@ void BaseProblem<T>::SolveLM(int iter, double solver_tol,
       T rho_Denominator{0};
       if (option_.useSchur) {
         std::vector<std::vector<T *>> Jdx;
-        Jdx.resize(Memory_Pool::getWorldSize());
+        Jdx.resize(MemoryPool::getWorldSize());
         const int camera_dim = edges.schurEquationContainer[0].dim[0];
         const int camera_num =
             edges.schurEquationContainer[0].nnz[2] / camera_dim / camera_dim;
@@ -310,11 +310,11 @@ void BaseProblem<T>::SolveLM(int iter, double solver_tol,
 
         std::vector<std::vector<thrust::system::cuda::unique_eager_future<T>>>
             futures;
-        futures.resize(Memory_Pool::getWorldSize());
+        futures.resize(MemoryPool::getWorldSize());
 
-        for (int i = 0; i < Memory_Pool::getWorldSize(); ++i) {
+        for (int i = 0; i < MemoryPool::getWorldSize(); ++i) {
           cudaSetDevice(i);
-          const auto nElm = Memory_Pool::getElmNum(i);
+          const auto nElm = MemoryPool::getElmNum(i);
           const auto &eq_container = edges.schurEquationContainer[i];
           const auto &position_container =
               edges.schurPositionAndRelationContainer[i];
@@ -322,7 +322,7 @@ void BaseProblem<T>::SolveLM(int iter, double solver_tol,
           for (int j = 0; j < JV_backup.size(); ++j) {
             auto &J = JV_backup(j);
             T *ptr;
-            Memory_Pool::allocate_normal((void **)&ptr, nElm * sizeof(T), i);
+            MemoryPool::allocateNormal((void **)&ptr, nElm * sizeof(T), i);
             dim3 block(std::min((std::size_t)256, nElm));
             dim3 grid((nElm - 1) / block.x + 1);
             JdxpF<<<grid, block>>>(
@@ -340,7 +340,7 @@ void BaseProblem<T>::SolveLM(int iter, double solver_tol,
         for (int i = 0; i < futures.size(); ++i) {
           for (int j = futures[i].size() - 1; j >= 0; --j) {
             rho_Denominator += futures[i][j].get();
-            Memory_Pool::deallocate_normal((void *)Jdx[i][j], i);
+            MemoryPool::deallocateNormal((void *)Jdx[i][j], i);
           }
         }
         rho_Denominator -= new_residual_norm;
@@ -353,15 +353,15 @@ void BaseProblem<T>::SolveLM(int iter, double solver_tol,
       new_residual_norm = 0.;
       auto JV = edges.forward();
       for (int i = 0; i < JV.size(); ++i) {
-        for (int j = 0; j < Memory_Pool::getWorldSize(); ++j) {
+        for (int j = 0; j < MemoryPool::getWorldSize(); ++j) {
           cudaSetDevice(j);
           const T *Res_ptr = JV(i).get_CUDA_Res_ptr()[j];
-          Wrapper::cublasGdot::call(cublasHandle[j], Memory_Pool::getElmNum(j),
+          Wrapper::cublasGdot::call(cublasHandle[j], MemoryPool::getElmNum(j),
                                     Res_ptr, 1, Res_ptr, 1,
                                     &new_residual_norm_in_flight[j][i]);
         }
       }
-      for (int i = 0; i < Memory_Pool::getWorldSize(); ++i) {
+      for (int i = 0; i < MemoryPool::getWorldSize(); ++i) {
         cudaStream_t stream;
         cudaSetDevice(i);
         cublasGetStream_v2(cublasHandle[i], &stream);
@@ -415,7 +415,7 @@ void BaseProblem<T>::SolveLM(int iter, double solver_tol,
   }
   WriteBack();
   DeallocateResource();
-  for (int i = 0; i < Memory_Pool::getWorldSize(); ++i) {
+  for (int i = 0; i < MemoryPool::getWorldSize(); ++i) {
     cudaSetDevice(i);
     cudaFree(ExtractedDiag[i][0]);
     cudaFree(ExtractedDiag[i][1]);
@@ -427,7 +427,7 @@ template <typename T> void BaseProblem<T>::BackupLM() {
       HandleManager::get_cublasHandle();
   T one = 1.;
   if (option_.useSchur) {
-    for (int i = 0; i < Memory_Pool::getWorldSize(); ++i) {
+    for (int i = 0; i < MemoryPool::getWorldSize(); ++i) {
       cudaSetDevice(i);
       cudaMemcpyAsync(schur_delta_x_ptr_backup[i], schur_delta_x_ptr[i],
                       Hessian_shape_ * sizeof(T), cudaMemcpyDeviceToDevice);
@@ -443,7 +443,7 @@ template <typename T> void BaseProblem<T>::BackupLM() {
 template <typename T> void BaseProblem<T>::RollbackLM() {
   edges.rollback();
   if (option_.useSchur) {
-    for (int i = 0; i < Memory_Pool::getWorldSize(); ++i) {
+    for (int i = 0; i < MemoryPool::getWorldSize(); ++i) {
       cudaSetDevice(i);
       cudaMemcpyAsync(schur_delta_x_ptr[i], schur_delta_x_ptr_backup[i],
                       Hessian_shape_ * sizeof(T), cudaMemcpyDeviceToDevice);

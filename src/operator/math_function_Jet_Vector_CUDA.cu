@@ -77,7 +77,7 @@ namespace MegBA {
             void JetVector_add_JetVector_CUDA(const MegBA::JetVector<T> &f,
                                                 const MegBA::JetVector<T> &g,
                                                 MegBA::JetVector<T> &out) {
-                for (int i = 0; i < Memory_Pool::getWorldSize(); ++i) {
+                for (int i = 0; i < MemoryPool::getWorldSize(); ++i) {
                     cudaSetDevice(i);
                     unsigned int nElm = out.get_Elm_Num(i);
                     dim3 gridDim;
@@ -155,7 +155,7 @@ namespace MegBA {
             void JetVector_add_Scalar_Vector_CUDA(const MegBA::JetVector<T> &f,
                                                    const MegBA::JetVector<T> &g,
                                               MegBA::JetVector<T> &out) {
-                for (int i = 0; i < Memory_Pool::getWorldSize(); ++i) {
+                for (int i = 0; i < MemoryPool::getWorldSize(); ++i) {
                     cudaSetDevice(i);
                     const auto nElm = out.get_Elm_Num(i);
                     dim3 gridDim;
@@ -202,7 +202,7 @@ namespace MegBA {
             void Scalar_Vector_add_Scalar_Vector_CUDA(const MegBA::JetVector<T> &f,
                                                    const MegBA::JetVector<T> &g,
                                                  MegBA::JetVector<T> &out) {
-                for (int i = 0; i < Memory_Pool::getWorldSize(); ++i) {
+                for (int i = 0; i < MemoryPool::getWorldSize(); ++i) {
                     cudaSetDevice(i);
                     const auto nElm = out.get_Elm_Num(i);
                     dim3 gridDim;
@@ -308,7 +308,7 @@ namespace MegBA {
             void JetVector_minus_JetVector_CUDA(const MegBA::JetVector<T> &f,
                                                            const MegBA::JetVector<T> &g,
                                                   MegBA::JetVector<T> &out) {
-                for (int i = 0; i < Memory_Pool::getWorldSize(); ++i) {
+                for (int i = 0; i < MemoryPool::getWorldSize(); ++i) {
                     cudaSetDevice(i);
                     unsigned int nElm = out.get_Elm_Num(i);
                     dim3 gridDim;
@@ -389,7 +389,7 @@ namespace MegBA {
             void JetVector_minus_Scalar_Vector_CUDA(const MegBA::JetVector<T> &f,
                                                   const MegBA::JetVector<T> &g,
                                                 MegBA::JetVector<T> &out) {
-                for (int i = 0; i < Memory_Pool::getWorldSize(); ++i) {
+                for (int i = 0; i < MemoryPool::getWorldSize(); ++i) {
                     cudaSetDevice(i);
                     unsigned int nElm = out.get_Elm_Num(i);
                     dim3 gridDim;
@@ -453,7 +453,7 @@ namespace MegBA {
             void Scalar_Vector_minus_JetVector_CUDA(const MegBA::JetVector<T> &f,
                                                   const MegBA::JetVector<T> &g,
                                                 MegBA::JetVector<T> &out) {
-                for (int i = 0; i < Memory_Pool::getWorldSize(); ++i) {
+                for (int i = 0; i < MemoryPool::getWorldSize(); ++i) {
                     cudaSetDevice(i);
                     unsigned int nElm = out.get_Elm_Num(i);
                     dim3 gridDim;
@@ -494,7 +494,7 @@ namespace MegBA {
             void Scalar_Vector_minus_Scalar_Vector_CUDA(const MegBA::JetVector<T> &f,
                                                   const MegBA::JetVector<T> &g,
                 MegBA::JetVector<T> &out) {
-                for (int i = 0; i < Memory_Pool::getWorldSize(); ++i) {
+                for (int i = 0; i < MemoryPool::getWorldSize(); ++i) {
                     cudaSetDevice(i);
                     unsigned int nElm = out.get_Elm_Num(i);
                     dim3 gridDim;
@@ -590,7 +590,7 @@ namespace MegBA {
             void JetVector_multiplies_JetVector_CUDA(const MegBA::JetVector<T> &f,
                                                                 const MegBA::JetVector<T> &g,
                                                   MegBA::JetVector<T> &out) {
-                for (int i = 0; i < Memory_Pool::getWorldSize(); ++i) {
+                for (int i = 0; i < MemoryPool::getWorldSize(); ++i) {
                     cudaSetDevice(i);
                     unsigned int nElm = out.get_Elm_Num(i);
                     dim3 gridDim;
@@ -670,7 +670,7 @@ namespace MegBA {
             void JetVector_multiplies_Scalar_Vector_CUDA(const MegBA::JetVector<T> &f,
                                                           const MegBA::JetVector<T> &g,
                 MegBA::JetVector<T> &out) {
-                for (int i = 0; i < Memory_Pool::getWorldSize(); ++i) {
+                for (int i = 0; i < MemoryPool::getWorldSize(); ++i) {
                     cudaSetDevice(i);
                     unsigned int nElm = out.get_Elm_Num(i);
                     dim3 gridDim;
@@ -711,7 +711,7 @@ namespace MegBA {
             void Scalar_Vector_multiplies_Scalar_Vector_CUDA(const MegBA::JetVector<T> &f,
                                                        const MegBA::JetVector<T> &g,
                 MegBA::JetVector<T> &out) {
-                for (int i = 0; i < Memory_Pool::getWorldSize(); ++i) {
+                for (int i = 0; i < MemoryPool::getWorldSize(); ++i) {
                     cudaSetDevice(i);
                     unsigned int nElm = out.get_Elm_Num(i);
                     dim3 gridDim;
@@ -833,7 +833,7 @@ namespace MegBA {
             void JetVector_divides_JetVector_CUDA(const MegBA::JetVector<T> &f,
                                                     const MegBA::JetVector<T> &g,
                                                MegBA::JetVector<T> &out) {
-                for (int i = 0; i < Memory_Pool::getWorldSize(); ++i) {
+                for (int i = 0; i < MemoryPool::getWorldSize(); ++i) {
                     cudaSetDevice(i);
                     unsigned int nElm = out.get_Elm_Num(i);
                     dim3 gridDim;
@@ -911,7 +911,7 @@ namespace MegBA {
             void JetVector_divides_Scalar_Vector_CUDA(const MegBA::JetVector<T> &f,
                                                        const MegBA::JetVector<T> &g,
                                                   MegBA::JetVector<T> &out) {
-                for (int i = 0; i < Memory_Pool::getWorldSize(); ++i) {
+                for (int i = 0; i < MemoryPool::getWorldSize(); ++i) {
                     cudaSetDevice(i);
                     unsigned int nElm = out.get_Elm_Num(i);
                     dim3 gridDim;
@@ -952,7 +952,7 @@ namespace MegBA {
             void Scalar_Vector_divides_Scalar_Vector_CUDA(const MegBA::JetVector<T> &f,
                                                     const MegBA::JetVector<T> &g,
                 MegBA::JetVector<T> &out) {
-                for (int i = 0; i < Memory_Pool::getWorldSize(); ++i) {
+                for (int i = 0; i < MemoryPool::getWorldSize(); ++i) {
                     cudaSetDevice(i);
                     unsigned int nElm = out.get_Elm_Num(i);
                     dim3 gridDim;
@@ -1011,7 +1011,7 @@ namespace MegBA {
             void Scalar_Vector_divides_JetVector_CUDA(const MegBA::JetVector<T> &f,
                                                        const MegBA::JetVector<T> &g,
                                                   MegBA::JetVector<T> &out) {
-                for (int i = 0; i < Memory_Pool::getWorldSize(); ++i) {
+                for (int i = 0; i < MemoryPool::getWorldSize(); ++i) {
                     cudaSetDevice(i);
                     unsigned int nElm = out.get_Elm_Num(i);
                     dim3 gridDim;
@@ -1075,7 +1075,7 @@ namespace MegBA {
             template<typename T>
             void JetVector_add_Scalar_CUDA(const MegBA::JetVector<T> &f, T g,
                                             MegBA::JetVector<T> &out) {
-                for (int i = 0; i < Memory_Pool::getWorldSize(); ++i) {
+                for (int i = 0; i < MemoryPool::getWorldSize(); ++i) {
                     cudaSetDevice(i);
                     unsigned int nElm = out.get_Elm_Num(i);
                     dim3 gridDim;
@@ -1112,7 +1112,7 @@ namespace MegBA {
             }
             template<typename T>
             void JetVector_minus_Scalar_CUDA(const MegBA::JetVector<T> &f, T g, MegBA::JetVector<T> &out) {
-                for (int i = 0; i < Memory_Pool::getWorldSize(); ++i) {
+                for (int i = 0; i < MemoryPool::getWorldSize(); ++i) {
                     cudaSetDevice(i);
                     unsigned int nElm = out.get_Elm_Num(i);
                     dim3 gridDim;
@@ -1149,7 +1149,7 @@ namespace MegBA {
             }
             template<typename T>
             void JetVector_multiplies_Scalar_CUDA(const MegBA::JetVector<T> &f, T g, MegBA::JetVector<T> &out) {
-                for (int i = 0; i < Memory_Pool::getWorldSize(); ++i) {
+                for (int i = 0; i < MemoryPool::getWorldSize(); ++i) {
                     cudaSetDevice(i);
                     unsigned int nElm = out.get_Elm_Num(i);
                     dim3 gridDim;
@@ -1187,7 +1187,7 @@ namespace MegBA {
             template<typename T>
             void Scalar_minus_JetVector_CUDA(T f, const JetVector<T> &g,
                                               JetVector<T> &out) {
-                for (int i = 0; i < Memory_Pool::getWorldSize(); ++i) {
+                for (int i = 0; i < MemoryPool::getWorldSize(); ++i) {
                     cudaSetDevice(i);
                     unsigned int nElm = out.get_Elm_Num(i);
                     dim3 blockDim;
@@ -1227,7 +1227,7 @@ namespace MegBA {
             template<typename T>
             void Scalar_divides_JetVector_CUDA(T f, const JetVector<T> &g,
                                                 JetVector<T> &out) {
-                for (int i = 0; i < Memory_Pool::getWorldSize(); ++i) {
+                for (int i = 0; i < MemoryPool::getWorldSize(); ++i) {
                     cudaSetDevice(i);
                     unsigned int nElm = out.get_Elm_Num(i);
                     dim3 blockDim;
@@ -1266,7 +1266,7 @@ namespace MegBA {
             template<typename T>
             void abs_JetVector_CUDA(const MegBA::JetVector<T> &f,
                                      MegBA::JetVector<T> &out) {
-                for (int i = 0; i < Memory_Pool::getWorldSize(); ++i) {
+                for (int i = 0; i < MemoryPool::getWorldSize(); ++i) {
                     cudaSetDevice(i);
                     unsigned int nElm = out.get_Elm_Num(i);
                     dim3 gridDim;
@@ -1303,7 +1303,7 @@ namespace MegBA {
             template<typename T>
             void cos_JetVector_CUDA(const MegBA::JetVector<T> &f,
                                      MegBA::JetVector<T> &out) {
-                for (int i = 0; i < Memory_Pool::getWorldSize(); ++i) {
+                for (int i = 0; i < MemoryPool::getWorldSize(); ++i) {
                     cudaSetDevice(i);
                     unsigned int nElm = out.get_Elm_Num(i);
                     dim3 gridDim;
@@ -1340,7 +1340,7 @@ namespace MegBA {
             template<typename T>
             void sin_JetVector_CUDA(const MegBA::JetVector<T> &f,
                                      MegBA::JetVector<T> &out) {
-                for (int i = 0; i < Memory_Pool::getWorldSize(); ++i) {
+                for (int i = 0; i < MemoryPool::getWorldSize(); ++i) {
                     cudaSetDevice(i);
                     unsigned int nElm = out.get_Elm_Num(i);
                     dim3 gridDim;
@@ -1378,7 +1378,7 @@ namespace MegBA {
             template<typename T>
             void sqrt_JetVector_CUDA(const MegBA::JetVector<T> &f,
                                       MegBA::JetVector<T> &out) {
-                for (int i = 0; i < Memory_Pool::getWorldSize(); ++i) {
+                for (int i = 0; i < MemoryPool::getWorldSize(); ++i) {
                     cudaSetDevice(i);
                     unsigned int nElm = out.get_Elm_Num(i);
                     dim3 gridDim;

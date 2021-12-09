@@ -49,7 +49,7 @@ namespace MegBA {
 
         const auto N = init_template.getGradShape();
 
-        for (int i = 0; i < Memory_Pool::getWorldSize(); ++i) {
+        for (int i = 0; i < MemoryPool::getWorldSize(); ++i) {
             cudaSetDevice(i);
             const auto nElm = init_template.get_Elm_Num(i);
             dim3 block_dim(std::min(decltype(nElm)(512), nElm));

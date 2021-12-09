@@ -39,7 +39,7 @@ updateDeltaXTwoVertices(const T *deltaX, const int *absolutePositionCamera,
 
     template <typename T>
 void EdgeVector<T>::updateSchur(const std::vector<T *> &deltaXPtr) {
-  for (int i = 0; i < Memory_Pool::getWorldSize(); ++i) {
+  for (int i = 0; i < MemoryPool::getWorldSize(); ++i) {
     cudaSetDevice(i);
     cudaStreamSynchronize(schurStreamLmMemcpy[i]);
   }
@@ -50,9 +50,9 @@ void EdgeVector<T>::updateSchur(const std::vector<T *> &deltaXPtr) {
   const auto pointDim = edges[1][0]->getGradShape();
 
   // TODO: merge into method 'solve_Linear'
-  for (int i = 0; i < Memory_Pool::getWorldSize(); ++i) {
+  for (int i = 0; i < MemoryPool::getWorldSize(); ++i) {
     cudaSetDevice(i);
-    const auto nElm = Memory_Pool::getElmNum(i);
+    const auto nElm = MemoryPool::getElmNum(i);
     dim3 block(std::min((decltype(nElm))256, nElm));
     dim3 grid((nElm - 1) / block.x + 1);
     updateDeltaXTwoVertices<T><<<grid, block>>>(
@@ -71,7 +71,7 @@ template <typename T> void EdgeVector<T>::rebindDaPtrs() {
     auto &jetEstimation = vertexVector.getJVEstimation();
     auto &jetObservation = vertexVector.getJVObservation();
 
-    const auto worldSize = Memory_Pool::getWorldSize();
+    const auto worldSize = MemoryPool::getWorldSize();
     for (int i = 0; i < vertexVector[0]->getEstimation().size(); ++i) {
       // bind da_ptr_ for CUDA
       if (_option.useSchur) {
@@ -79,7 +79,7 @@ template <typename T> void EdgeVector<T>::rebindDaPtrs() {
         daPtrs.resize(worldSize);
         for (int k = 0; k < worldSize; ++k) {
           daPtrs[k] = &schurDaPtrs[vertexKindIdxUnfixed][k]
-                                  [i * Memory_Pool::getElmNum(k)];
+                                  [i * MemoryPool::getElmNum(k)];
         }
         jetEstimation(i).bind_da_ptr(std::move(daPtrs));
       } else {

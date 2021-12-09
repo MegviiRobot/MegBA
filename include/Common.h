@@ -7,7 +7,6 @@
 
 #pragma once
 #include <cstddef>
-#include <iostream>
 #include <Eigen/Core>
 
 #ifdef USE_CXX11

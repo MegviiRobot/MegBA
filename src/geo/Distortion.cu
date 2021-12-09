@@ -105,7 +105,7 @@ void RadialDistortionImpl(const JV3<T> &point, const JV3<T> &intrinsic,
   for (int i = 0; i < 3; ++i)
     use_fast_grad &= intrinsic(i).get_Grad_Position() != -1;
 
-  for (int i = 0; i < Memory_Pool::getWorldSize(); ++i) {
+  for (int i = 0; i < MemoryPool::getWorldSize(); ++i) {
     cudaSetDevice(i);
     const auto nElm = out.get_Elm_Num(i);
     dim3 block_dim(std::min(decltype(nElm)(256), nElm));
@@ -154,7 +154,7 @@ void RadialDistortionImpl(const JV3<T> &point,
   for (int i = 0; i < 3; ++i)
     use_fast_grad &= intrinsic(i).get_Grad_Position() != -1;
 
-  for (int i = 0; i < Memory_Pool::getWorldSize(); ++i) {
+  for (int i = 0; i < MemoryPool::getWorldSize(); ++i) {
     cudaSetDevice(i);
     const auto nElm = out.get_Elm_Num(i);
     dim3 block_dim(std::min(decltype(nElm)(256), nElm));
@@ -203,7 +203,7 @@ void RadialDistortionImpl(const JV3<T> &point,
   for (int i = 0; i < 3; ++i)
     use_fast_grad &= intrinsic(i).get_Grad_Position() != -1;
 
-  for (int i = 0; i < Memory_Pool::getWorldSize(); ++i) {
+  for (int i = 0; i < MemoryPool::getWorldSize(); ++i) {
     cudaSetDevice(i);
     const auto nElm = out.get_Elm_Num(i);
     dim3 block_dim(std::min(decltype(nElm)(256), nElm));
