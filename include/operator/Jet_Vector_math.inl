@@ -11,46 +11,45 @@
 #include "JetVector.h"
 
 namespace MegBA {
-    template<typename T>
-    inline JetVector<T> operator+(T g, const JetVector<T> &f) {
-        return f + g;
-    }
+template <typename T>
+inline JetVector<T> operator+(T g, const JetVector<T> &f) {
+  return f + g;
+}
 
-    template<typename T>
-    inline JetVector<T> operator-(T g, const JetVector<T> &f) {
-        return f.scalarMinusThis(g);
-    }
+template <typename T>
+inline JetVector<T> operator-(T g, const JetVector<T> &f) {
+  return f.scalarMinusThis(g);
+}
 
-    template<typename T>
-    inline JetVector<T> operator*(T g, const JetVector<T> &f) {
-        return f * g;
-    }
+template <typename T>
+inline JetVector<T> operator*(T g, const JetVector<T> &f) {
+  return f * g;
+}
 
-    template<typename T>
-    inline JetVector<T> operator/(T g, const JetVector<T> &f) {
-        return f.scalarDividesThis(g);
-    }
+template <typename T>
+inline JetVector<T> operator/(T g, const JetVector<T> &f) {
+  return f.scalarDividesThis(g);
+}
 
-    namespace math {
-        // In general, f(a + h) ~= f(a) + f'(a) h, via the chain rule.
+namespace math {
+// In general, f(a + h) ~= f(a) + f'(a) h, via the chain rule.
 
-        // abs(x + h) ~= x + h or -(x + h)
-        template<typename T>
-        inline JetVector<T> abs(const JetVector<T> &f) {
-          JetVector<T> out;
-            out.Init_as(f);
-            switch (f.getDevice()) {
-                case CPU_t: {
-                  function::absJetVectorCPU(f, out);
-                    break;
-                }
-                case CUDA_t: {
-                    function::abs_JetVector_CUDA(f, out);
-                    break;
-                }
-            }  // switch _device
-            return out;
-        }
+// abs(x + h) ~= x + h or -(x + h)
+template <typename T> inline JetVector<T> abs(const JetVector<T> &f) {
+  JetVector<T> out;
+  out.Init_as(f);
+  switch (f.getDevice()) {
+  case CPU_t: {
+    function::absJetVectorCPU(f, out);
+    break;
+  }
+  case CUDA_t: {
+    function::abs_JetVector_CUDA(f, out);
+    break;
+  }
+  } // switch _device
+  return out;
+}
 
 //        // log(a + h) ~= log(a) + h / a
 //        template<typename T>
@@ -72,41 +71,39 @@ namespace MegBA {
 //            return f;
 //        }
 //
-        // sqrt(a + h) ~= sqrt(a) + h / (2 sqrt(a))
-        template<typename T>
-        inline JetVector<T> sqrt(JetVector<T> f) {
-          JetVector<T> out;
-            out.Init_as(f);
-            switch (f.getDevice()) {
-                case CPU_t: {
-                  function::sqrtJetVectorCPU(f, out);
-                    break;
-                }
-                case CUDA_t: {
-                    function::sqrt_JetVector_CUDA(f, out);
-                    break;
-                }
-            }  // switch _device
-            return out;
-        }
+// sqrt(a + h) ~= sqrt(a) + h / (2 sqrt(a))
+template <typename T> inline JetVector<T> sqrt(JetVector<T> f) {
+  JetVector<T> out;
+  out.Init_as(f);
+  switch (f.getDevice()) {
+  case CPU_t: {
+    function::sqrtJetVectorCPU(f, out);
+    break;
+  }
+  case CUDA_t: {
+    function::sqrt_JetVector_CUDA(f, out);
+    break;
+  }
+  } // switch _device
+  return out;
+}
 
-        // cos(a + h) ~= cos(a) - sin(a) h
-        template<typename T>
-        inline JetVector<T> cos(JetVector<T> f) {
-          JetVector<T> out;
-            out.Init_as(f);
-            switch (f.getDevice()) {
-                case CPU_t: {
-                  function::cosJetVectorCPU(f, out);
-                    break;
-                }
-                case CUDA_t: {
-                    function::cos_JetVector_CUDA(f, out);
-                    break;
-                }
-            }  // switch _device
-            return out;
-        }
+// cos(a + h) ~= cos(a) - sin(a) h
+template <typename T> inline JetVector<T> cos(JetVector<T> f) {
+  JetVector<T> out;
+  out.Init_as(f);
+  switch (f.getDevice()) {
+  case CPU_t: {
+    function::cosJetVectorCPU(f, out);
+    break;
+  }
+  case CUDA_t: {
+    function::cos_JetVector_CUDA(f, out);
+    break;
+  }
+  } // switch _device
+  return out;
+}
 //
 //        // acos(a + h) ~= acos(a) - 1 / sqrt(1 - a^2) h
 //        template<typename T>
@@ -118,23 +115,22 @@ namespace MegBA {
 //            return f;
 //        }
 //
-        // sin(a + h) ~= sin(a) + cos(a) h
-        template<typename T>
-        inline JetVector<T> sin(JetVector<T> f) {
-          JetVector<T> out;
-            out.Init_as(f);
-            switch (f.getDevice()) {
-                case CPU_t: {
-                  function::sinJetVectorCPU(f, out);
-                    break;
-                }
-                case CUDA_t: {
-                    function::sin_JetVector_CUDA(f, out);
-                    break;
-                }
-            }  // switch _device
-            return out;
-        }
+// sin(a + h) ~= sin(a) + cos(a) h
+template <typename T> inline JetVector<T> sin(JetVector<T> f) {
+  JetVector<T> out;
+  out.Init_as(f);
+  switch (f.getDevice()) {
+  case CPU_t: {
+    function::sinJetVectorCPU(f, out);
+    break;
+  }
+  case CUDA_t: {
+    function::sin_JetVector_CUDA(f, out);
+    break;
+  }
+  } // switch _device
+  return out;
+}
 //
 //        // asin(a + h) ~= asin(a) + 1 / sqrt(1 - a^2) h
 //        template<typename T>
@@ -217,5 +213,5 @@ namespace MegBA {
 //            f.a = ceil(f.a);
 //            return f;
 //        }
-    }  //namespace math
+} // namespace math
 }  // namespace MegBA
