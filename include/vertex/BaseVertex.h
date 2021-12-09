@@ -1,6 +1,13 @@
+/**
+* MegBA is Licensed under the Apache License, Version 2.0 (the "License")
+*
+* Copyright (c) 2021 Megvii Inc. All rights reserved.
+*
+**/
 #pragma once
 #include <Eigen/Core>
 #include <map>
+#include <vector>
 #include <set>
 #include <utility>
 
@@ -26,33 +33,33 @@ template <typename T> struct BaseVertex {
 
   template <typename Estimation> void setEstimation(Estimation &&estimation) {
     _estimation = std::forward<Estimation>(estimation);
-  };
+  }
 
   template <typename Estimation> void setObservation(Estimation &&observation) {
     _observation = std::forward<Estimation>(observation);
-  };
+  }
 
-  const TD<T> &getEstimation() const { return _estimation; };
+  const TD<T> &getEstimation() const { return _estimation; }
 
-  TD<T> &getEstimation() { return _estimation; };
+  TD<T> &getEstimation() { return _estimation; }
 
-  const TD<T> &getObservation() const { return _observation; };
+  const TD<T> &getObservation() const { return _observation; }
 
-  TD<T> &getObservation() { return _observation; };
+  TD<T> &getObservation() { return _observation; }
 
   unsigned int getGradShape() const {
     return fixed ? 0 : _estimation.rows() * _estimation.cols();
-  };
+  }
 
   bool operator==(const BaseVertex<T> &vertex) const {
     return _estimation == vertex._estimation;
-  };
+  }
 
-  virtual VertexKind kind() { return NONE; };
+  virtual VertexKind kind() { return NONE; }
   int absolutePosition{};
   bool fixed{false};
 
-private:
+ private:
   TD<T> _estimation{};
   TD<T> _observation{};
 };
@@ -66,7 +73,7 @@ template <typename T> struct CameraVertex : public BaseVertex<T> {
 template <typename T> struct PointVertex : public BaseVertex<T> {
   PointVertex() = default;
 
-  VertexKind kind() final { return POINT; };
+  VertexKind kind() final { return POINT; }
 };
 
 template <typename T> class VertexVector : public std::vector<BaseVertex<T> *> {
@@ -74,12 +81,12 @@ template <typename T> class VertexVector : public std::vector<BaseVertex<T> *> {
   std::map<const BaseVertex<T> *, std::size_t> _vertexCounter;
   JVD<T> _JVEstimation;
   JVD<T> _JVObservation;
-  long _estimationRows;
-  long _estimationCols;
-  long _observationRows;
-  long _observationCols;
+  int64_t _estimationRows;
+  int64_t _estimationCols;
+  int64_t _observationRows;
+  int64_t _observationCols;
 
-public:
+ public:
   bool fixed;
 
   void CPU() {
@@ -109,19 +116,19 @@ public:
       find->second--;
 
     parent::erase(parent::begin() + idx);
-  };
+  }
 
   bool existVertex(const BaseVertex<T> *vertex) const {
     return _vertexCounter.find(vertex) != _vertexCounter.end();
-  };
+  }
 
-  void resizeJVEstimation(long rows, long cols) {
+  void resizeJVEstimation(int64_t rows, int64_t cols) {
     _estimationRows = rows;
     _estimationCols = cols;
     _JVEstimation.resize(rows, cols);
-  };
+  }
 
-  void resizeJVObservation(long rows, long cols) {
+  void resizeJVObservation(int64_t rows, int64_t cols) {
     _observationRows = rows;
     _observationCols = cols;
     _JVObservation.resize(rows, cols);
@@ -130,7 +137,7 @@ public:
         _JVObservation(i, j).set_Grad_Shape(0);
       }
     }
-  };
+  }
 
   void setGradShapeAndOffset(unsigned int N, unsigned int offset) {
     if (fixed)
@@ -166,7 +173,7 @@ public:
         _JVObservation(i, j).append_Jet(observation(i, j));
       }
     }
-  };
+  }
 
   auto &getJVEstimation() { return _JVEstimation; }
 
@@ -196,7 +203,7 @@ template <typename T> class BaseVertexWrapper {
 
   JVD<T> const *_JVObservation{nullptr};
 
-public:
+ public:
   JVD<T> const &getEstimation() const { return *_JVEstimation; }
 
   JVD<T> const &getObservation() const { return *_JVObservation; }
@@ -212,7 +219,7 @@ class BaseEdgeWrapper : public std::vector<BaseVertexWrapper<T>> {
 
   JVD<T> const *_JVMeasurement{nullptr};
 
-  JVD<T> const &getMeasurement() const { return *_JVMeasurement; };
+  JVD<T> const &getMeasurement() const { return *_JVMeasurement; }
 
   void bindEdgeVector(const EdgeVector<T> *EV) {
     _JVMeasurement = &EV->getMeasurement();
@@ -221,6 +228,6 @@ class BaseEdgeWrapper : public std::vector<BaseVertexWrapper<T>> {
       (*this)[i].bindJVEstimation(EV->getEstimation(i));
       (*this)[i].bindJVObservation(EV->getObservation(i));
     }
-  };
+  }
 };
-} // namespace MegBA
+}  // namespace MegBA
