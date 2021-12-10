@@ -39,11 +39,11 @@ template <typename T> inline JetVector<T> abs(const JetVector<T> &f) {
   JetVector<T> out;
   out.Init_as(f);
   switch (f.getDevice()) {
-  case CPU: {
+  case Device::CPU: {
     function::absJetVectorCPU(f, out);
     break;
   }
-  case CUDA: {
+  case Device::CUDA: {
     function::abs_JetVector_CUDA(f, out);
     break;
   }
@@ -76,11 +76,11 @@ template <typename T> inline JetVector<T> sqrt(JetVector<T> f) {
   JetVector<T> out;
   out.Init_as(f);
   switch (f.getDevice()) {
-  case CPU: {
+  case Device::CPU: {
     function::sqrtJetVectorCPU(f, out);
     break;
   }
-  case CUDA: {
+  case Device::CUDA: {
     function::sqrt_JetVector_CUDA(f, out);
     break;
   }
@@ -93,11 +93,11 @@ template <typename T> inline JetVector<T> cos(JetVector<T> f) {
   JetVector<T> out;
   out.Init_as(f);
   switch (f.getDevice()) {
-  case CPU: {
+  case Device::CPU: {
     function::cosJetVectorCPU(f, out);
     break;
   }
-  case CUDA: {
+  case Device::CUDA: {
     function::cos_JetVector_CUDA(f, out);
     break;
   }
@@ -120,11 +120,11 @@ template <typename T> inline JetVector<T> sin(JetVector<T> f) {
   JetVector<T> out;
   out.Init_as(f);
   switch (f.getDevice()) {
-  case CPU: {
+  case Device::CPU: {
     function::sinJetVectorCPU(f, out);
     break;
   }
-  case CUDA: {
+  case Device::CUDA: {
     function::sin_JetVector_CUDA(f, out);
     break;
   }

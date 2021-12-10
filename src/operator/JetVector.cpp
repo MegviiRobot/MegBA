@@ -34,11 +34,11 @@ JetVector<T> &JetVector<T>::operator=(const JetVector<T> &f) {
     _pureScalar = f._pureScalar;
   }
   switch (_device) {
-  case CPU:
+  case Device::CPU:
     _haData = f._haData;
     _hvData = f._hvData;
     break;
-  case CUDA:
+  case Device::CUDA:
     CUDA2CUDA(f);
     break;
   }
@@ -55,11 +55,11 @@ JetVector<T> &JetVector<T>::operator=(JetVector<T> &&f) noexcept {
   _pureScalarFlag = f._pureScalarFlag;
   _pureScalar = f._pureScalar;
   switch (_device) {
-  case CPU:
+  case Device::CPU:
     _haData = std::move(f._haData);
     _hvData = std::move(f._hvData);
     break;
-  case CUDA:
+  case Device::CUDA:
     _daPtr = std::move(f._daPtr);
     _dvPtr = std::move(f._dvPtr);
     break;
@@ -77,13 +77,13 @@ void JetVector<T>::initAs(const JetVector<T> &initTemplate) {
     _nElm = initTemplate._nElm;
     _N = initTemplate._N;
     switch (_device) {
-    case CPU:
+    case Device::CPU:
       _haData.resize(initTemplate._haData.size());
       _hvData.resize(initTemplate._hvData.size());
       for (unsigned int i = 0; i < _N; ++i)
         _hvData[i].resize(initTemplate._hvData[i].size());
       break;
-    case CUDA:
+    case Device::CUDA:
       initAsCUDA(initTemplate);
       break;
     }  // switch _device
@@ -95,10 +95,10 @@ void JetVector<T>::initAs(const JetVector<T> &initTemplate) {
 
 template <typename T> JetVector<T> &JetVector<T>::to(Device device) {
   switch (device) {
-  case CPU:
+  case Device::CPU:
     CPU();
     break;
-  case CUDA:
+  case Device::CUDA:
     CUDA();
     break;
   }
@@ -109,9 +109,9 @@ template <typename T> JetVector<T> &JetVector<T>::to(Device device) {
 template <typename T> JetVector<T> &JetVector<T>::CPU() {
   if (!IsEmpty()) {
     switch (_device) {
-    case CPU:
+    case Device::CPU:
       break;
-    case CUDA:
+    case Device::CUDA:
       // save counter
       auto N = _N;
       auto nElm = _nElm;
@@ -123,7 +123,7 @@ template <typename T> JetVector<T> &JetVector<T>::CPU() {
       break;
     }  // switch _device
   }  // !empty
-  _device = CPU;
+  _device = Device::CPU;
   return *this;
 }
 
@@ -149,11 +149,11 @@ template <typename T> void JetVector<T>::setGradPosition(int gradPosition) {
 template <typename T> void JetVector<T>::clear() {
   if (!IsEmpty()) {
     switch (_device) {
-    case CPU:
+    case Device::CPU:
       _haData.clear();
       _hvData.clear();
       break;
-    case CUDA:
+    case Device::CUDA:
       cudaStreamSynchronize(nullptr);
       std::vector<void *> ptrs{_dvPtr.begin(), _dvPtr.end()};
       MemoryPool::deallocateJetVector(&ptrs);
@@ -172,7 +172,7 @@ template <typename T> void JetVector<T>::append_Jet(T a, int n) {
    */
   assert(_N != 0 && "JetVector does not allow insert Jet "
                     "while the gradient shape is not initialized.");
-  assert(_device != CUDA &&
+  assert(_device != Device::CUDA &&
          "You can not insert Jet into a JetVector in using on CUDA, "
          "if you want, use 'clear()' first.");
 
@@ -194,12 +194,12 @@ JetVector<T> JetVector<T>::operator+(const JetVector<T> &g) const {
   CHK::shapeThrow(*this, g);
   CHK::deviceThrow(*this, g);
   switch (_device) {
-  case CPU:
+  case Device::CPU:
     return JetVector<T>{getInitTemplate(*this, g), [&](JetVector<T> *out) {
                           return math::function::vectorAddVectorCPU(*this, g,
                                                                     out);
                         }};
-  case CUDA:
+  case Device::CUDA:
     return JetVector<T>{getInitTemplate(*this, g), [&](JetVector<T> *out) {
                           return math::function::vectorAddVectorCUDA(*this, g,
                                                                      out);
@@ -213,12 +213,12 @@ JetVector<T> JetVector<T>::operator-(const JetVector<T> &g) const {
   CHK::shapeThrow(*this, g);
   CHK::deviceThrow(*this, g);
   switch (_device) {
-  case CPU:
+  case Device::CPU:
     return JetVector<T>{getInitTemplate(*this, g), [&](JetVector<T> *out) {
                           return math::function::vectorMinusVectorCPU(*this, g,
                                                                       out);
                         }};
-  case CUDA:
+  case Device::CUDA:
     return JetVector<T>{getInitTemplate(*this, g), [&](JetVector<T> *out) {
                           return math::function::vectorMinusVectorCUDA(*this, g,
                                                                        out);
@@ -232,12 +232,12 @@ JetVector<T> JetVector<T>::operator*(const JetVector<T> &g) const {
   CHK::shapeThrow(*this, g);
   CHK::deviceThrow(*this, g);
   switch (_device) {
-  case CPU:
+  case Device::CPU:
     return JetVector<T>{getInitTemplate(*this, g), [&](JetVector<T> *out) {
                           return math::function::vectorMultipliesVectorCPU(
                               *this, g, out);
                         }};
-  case CUDA:
+  case Device::CUDA:
     return JetVector<T>{getInitTemplate(*this, g), [&](JetVector<T> *out) {
                           return math::function::vectorMultipliesVectorCUDA(
                               *this, g, out);
@@ -251,12 +251,12 @@ JetVector<T> JetVector<T>::operator/(const JetVector<T> &g) const {
   CHK::shapeThrow(*this, g);
   CHK::deviceThrow(*this, g);
   switch (_device) {
-  case CPU:
+  case Device::CPU:
     return JetVector<T>{getInitTemplate(*this, g), [&](JetVector<T> *out) {
                           return math::function::vectorDividesVectorCPU(*this,
                                                                         g, out);
                         }};
-  case CUDA:
+  case Device::CUDA:
     return JetVector<T>{getInitTemplate(*this, g), [&](JetVector<T> *out) {
                           return math::function::vectorDividesVectorCUDA(
                               *this, g, out);
@@ -269,10 +269,10 @@ JetVector<T> &JetVector<T>::operator+=(const JetVector<T> &g) {
   CHK::shapeThrow(*this, g);
   CHK::deviceThrow(*this, g);
   switch (_device) {
-  case CPU:
+  case Device::CPU:
     math::function::vectorAddVectorCPU(*this, g, this);
     break;
-  case CUDA:
+  case Device::CUDA:
     math::function::vectorAddVectorCUDA(*this, g, this);
     break;
   }  // switch _device
@@ -284,10 +284,10 @@ JetVector<T> &JetVector<T>::operator-=(const JetVector<T> &g) {
   CHK::shapeThrow(*this, g);
   CHK::deviceThrow(*this, g);
   switch (_device) {
-  case CPU:
+  case Device::CPU:
     math::function::vectorMinusVectorCPU(*this, g, this);
     break;
-  case CUDA:
+  case Device::CUDA:
     math::function::vectorMinusVectorCUDA(*this, g, this);
     break;
   }  // switch _device
@@ -299,10 +299,10 @@ JetVector<T> &JetVector<T>::operator*=(const JetVector<T> &g) {
   CHK::shapeThrow(*this, g);
   CHK::deviceThrow(*this, g);
   switch (_device) {
-  case CPU:
+  case Device::CPU:
     math::function::vectorMultipliesVectorCPU(*this, g, this);
     break;
-  case CUDA:
+  case Device::CUDA:
     math::function::vectorMultipliesVectorCUDA(*this, g, this);
     break;
   }  // switch _device
@@ -314,10 +314,10 @@ JetVector<T> &JetVector<T>::operator/=(const JetVector<T> &g) {
   CHK::shapeThrow(*this, g);
   CHK::deviceThrow(*this, g);
   switch (_device) {
-  case CPU:
+  case Device::CPU:
     math::function::vectorDividesVectorCPU(*this, g, this);
     break;
-  case CUDA:
+  case Device::CUDA:
     math::function::vectorDividesVectorCUDA(*this, g, this);
     break;
   }  // switch _device
@@ -330,12 +330,12 @@ template <typename T> JetVector<T> JetVector<T>::operator-() const {
 
 template <typename T> JetVector<T> JetVector<T>::operator+(T g) const {
   switch (_device) {
-  case CPU:
+  case Device::CPU:
     return JetVector<T>{*this, [&](JetVector<T> *out) {
                           return math::function::jetVectorAddScalarCPU(*this, g,
                                                                        out);
                         }};
-  case CUDA:
+  case Device::CUDA:
     return JetVector<T>{*this, [&](JetVector<T> *out) {
                           return math::function::jetVectorAddScalarCUDA(*this,
                                                                         g, out);
@@ -345,12 +345,12 @@ template <typename T> JetVector<T> JetVector<T>::operator+(T g) const {
 
 template <typename T> JetVector<T> JetVector<T>::operator-(T g) const {
   switch (_device) {
-  case CPU:
+  case Device::CPU:
     return JetVector<T>{*this, [&](JetVector<T> *out) {
                           return math::function::jetVectorMinusScalarCPU(
                               *this, g, out);
                         }};
-  case CUDA:
+  case Device::CUDA:
     return JetVector<T>{*this, [&](JetVector<T> *out) {
                           return math::function::jetVectorMinusScalarCUDA(
                               *this, g, out);
@@ -360,12 +360,12 @@ template <typename T> JetVector<T> JetVector<T>::operator-(T g) const {
 
 template <typename T> JetVector<T> JetVector<T>::operator*(T g) const {
   switch (_device) {
-  case CPU:
+  case Device::CPU:
     return JetVector<T>{*this, [&](JetVector<T> *out) {
                           return math::function::jetVectorMultipliesScalarCPU(
                               *this, g, out);
                         }};
-  case CUDA:
+  case Device::CUDA:
     return JetVector<T>{*this, [&](JetVector<T> *out) {
                           return math::function::jetVectorMultipliesScalarCUDA(
                               *this, g, out);
@@ -379,10 +379,10 @@ template <typename T> JetVector<T> JetVector<T>::operator/(T g) const {
 
 template <typename T> JetVector<T> &JetVector<T>::operator+=(T g) {
   switch (_device) {
-  case CPU:
+  case Device::CPU:
     math::function::jetVectorAddScalarCPU(*this, g, this);
     break;
-  case CUDA:
+  case Device::CUDA:
     math::function::jetVectorAddScalarCUDA(*this, g, this);
     break;
   }  // switch _device
@@ -391,10 +391,10 @@ template <typename T> JetVector<T> &JetVector<T>::operator+=(T g) {
 
 template <typename T> JetVector<T> &JetVector<T>::operator-=(T g) {
   switch (_device) {
-  case CPU:
+  case Device::CPU:
     math::function::jetVectorMinusScalarCPU(*this, g, this);
     break;
-  case CUDA:
+  case Device::CUDA:
     math::function::jetVectorMinusScalarCUDA(*this, g, this);
     break;
   }  // switch _device
@@ -403,10 +403,10 @@ template <typename T> JetVector<T> &JetVector<T>::operator-=(T g) {
 
 template <typename T> JetVector<T> &JetVector<T>::operator*=(T g) {
   switch (_device) {
-  case CPU:
+  case Device::CPU:
     math::function::jetVectorMultipliesScalarCPU(*this, g, this);
     break;
-  case CUDA:
+  case Device::CUDA:
     math::function::jetVectorMultipliesScalarCUDA(*this, g, this);
     break;
   }  // switch _device
@@ -420,12 +420,12 @@ template <typename T> JetVector<T> &JetVector<T>::operator/=(T g) {
 
 template <typename T> JetVector<T> JetVector<T>::scalarMinusThis(T f) const {
   switch (_device) {
-  case CPU:
+  case Device::CPU:
     return JetVector<T>{*this, [&](JetVector<T> *out) {
                           return math::function::scalarMinusJetVectorCPU(
                               f, *this, out);
                         }};
-  case CUDA:
+  case Device::CUDA:
     return JetVector<T>{*this, [&](JetVector<T> *out) {
                           return math::function::scalarMinusJetVectorCUDA(
                               f, *this, out);
@@ -435,12 +435,12 @@ template <typename T> JetVector<T> JetVector<T>::scalarMinusThis(T f) const {
 
 template <typename T> JetVector<T> JetVector<T>::scalarDividesThis(T f) const {
   switch (_device) {
-  case CPU:
+  case Device::CPU:
     return JetVector<T>{*this, [&](JetVector<T> *out) {
                           return math::function::scalarDividesJetVectorCPU(
                               f, *this, out);
                         }};
-  case CUDA:
+  case Device::CUDA:
     return JetVector<T>{*this, [&](JetVector<T> *out) {
                           return math::function::scalarDividesJetVectorCUDA(
                               f, *this, out);

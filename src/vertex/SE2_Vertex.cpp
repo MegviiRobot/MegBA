@@ -15,7 +15,7 @@ namespace MegAutoBA {
     template<typename T>
     SE2<T> SE2<T>::inverse() {
         switch (R_.angle().getDevice()) {
-            case CUDA_t:
+            case Device::CUDA:
                 return inverse_SE2_CUDA(*this);
             default:
                 assert("Not Implemented");

@@ -26,7 +26,7 @@ template <typename T> class JetVector {
 
   unsigned int _N = 0;
   unsigned int _nElm = 0;
-  Device _device = CPU;
+  Device _device = Device::CPU;
   std::vector<std::vector<T>> _hvData{};
   std::vector<T *> _dvPtr{};
   std::vector<T> _haData{};
@@ -44,10 +44,10 @@ template <typename T> class JetVector {
       : _N(f._N), _nElm(f._nElm), _device(f._device), _haData(f._haData),
         _hvData(f._hvData) {
     switch (_device) {
-    case CPU: {
+    case Device::CPU: {
       break;
     }
-    case CUDA: {
+    case Device::CUDA: {
       CUDA2CUDA(f);
       break;
     }
@@ -90,7 +90,7 @@ template <typename T> class JetVector {
   bool IsEmpty();
   void set_Grad_Shape(unsigned int N);
   void erase(std::size_t idx) {
-    assert(_device == CPU || _gradPosition != -1 || _N == 0);
+    assert(_device == Device::CPU || _gradPosition != -1 || _N == 0);
     _haData.erase(_haData.begin() + idx);
     _nElm--;
   }
@@ -168,7 +168,7 @@ std::ostream &ostreamCUDA(std::ostream &s, const JetVector<T> &z);
 template <typename T>
 inline std::ostream &operator<<(std::ostream &s, const JetVector<T> &z) {
   switch (z.getDevice()) {
-  case CPU: {
+  case Device::CPU: {
     s << "[Res: "
       << "[ ";
     for (auto &data : z.getCPURes())
@@ -184,7 +184,7 @@ inline std::ostream &operator<<(std::ostream &s, const JetVector<T> &z) {
     s << "_device: " << std::to_string(z.getDevice()) << "]";
     break;
   }
-  case CUDA: {
+  case Device::CUDA: {
     return ostreamCUDA(s, z);
   }
   }
