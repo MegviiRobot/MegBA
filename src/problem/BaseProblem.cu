@@ -26,7 +26,7 @@ template <typename T> void BaseProblem<T>::deallocateResourceCUDA() {
     schurDeltaXPtr.clear();
     schurDeltaXPtrBackup.clear();
   } else {
-    // TODO: implement this
+    // TODO(Jie Ren): implement this
   }
 }
 
@@ -44,7 +44,7 @@ template <typename T> void BaseProblem<T>::prepareUpdateDataCUDA() {
       cudaMemsetAsync(schurDeltaXPtr[i], 0, hessianShape * sizeof(T));
     }
   } else {
-    // TODO: implement this
+    // TODO(Jie Ren): implement this
   }
 }
 
@@ -81,7 +81,6 @@ inline auto LinfNorm_async(const T *vector, const int size) {
                                T(0.), compare_abs_value_ret_max<T>{});
 }
 
-namespace {
 template <typename T>
 __global__ void ExtractOldAndApplyNewDiagKernel(const T a, const int batchSize,
                                                 T *csrVal, T *diags) {
@@ -112,7 +111,6 @@ __global__ void RecoverDiagKernel(const T *in, const T a, const int batchSize,
   out[threadIdx.x + threadIdx.x * blockDim.x + tid * blockDim.x * blockDim.x] =
       (a + 1) * in[threadIdx.x + tid * blockDim.x];
 }
-}
 
 template <typename T>
 void extractOldAndApplyNewDiag(const T a, const int batchSize, const int dim,
@@ -132,9 +130,8 @@ void RecoverDiag(const T *diag, const T a, const int batchSize, const int dim,
 
 template <typename T>
 __global__ void JdxpF(const T *grad, const T *deltaX, const T *res,
-                      const int *absCameraPosition,
-                      const int *absPointPosition, const int nElm,
-                      const int cameraDim, const int cameraNum,
+                      const int *absCameraPosition, const int *absPointPosition,
+                      const int nElm, const int cameraDim, const int cameraNum,
                       const int pointDim, T *out) {
   unsigned int tid = threadIdx.x + blockIdx.x * blockDim.x;
   if (tid >= nElm)
@@ -143,17 +140,18 @@ __global__ void JdxpF(const T *grad, const T *deltaX, const T *res,
   const int absCameraPositionLocal = absCameraPosition[tid];
   const int absPointPositionLocal = absPointPosition[tid];
   for (int i = 0; i < cameraDim; ++i) {
-    sum += grad[tid + i * nElm] *
-           deltaX[i + absCameraPositionLocal * cameraDim];
+    sum +=
+        grad[tid + i * nElm] * deltaX[i + absCameraPositionLocal * cameraDim];
   }
   for (int i = 0; i < pointDim; ++i) {
     sum += grad[tid + (i + cameraDim) * nElm] *
-        deltaX[i + cameraDim * cameraNum + absPointPositionLocal * pointDim];
+           deltaX[i + cameraDim * cameraNum + absPointPositionLocal * pointDim];
   }
   out[tid] = (sum + res[tid]) * (sum + res[tid]);
 }
-}
-    template <typename T>
+}  // namespace
+
+template <typename T>
 void BaseProblem<T>::solveLM(int iter, double solverTol,
                              double solverRefuseRatio, int solverMaxIter,
                              const double tau, const double epsilon1,
@@ -171,7 +169,7 @@ void BaseProblem<T>::solveLM(int iter, double solverTol,
   if (option.useSchur) {
     edges.buildLinearSystemSchur(JV_backup);
   } else {
-    // TODO: implement this
+    // TODO(Jie Ren): implement this
   }
 
   std::vector<std::vector<T>> residualNormNewInFlight;
@@ -198,8 +196,7 @@ void BaseProblem<T>::solveLM(int iter, double solverTol,
   }
 
   std::cout << "start with error: " << residualNormNew / 2
-            << ", log error: " << std::log10(residualNormNew / 2)
-            << std::endl;
+            << ", log error: " << std::log10(residualNormNew / 2) << std::endl;
 
   MemoryPool::redistribute();
   bool stop{false};
@@ -249,7 +246,7 @@ void BaseProblem<T>::solveLM(int iter, double solverTol,
         }
       }
     } else {
-      // TODO: implement this
+      // TODO(Jie Ren): implement this
     }
     bool solverSuccess =
         solveLinear(solverTol, solverRefuseRatio, solverMaxIter);
@@ -262,7 +259,7 @@ void BaseProblem<T>::solveLM(int iter, double solverTol,
       deltaXL2 = l2NormPow2(schurDeltaXPtr[0], hessianShape);
       xL2 = l2NormPow2(schurXPtr[0], hessianShape);
     } else {
-      // TODO: implement this
+      // TODO(Jie Ren): implement this
     }
     ASSERT_CUDA_NO_ERROR();
 
@@ -270,14 +267,14 @@ void BaseProblem<T>::solveLM(int iter, double solverTol,
     xL2 = std::sqrt(xL2);
     if (deltaXL2 <= epsilon2 * (xL2 + epsilon1)) {
       std::cout << "Stopped for deltaXL2{" << deltaXL2 << "} <= epsilon2{"
-                << epsilon2 << "} * (xL2{" << xL2 << "} + epsilon1{"
-                << epsilon1 << "})" << std::endl;
+                << epsilon2 << "} * (xL2{" << xL2 << "} + epsilon1{" << epsilon1
+                << "})" << std::endl;
       break;
     } else {
       if (option.useSchur) {
         edges.updateSchur(schurDeltaXPtr);
       } else {
-        // TODO: implement this
+        // TODO(Jie Ren): implement this
       }
 
       T rhoDenominator{0};
@@ -303,14 +300,15 @@ void BaseProblem<T>::solveLM(int iter, double solverTol,
           for (int j = 0; j < JV_backup.size(); ++j) {
             auto &J = JV_backup(j);
             T *ptr;
-            MemoryPool::allocateNormal((void **)&ptr, nElm * sizeof(T), i);
+            MemoryPool::allocateNormal(reinterpret_cast<void **>(&ptr),
+                                       nElm * sizeof(T), i);
             dim3 block(std::min((std::size_t)256, nElm));
             dim3 grid((nElm - 1) / block.x + 1);
-            JdxpF<<<grid, block>>>(
-                J.getCUDAGradPtr()[i], schurDeltaXPtr[i],
-                J.getCUDAResPtr()[i],
+            JdxpF<<<grid, block>>>(J.getCUDAGradPtr()[i], schurDeltaXPtr[i],
+                                   J.getCUDAResPtr()[i],
                                    positionContainer.absolutePositionCamera,
-                                   positionContainer.absolutePositionPoint, nElm, cameraDim, cameraNum, pointDim, ptr);
+                                   positionContainer.absolutePositionPoint,
+                                   nElm, cameraDim, cameraNum, pointDim, ptr);
             futures[i][j] = thrust::async::reduce(
                 thrust::cuda::par.on(nullptr), thrust::device_ptr<T>{ptr},
                 thrust::device_ptr<T>{ptr} + nElm, T(0.), thrust::plus<T>{});
@@ -320,12 +318,13 @@ void BaseProblem<T>::solveLM(int iter, double solverTol,
         for (int i = 0; i < futures.size(); ++i) {
           for (int j = futures[i].size() - 1; j >= 0; --j) {
             rhoDenominator += futures[i][j].get();
-            MemoryPool::deallocateNormal((void *)Jdx[i][j], i);
+            MemoryPool::deallocateNormal(reinterpret_cast<void *>(Jdx[i][j]),
+                                         i);
           }
         }
         rhoDenominator -= residualNormNew;
       } else {
-        // TODO: implement this
+        // TODO(Jie Ren): implement this
       }
       ASSERT_CUDA_NO_ERROR();
 
@@ -360,7 +359,7 @@ void BaseProblem<T>::solveLM(int iter, double solverTol,
         if (option.useSchur) {
           edges.buildLinearSystemSchur(JV);
         } else {
-          // TODO: implement this
+          // TODO(Jie Ren): implement this
         }
         std::cout << k << "-th iter error: " << residualNormNew / 2
                   << ", log error: " << std::log10(residualNormNew / 2)
@@ -377,7 +376,7 @@ void BaseProblem<T>::solveLM(int iter, double solverTol,
             std::cout << "Stopped for norm{" << norm << "} <= epsilon1{"
                       << epsilon1 << "}" << std::endl;
         } else {
-          // TODO: implement this
+          // TODO(Jie Ren): implement this
         }
         u /= std::max(1. / 3., 1 - std::pow(2 * rho - 1, 3));
         v = 2;
@@ -414,7 +413,7 @@ template <typename T> void BaseProblem<T>::backupLM() {
                                  schurDeltaXPtr[i], 1, schurXPtr[i], 1);
     }
   } else {
-    // TODO: implement this
+    // TODO(Jie Ren): implement this
   }
   edges.backupDaPtrs();
 }
@@ -428,10 +427,10 @@ template <typename T> void BaseProblem<T>::rollbackLM() {
                       hessianShape * sizeof(T), cudaMemcpyDeviceToDevice);
     }
   } else {
-    // TODO: implement this
+    // TODO(Jie Ren): implement this
   }
 }
 
 template class BaseProblem<double>;
 template class BaseProblem<float>;
-}
+}  // namespace MegBA
