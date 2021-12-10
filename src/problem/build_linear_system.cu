@@ -160,9 +160,9 @@ void EdgeVector<T>::buildLinearSystemSchurCUDA(const JVD<T> &jetEstimation) {
   const auto hllRows = pointDim * pointNum;
   ASSERT_CUDA_NO_ERROR();
 
-  std::vector<T *> gCameraDevice{static_cast<std::size_t>(_option.worldSize)};
-  std::vector<T *> gPointDevice{static_cast<std::size_t>(_option.worldSize)};
-  for (int i = 0; i < _option.worldSize; ++i) {
+  std::vector<T *> gCameraDevice{_option.deviceUsed.size()};
+  std::vector<T *> gPointDevice{_option.deviceUsed.size()};
+  for (int i = 0; i < _option.deviceUsed.size(); ++i) {
     cudaSetDevice(i);
     cudaMemsetAsync(schurEquationContainer[i].g, 0,
                     (hppRows + hllRows) * sizeof(T));
@@ -182,19 +182,15 @@ void EdgeVector<T>::buildLinearSystemSchurCUDA(const JVD<T> &jetEstimation) {
 
   const auto resDim = rows * cols;
   std::vector<std::unique_ptr<const T *[]>> totalPtrs {};
-  totalPtrs.reserve(_option.worldSize);
-  std::vector<const T **> totalPtrsDevice{
-      static_cast<std::size_t>(_option.worldSize)};
+  totalPtrs.reserve(_option.deviceUsed.size());
+  std::vector<const T **> totalPtrsDevice{_option.deviceUsed.size()};
 
-  std::vector<const T **> valPtrs{static_cast<std::size_t>(_option.worldSize)};
-  std::vector<const T **> valPtrsDevice{
-      static_cast<std::size_t>(_option.worldSize)};
+  std::vector<const T **> valPtrs{_option.deviceUsed.size()};
+  std::vector<const T **> valPtrsDevice{_option.deviceUsed.size()};
 
-  std::vector<const T **> errorPtrs{
-      static_cast<std::size_t>(_option.worldSize)};
-  std::vector<const T **> errorPtrsDevice{
-      static_cast<std::size_t>(_option.worldSize)};
-  for (int deviceRank = 0; deviceRank < _option.worldSize; ++deviceRank) {
+  std::vector<const T **> errorPtrs{_option.deviceUsed.size()};
+  std::vector<const T **> errorPtrsDevice{_option.deviceUsed.size()};
+  for (int deviceRank = 0; deviceRank < _option.deviceUsed.size(); ++deviceRank) {
     totalPtrs.emplace_back(new const T *[resDim * (3 + resDim)]);
     cudaSetDevice(deviceRank);
     cudaMalloc(&totalPtrsDevice[deviceRank],
@@ -220,7 +216,7 @@ void EdgeVector<T>::buildLinearSystemSchurCUDA(const JVD<T> &jetEstimation) {
   if (jetInformation.rows() != 0 && jetInformation.cols() != 0) {
     // TODO(Jie Ren): implement this
   } else {
-    for (int i = 0; i < _option.worldSize; ++i) {
+    for (int i = 0; i < _option.deviceUsed.size(); ++i) {
       cudaSetDevice(i);
       const auto edgeNum = MemoryPool::getElmNum(i);
       dim3 block(std::min((decltype(edgeNum))32, edgeNum),
@@ -242,7 +238,7 @@ void EdgeVector<T>::buildLinearSystemSchurCUDA(const JVD<T> &jetEstimation) {
     }
   }
   ASSERT_CUDA_NO_ERROR();
-  for (int i = 0; i < _option.worldSize; ++i) {
+  for (int i = 0; i < _option.deviceUsed.size(); ++i) {
     cudaSetDevice(i);
     cudaStreamSynchronize(nullptr);
     cudaFree(totalPtrsDevice[i]);
@@ -250,7 +246,7 @@ void EdgeVector<T>::buildLinearSystemSchurCUDA(const JVD<T> &jetEstimation) {
 
   const auto &comms = HandleManager::getNcclComm();
   ncclGroupStart();
-  for (int i = 0; i < _option.worldSize; ++i) {
+  for (int i = 0; i < _option.deviceUsed.size(); ++i) {
     ncclAllReduce(schurEquationContainer[i].csrVal[2],
                   schurEquationContainer[i].csrVal[2],
                   schurEquationContainer[i].nnz[2],

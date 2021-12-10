@@ -106,7 +106,9 @@ int main(int argc, char *arcv[]) {
     MegBA::ProblemOption option{};
     option.nElm = num_observations;
     option.N = 12;
-    option.worldSize = world_size;
+    for (int i = 0; i < world_size; ++i) {
+      option.deviceUsed.insert(i);
+    }
     MegBA::BaseProblem<T> problem{option};
 
     std::vector<std::tuple<int, int, Eigen::Matrix<T, 2, 1>>> edge;

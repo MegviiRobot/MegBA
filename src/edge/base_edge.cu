@@ -38,8 +38,8 @@ __global__ void broadCastCsrColInd(const int *input, const int other_dim,
 template <typename T> void EdgeVector<T>::preparePositionAndRelationDataCUDA() {
   if (_option.useSchur) {
     std::vector<std::array<int *, 2>> compressedCsrColInd;
-    compressedCsrColInd.resize(_option.worldSize);
-    for (int i = 0; i < _option.worldSize; ++i) {
+    compressedCsrColInd.resize(_option.deviceUsed.size());
+    for (int i = 0; i < _option.deviceUsed.size(); ++i) {
       cudaSetDevice(i);
       const auto edgeNum = MemoryPool::getElmNum(i);
 
@@ -131,7 +131,7 @@ template <typename T> void EdgeVector<T>::preparePositionAndRelationDataCUDA() {
           schurAbsolutePosition[1][i].data(), edgeNum * sizeof(int),
           cudaMemcpyHostToDevice);
     }
-    for (int i = 0; i < _option.worldSize; ++i) {
+    for (int i = 0; i < _option.deviceUsed.size(); ++i) {
       cudaSetDevice(i);
       cudaDeviceSynchronize();
       cudaFree(compressedCsrColInd[i][0]);

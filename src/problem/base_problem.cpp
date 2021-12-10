@@ -70,11 +70,11 @@ template <typename T> void SchurHessianEntrance<T>::buildRandomAccess() {
 template <typename T>
 BaseProblem<T>::BaseProblem(ProblemOption option) : option(option) {
   if (option.N != -1 && option.nElm != -1)
-    MemoryPool::resetPool(option.N, option.nElm, sizeof(T), option.worldSize);
+    MemoryPool::resetPool(option.N, option.nElm, sizeof(T), option.deviceUsed.size());
   if (option.useSchur) {
-    schurWS.splitSize = option.nElm / option.worldSize + 1;
+    schurWS.splitSize = option.nElm / option.deviceUsed.size() + 1;
     schurWS.workingDevice = 0;
-    schurWS.schurHessianEntrance.resize(option.worldSize);
+    schurWS.schurHessianEntrance.resize(option.deviceUsed.size());
     schurWS.schurHessianEntrance.shrink_to_fit();
   }
 }
@@ -103,7 +103,7 @@ template <typename T> void BaseProblem<T>::addEdge(BaseEdge<T> *edge) {
       find->second.emplace(vertex);
 
     if (option.useSchur) {
-      for (int i = 0; i < option.worldSize; ++i) {
+      for (int i = 0; i < option.deviceUsed.size(); ++i) {
         auto &workingSchurHessianEntrance = schurWS.schurHessianEntrance[i];
         workingSchurHessianEntrance.dim[kind] = vertex->getGradShape();
         auto &connectionBlockMatrix = workingSchurHessianEntrance.nra[kind];

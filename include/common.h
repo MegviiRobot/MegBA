@@ -8,9 +8,31 @@
 #pragma once
 #include <cstddef>
 #include <Eigen/Core>
+#include <set>
 
 namespace MegBA {
     enum Device { CPU, CUDA };
+
+    enum SolverKind { LM };
+
+    struct SolverOptionLM {
+      int maxIter{-1};
+      double tol{1e-2};
+      double refuseRatio{1e0};
+      double initialRegion{1e4};
+      double epsilon1{0};
+      double epsilon2{1e-8};
+    };
+
+    struct ProblemOption {
+      bool useSchur{true};
+      Device device{Device::CUDA};
+      std::set<int> deviceUsed{};
+      int N{-1};
+      int64_t nElm{-1};
+      SolverKind solverKind{LM};
+      SolverOptionLM solverOptionLM{};
+    };
 
     template<typename T>
     class JetVector;

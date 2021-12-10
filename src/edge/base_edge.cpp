@@ -87,9 +87,9 @@ template <typename T>
 EdgeVector<T>::EdgeVector(const ProblemOption &option,
                           const std::vector<SchurHessianEntrance<T>> &schurHessianEntrance)
     : _option{option}, schurHessianEntrance{schurHessianEntrance},
-      schurCsrRowPtr(option.worldSize) {
-  schurEquationContainer.reserve(option.worldSize);
-  for (int i = 0; i < option.worldSize; ++i) {
+      schurCsrRowPtr(option.deviceUsed.size()) {
+  schurEquationContainer.reserve(option.deviceUsed.size());
+  for (int i = 0; i < option.deviceUsed.size(); ++i) {
     schurEquationContainer.emplace_back(option.device);
     schurPositionAndRelationContainer.emplace_back(option.device);
   }
@@ -291,7 +291,7 @@ template <typename T> void EdgeVector<T>::makeSchurVertices() {
     // make_H_and_g_without_Info_two_Vertices
 
     std::size_t total_vertex_idx{0};
-    for (int i = 0; i < _option.worldSize; ++i) {
+    for (int i = 0; i < _option.deviceUsed.size(); ++i) {
       const auto &schur_H_entrance_other = schurHessianEntrance[i].ra[other_kind];
       omp_set_num_threads(16);
 #pragma omp parallel for

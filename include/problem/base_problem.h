@@ -23,7 +23,7 @@ template <typename T> class BaseProblem {
   std::size_t hessianShape{0};
   std::unordered_map<int, BaseVertex<T> *> vertices{};
   std::unordered_map<VertexKind, std::set<BaseVertex<T> *>> verticesSets{};
-  struct SchurWorkingSpace_t {
+  struct {
     // first: working index, second: body
     std::size_t splitSize{0};
     int workingDevice{0};
