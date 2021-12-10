@@ -1,6 +1,6 @@
 add_library(Base_Problem SHARED BaseProblem.cpp)
 
-cuda_add_library(cuBase_Problem SHARED Base_Problem.cu)
+cuda_add_library(cuBase_Problem SHARED BaseProblem.cu)
 target_link_libraries(cuBase_Problem ${CUDA_cusparse_LIBRARY})
 
 cuda_add_library(cusolve_Linear SHARED solve_Linear.cu)

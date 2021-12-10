@@ -6,12 +6,12 @@
 **/
 
 #include "problem/BaseProblem.h"
-#include "Wrapper.hpp"
 #include <thrust/device_ptr.h>
 #include <thrust/inner_product.h>
-#include <resource/Manager.h>
-#include <Macro.h>
 #include <thrust/async/reduce.h>
+#include "Wrapper.hpp"
+#include "resource/Manager.h"
+#include "Macro.h"
 
 namespace MegBA {
 template <typename T> void BaseProblem<T>::deallocateResourceCUDA() {
