@@ -82,12 +82,12 @@ namespace MegBA {
     }
 
     template<typename T>
-    void BaseProblem<T>::appendVertex(int ID, BaseVertex<T> *vertex) {
+    void BaseProblem<T>::addVertex(int ID, BaseVertex<T> *vertex) {
         vertices.insert(std::make_pair(ID, vertex));
     }
 
     template<typename T>
-    void BaseProblem<T>::appendEdge(BaseEdge<T> *edge) {
+    void BaseProblem<T>::addEdge(BaseEdge<T> *edge) {
       bool success = edges.tryPushBack(edge);
       if (!success) {
         edges.tryPushBack(edge);

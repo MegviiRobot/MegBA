@@ -67,9 +67,9 @@ template <typename T> class BaseProblem {
 
   const device_t &getDevice() const;
 
-  void appendVertex(int ID, BaseVertex<T> *vertex);
+  void addVertex(int ID, BaseVertex<T> *vertex);
 
-  void appendEdge(BaseEdge<T> *edge);
+  void addEdge(BaseEdge<T> *edge);
 
   BaseVertex<T> &getVertex(int ID);
 

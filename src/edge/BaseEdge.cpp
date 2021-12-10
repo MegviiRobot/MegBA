@@ -8,7 +8,7 @@
 #include <omp.h>
 #include <utility>
 namespace MegBA {
-template <typename T> void BaseEdge<T>::appendVertex(BaseVertex<T> *vertex) {
+template <typename T> void BaseEdge<T>::addVertex(BaseVertex<T> *vertex) {
   parent::push_back(vertex);
 }
 

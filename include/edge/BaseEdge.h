@@ -37,7 +37,7 @@ template <typename T> class BaseEdge : public std::vector<BaseVertex<T> *> {
  public:
   virtual ~BaseEdge() = default;
 
-  void appendVertex(BaseVertex<T> *vertex);
+  void addVertex(BaseVertex<T> *vertex);
 
   bool existVertex(const BaseVertex<T> &vertex) const;
 
