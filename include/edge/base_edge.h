@@ -14,7 +14,7 @@
 #include <unordered_map>
 #include <Common.h>
 #include "operator/JetVector.h"
-#include "vertex/BaseVertex.h"
+#include "vertex/base_vertex.h"
 #include "problem/HEntrance.h"
 
 namespace MegBA {

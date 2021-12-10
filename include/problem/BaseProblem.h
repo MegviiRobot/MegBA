@@ -13,7 +13,7 @@
 #include <set>
 #include "Common.h"
 #include "edge/base_edge.h"
-#include "vertex/BaseVertex.h"
+#include "vertex/base_vertex.h"
 #include "problem/HEntrance.h"
 
 namespace MegBA {

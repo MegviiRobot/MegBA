@@ -1,7 +1,7 @@
 #include <iostream>
 #include "problem/BaseProblem.h"
 #include "edge/base_edge.h"
-#include "vertex/BaseVertex.h"
+#include "vertex/base_vertex.h"
 #include <unordered_map>
 #include <random>
 #include <cusparse_v2.h>

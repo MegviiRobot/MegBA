@@ -5,7 +5,7 @@
 *
 **/
 
-#include <vertex/BaseVertex.h>
+#include <vertex/base_vertex.h>
 #include <vertex/SE2_Vertex.h>
 
 namespace MegAutoBA {

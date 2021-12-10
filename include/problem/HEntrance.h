@@ -10,7 +10,7 @@
 #include <map>
 #include <vector>
 #include <memory>
-#include "vertex/BaseVertex.h"
+#include "vertex/base_vertex.h"
 
 namespace MegBA {
 struct ProblemOption {

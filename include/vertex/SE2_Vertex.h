@@ -1,6 +1,6 @@
 #pragma once
 #include <operator/JetVector.h>
-#include <vertex/BaseVertex.h>
+#include <vertex/base_vertex.h>
 #include <Eigen/Geometry>
 
 namespace MegBA {
