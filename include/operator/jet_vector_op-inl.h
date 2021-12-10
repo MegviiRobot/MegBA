@@ -6,9 +6,9 @@
 **/
 
 #pragma once
+#include "jet_vector.h"
 #include "jet_vector_math_impl.h"
 #include "jet_vector_math_impl.cuh"
-#include "jet_vector.h"
 
 namespace MegBA {
 template <typename T>

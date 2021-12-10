@@ -4,13 +4,13 @@
 * Copyright (c) 2021 Megvii Inc. All rights reserved.
 *
 **/
+
 #pragma once
 #include <Eigen/Core>
 #include <map>
 #include <vector>
 #include <set>
 #include <utility>
-
 #include "common.h"
 
 namespace MegBA {

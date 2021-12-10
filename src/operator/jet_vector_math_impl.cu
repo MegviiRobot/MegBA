@@ -4,6 +4,7 @@
 * Copyright (c) 2021 Megvii Inc. All rights reserved.
 *
 **/
+
 #include "operator/jet_vector_math_impl.cuh"
 #include <array>
 #include "operator/jet_vector.h"

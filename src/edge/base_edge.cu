@@ -5,7 +5,7 @@
 *
 **/
 
-#include <edge/base_edge.h>
+#include "edge/base_edge.h"
 
 namespace MegBA {
 template <typename T> void EdgeVector<T>::backupDaPtrs() {

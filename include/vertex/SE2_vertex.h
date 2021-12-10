@@ -1,7 +1,14 @@
+/**
+* MegBA is Licensed under the Apache License, Version 2.0 (the "License")
+*
+* Copyright (c) 2021 Megvii Inc. All rights reserved.
+*
+**/
+
 #pragma once
-#include <operator/jet_vector.h>
-#include <vertex/base_vertex.h>
 #include <Eigen/Geometry>
+#include "operator/jet_vector.h"
+#include "vertex/base_vertex.h"
 
 namespace MegBA {
     template<typename T>

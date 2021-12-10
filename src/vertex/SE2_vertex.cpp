@@ -5,8 +5,8 @@
 *
 **/
 
-#include <vertex/base_vertex.h>
-#include <vertex/SE2_vertex.h>
+#include "vertex/base_vertex.h"
+#include "vertex/SE2_vertex.h"
 
 namespace MegAutoBA {
     template<typename T>

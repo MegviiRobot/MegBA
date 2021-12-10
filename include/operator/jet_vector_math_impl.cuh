@@ -7,6 +7,7 @@
 
 #pragma once
 #include "common.h"
+
 namespace MegBA {
 namespace math {
 namespace impl {

@@ -7,7 +7,7 @@
 
 #include "geo/geo.cuh"
 #include "wrapper.hpp"
-#include <macro.h>
+#include "macro.h"
 
 namespace MegBA {
 namespace geo {

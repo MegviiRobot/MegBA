@@ -4,9 +4,11 @@
  * Copyright (c) 2021 Megvii Inc. All rights reserved.
  *
  **/
-#include <edge/base_edge.h>
+
+#include "edge/base_edge.h"
 #include <omp.h>
 #include <utility>
+
 namespace MegBA {
 template <typename T> void BaseEdge<T>::addVertex(BaseVertex<T> *vertex) {
   parent::push_back(vertex);

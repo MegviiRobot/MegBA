@@ -6,9 +6,9 @@
 **/
 
 #pragma once
-#include <operator/jet_vector.h>
 #include <Eigen/Core>
 #include <Eigen/Geometry>
+#include "operator/jet_vector.h"
 
 namespace MegBA {
 namespace geo {

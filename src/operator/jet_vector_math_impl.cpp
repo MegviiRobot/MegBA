@@ -5,11 +5,12 @@
 *
 **/
 
+#include "operator/jet_vector_math_impl.h"
 #include <thrust/copy.h>
 #include <thrust/transform.h>
 #include <thrust/iterator/constant_iterator.h>
 #include "operator/jet_vector.h"
-#include "operator/jet_vector_math_impl.h"
+
 namespace MegBA {
 namespace math {
 namespace impl {

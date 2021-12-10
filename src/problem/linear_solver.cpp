@@ -5,9 +5,9 @@
 *
 **/
 
+#include <cholmod.h>
 #include <memory>
 #include <functional>
-#include <cholmod.h>
 
 namespace MegAutoBA {
     void CholmodSolverImpl(const double *csrVal, const int *csrColInd, const int *csrRowPtr,

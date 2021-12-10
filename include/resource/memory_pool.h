@@ -6,7 +6,6 @@
 **/
 
 #pragma once
-#include <cuda_runtime.h>
 #include <cassert>
 #include <mutex>
 #include <vector>
