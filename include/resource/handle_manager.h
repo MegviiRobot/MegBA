@@ -15,10 +15,10 @@
 
 namespace MegBA {
 class HandleManager {
-  static std::vector<ncclComm_t> _comms;
-  static std::vector<cublasHandle_t> _cublasHandle;
-  static std::vector<cusparseHandle_t> _cusparseHandle;
-  static std::mutex _mutex;
+  static std::vector<ncclComm_t> comms;
+  static std::vector<cublasHandle_t> cublasHandle;
+  static std::vector<cusparseHandle_t> cusparseHandle;
+  static std::mutex mutex;
 
  public:
   static void createNcclComm();
