@@ -38,9 +38,9 @@
 
 #include "src/Geometry/Homogeneous.h"
 #include "src/Geometry/RotationBase.h"
-#include "src/Geometry/Rotation2D.h"
-#include "src/Geometry/Quaternion.h"
-#include "src/Geometry/AngleAxis.h"
+#include "src/Geometry/rotation2D.h"
+#include "src/Geometry/quaternion.h"
+#include "src/Geometry/angle_axis.h"
 #include "src/Geometry/Transform.h"
 #include "src/Geometry/Translation.h"
 #include "src/Geometry/Scaling.h"

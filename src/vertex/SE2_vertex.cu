@@ -5,8 +5,8 @@
 *
 **/
 
-#include <vertex/SE2_Vertex.h>
-#include <geo/Geo.cuh>
+#include <vertex/SE2_vertex.h>
+#include <geo/geo.cuh>
 
 namespace MegBA {
     namespace {

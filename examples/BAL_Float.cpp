@@ -5,7 +5,7 @@
 #include <unordered_map>
 #include <random>
 #include <cusparse_v2.h>
-#include "geo/Geo.cuh"
+#include "geo/geo.cuh"
 #include <fstream>
 
 template<typename T>

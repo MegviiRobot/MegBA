@@ -5,7 +5,7 @@
 *
 **/
 
-#include "geo/Geo.cuh"
+#include "geo/geo.cuh"
 #include "wrapper.hpp"
 #include <macro.h>
 

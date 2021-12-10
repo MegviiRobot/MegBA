@@ -5,7 +5,7 @@
 *
 **/
 
-#include <geo/Geo.cuh>
+#include <geo/geo.cuh>
 
 namespace MegBA {
 namespace geo {
