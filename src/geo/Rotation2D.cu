@@ -6,7 +6,7 @@
 **/
 
 #include <geo/Geo.cuh>
-#include <Wrapper.hpp>
+#include <wrapper.hpp>
 
 namespace MegBA {
     namespace geo {

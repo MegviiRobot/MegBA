@@ -11,7 +11,7 @@
 #include <set>
 #include <utility>
 
-#include "Common.h"
+#include "common.h"
 
 namespace MegBA {
 template <typename T> class BaseVertexWrapper;

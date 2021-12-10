@@ -10,9 +10,9 @@
 #include <thrust/reduce.h>
 #include <thrust/inner_product.h>
 #include <Eigen/Sparse>
-#include "Macro.h"
+#include "macro.h"
 #include "edge/base_edge.h"
-#include "Wrapper.hpp"
+#include "wrapper.hpp"
 #include "resource/handle_manager.h"
 
 #if __CUDA_ARCH__ < 600 && defined(__CUDA_ARCH__)

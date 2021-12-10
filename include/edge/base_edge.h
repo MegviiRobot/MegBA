@@ -12,7 +12,7 @@
 #include <vector>
 #include <memory>
 #include <unordered_map>
-#include <Common.h>
+#include <common.h>
 #include "operator/JetVector.h"
 #include "vertex/base_vertex.h"
 #include "problem/hessian_entrance.h"

@@ -5,10 +5,10 @@
 *
 **/
 
-#include <Common.h>
+#include <common.h>
 #include <operator/JetVector.h>
 #include <resource/memory_pool.h>
-#include <Macro.h>
+#include <macro.h>
 #include <memory>
 
 namespace MegBA {

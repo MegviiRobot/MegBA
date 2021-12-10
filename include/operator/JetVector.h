@@ -10,7 +10,7 @@
 #include <cassert>
 #include <functional>
 #include <vector>
-#include "Common.h"
+#include "common.h"
 #include "JetVector.inl"
 #include "Jet_Vector_math.inl"
 #include "resource/memory_pool.h"

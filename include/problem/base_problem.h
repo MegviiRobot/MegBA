@@ -11,7 +11,7 @@
 #include <unordered_map>
 #include <memory>
 #include <set>
-#include "Common.h"
+#include "common.h"
 #include "edge/base_edge.h"
 #include "vertex/base_vertex.h"
 #include "problem/hessian_entrance.h"

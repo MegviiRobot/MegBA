@@ -9,9 +9,9 @@
 #include <thrust/device_ptr.h>
 #include <thrust/inner_product.h>
 #include <thrust/async/reduce.h>
-#include "Wrapper.hpp"
+#include "wrapper.hpp"
 #include "resource/handle_manager.h"
-#include "Macro.h"
+#include "macro.h"
 
 namespace MegBA {
 template <typename T> void BaseProblem<T>::deallocateResourceCUDA() {

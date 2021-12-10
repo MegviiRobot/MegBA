@@ -5,7 +5,7 @@
 *
 **/
 
-#include "Common.h"
+#include "common.h"
 #include "operator/JetVector.h"
 #include "operator/math_function_Jet_Vector_CPU.h"
 #include "operator/math_function_Jet_Vector_CUDA.cuh"

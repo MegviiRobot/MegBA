@@ -9,9 +9,9 @@
 #include <cusparse_v2.h>
 #include "problem/base_problem.h"
 #include "edge/base_edge.h"
-#include "Wrapper.hpp"
+#include "wrapper.hpp"
 #include "resource/handle_manager.h"
-#include "Macro.h"
+#include "macro.h"
 
 #if __CUDA_ARCH__ <= 1120
 #define CUSPARSE_SPMV_ALG_DEFAULT CUSPARSE_MV_ALG_DEFAULT
