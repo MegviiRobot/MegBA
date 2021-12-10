@@ -33,7 +33,7 @@ std::vector<std::size_t> memOverflowedCounter{};
 
 std::vector<std::size_t> memOverflowedPeak{};
 
-} // namespace
+}  // namespace
 
 void MemoryPool::resetPool(int N, std::size_t nElm, std::int8_t sizeofType,
                            int worldSize) {
