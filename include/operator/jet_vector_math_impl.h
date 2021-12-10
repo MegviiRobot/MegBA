@@ -9,7 +9,7 @@
 #include "common.h"
 namespace MegBA {
 namespace math {
-namespace function {
+namespace impl {
 template <typename T>
 void vectorAddVectorCPU(const JetVector<T> &f, const JetVector<T> &g,
                         JetVector<T> *out);
@@ -56,6 +56,6 @@ void sinJetVectorCPU(const MegBA::JetVector<T> &f, MegBA::JetVector<T> *out);
 
 template <typename T>
 void sqrtJetVectorCPU(const MegBA::JetVector<T> &f, MegBA::JetVector<T> *out);
-}  // namespace function
+}  // namespace impl
 }  // namespace math
 }  // namespace MegBA

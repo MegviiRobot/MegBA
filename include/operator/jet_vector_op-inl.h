@@ -6,8 +6,8 @@
 **/
 
 #pragma once
-#include "math_function_Jet_Vector_CPU.h"
-#include "math_function_Jet_Vector_CUDA.cuh"
+#include "jet_vector_math_impl.h"
+#include "jet_vector_math_impl.cuh"
 #include "jet_vector.h"
 
 namespace MegBA {
@@ -40,11 +40,11 @@ template <typename T> inline JetVector<T> abs(const JetVector<T> &f) {
   out.Init_as(f);
   switch (f.getDevice()) {
   case Device::CPU: {
-    function::absJetVectorCPU(f, out);
+    impl::absJetVectorCPU(f, out);
     break;
   }
   case Device::CUDA: {
-    function::absJetVectorCUDA(f, out);
+    impl::absJetVectorCUDA(f, out);
     break;
   }
   } // switch _device
@@ -77,11 +77,11 @@ template <typename T> inline JetVector<T> sqrt(JetVector<T> f) {
   out.Init_as(f);
   switch (f.getDevice()) {
   case Device::CPU: {
-    function::sqrtJetVectorCPU(f, out);
+    impl::sqrtJetVectorCPU(f, out);
     break;
   }
   case Device::CUDA: {
-    function::sqrtJetVectorCUDA(f, out);
+    impl::sqrtJetVectorCUDA(f, out);
     break;
   }
   } // switch _device
@@ -94,11 +94,11 @@ template <typename T> inline JetVector<T> cos(JetVector<T> f) {
   out.Init_as(f);
   switch (f.getDevice()) {
   case Device::CPU: {
-    function::cosJetVectorCPU(f, out);
+    impl::cosJetVectorCPU(f, out);
     break;
   }
   case Device::CUDA: {
-    function::cosJetVectorCUDA(f, out);
+    impl::cosJetVectorCUDA(f, out);
     break;
   }
   } // switch _device
@@ -121,11 +121,11 @@ template <typename T> inline JetVector<T> sin(JetVector<T> f) {
   out.Init_as(f);
   switch (f.getDevice()) {
   case Device::CPU: {
-    function::sinJetVectorCPU(f, out);
+    impl::sinJetVectorCPU(f, out);
     break;
   }
   case Device::CUDA: {
-    function::sinJetVectorCUDA(f, out);
+    impl::sinJetVectorCUDA(f, out);
     break;
   }
   } // switch _device
@@ -192,7 +192,7 @@ template <typename T> inline JetVector<T> sin(JetVector<T> f) {
 //            return f;
 //        }
 //
-//        // The floor function should be used with extreme care as this operation will
+//        // The floor impl should be used with extreme care as this operation will
 //        // result in a zero derivative which provides no information to the solver.
 //        //
 //        // floor(a + h) ~= floor(a) + 0
@@ -203,7 +203,7 @@ template <typename T> inline JetVector<T> sin(JetVector<T> f) {
 //            return f;
 //        }
 //
-//        // The ceil function should be used with extreme care as this operation will
+//        // The ceil impl should be used with extreme care as this operation will
 //        // result in a zero derivative which provides no information to the solver.
 //        //
 //        // ceil(a + h) ~= ceil(a) + 0

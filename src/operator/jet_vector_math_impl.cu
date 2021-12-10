@@ -4,13 +4,13 @@
 * Copyright (c) 2021 Megvii Inc. All rights reserved.
 *
 **/
-#include "operator/math_function_Jet_Vector_CUDA.cuh"
+#include "operator/jet_vector_math_impl.cuh"
 #include <array>
 #include "operator/jet_vector.h"
 
 namespace MegBA {
 namespace math {
-namespace function {
+namespace impl {
 inline std::array<dim3, 2> fitGridAndBlock(const unsigned int nElm) {
   std::array<dim3, 2> gridAndDim;
   if (nElm < 256) {
@@ -1373,6 +1373,6 @@ template void sqrtJetVectorCUDA<double>(const MegBA::JetVector<double> &f,
 template void sqrtJetVectorCUDA<float>(const MegBA::JetVector<float> &f,
                                          MegBA::JetVector<float> *out);
 
-}  // namespace function
+}  // namespace impl
 }  // namespace math
 }  // namespace MegBA

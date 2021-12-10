@@ -9,10 +9,10 @@
 #include <thrust/transform.h>
 #include <thrust/iterator/constant_iterator.h>
 #include "operator/jet_vector.h"
-#include "operator/math_function_Jet_Vector_CPU.h"
+#include "operator/jet_vector_math_impl.h"
 namespace MegBA {
 namespace math {
-namespace function {
+namespace impl {
 namespace {
 namespace TT {
 template<typename T>
@@ -607,6 +607,6 @@ template void sqrtJetVectorCPU<double>(const MegBA::JetVector<double> &f,
 
 template void sqrtJetVectorCPU<float>(const MegBA::JetVector<float> &f,
                                       MegBA::JetVector<float> *out);
-}  // namespace function
+}  // namespace impl
 }  // namespace math
 }  // namespace MegBA
