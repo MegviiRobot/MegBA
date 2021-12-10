@@ -112,7 +112,8 @@ CUXXX_WRAPPER(cublasGcopy, cublasScopy_v2, cublasDcopy_v2);
 
 CUXXX_WRAPPER(cublasGscal, cublasSscal_v2, cublasDscal_v2);
 
-CUXXX_WRAPPER(cusparseGcsrgeam2_bufferSizeExt, cusparseScsrgeam2_bufferSizeExt,
+CUXXX_WRAPPER(cusparseGcsrgeam2_bufferSizeExt,
+              cusparseScsrgeam2_bufferSizeExt,
               cusparseDcsrgeam2_bufferSizeExt);
 
 CUXXX_WRAPPER(cusparseGcsrgeam2, cusparseScsrgeam2, cusparseDcsrgeam2);
