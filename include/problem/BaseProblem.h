@@ -14,7 +14,7 @@
 #include "Common.h"
 #include "edge/base_edge.h"
 #include "vertex/base_vertex.h"
-#include "problem/HEntrance.h"
+#include "problem/hessian_entrance.h"
 
 namespace MegBA {
 template <typename T> class BaseProblem {
@@ -27,9 +27,9 @@ template <typename T> class BaseProblem {
     // first: working index, second: body
     std::size_t splitSize{0};
     int workingDevice{0};
-    std::vector<SchurHEntrance<T>> schurHEntrance;
+    std::vector<SchurHessianEntrance<T>> schurHessianEntrance;
   } schurWS{};
-  EdgeVector<T> edges{option, schurWS.schurHEntrance};
+  EdgeVector<T> edges{option, schurWS.schurHessianEntrance};
 
   std::vector<T *> schurXPtr{nullptr};
   std::vector<T *> schurDeltaXPtr{nullptr};

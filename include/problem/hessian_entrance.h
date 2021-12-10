@@ -21,7 +21,7 @@ struct ProblemOption {
   int64_t nElm{-1};
 };
 
-template <typename T> struct SchurHEntrance {
+template <typename T> struct SchurHessianEntrance {
   // first is camera
   using BlockRow = std::set<BaseVertex<T> *>;
   using BlockMatrix = std::map<BaseVertex<T> *, BlockRow>;
@@ -35,7 +35,7 @@ template <typename T> struct SchurHEntrance {
   std::array<int, 2> dim{};
   std::size_t nnzInE{};
 
-  SchurHEntrance() = default;
+  SchurHessianEntrance() = default;
 
   void buildRandomAccess();
 };

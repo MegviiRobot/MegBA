@@ -15,7 +15,7 @@
 #include <Common.h>
 #include "operator/JetVector.h"
 #include "vertex/base_vertex.h"
-#include "problem/HEntrance.h"
+#include "problem/hessian_entrance.h"
 
 namespace MegBA {
 
@@ -63,7 +63,7 @@ template <typename T> class EdgeVector {
   friend BaseProblem<T>;
 
   const ProblemOption &_option;
-  const std::vector<SchurHEntrance<T>> &schurHEntrance;
+  const std::vector<SchurHessianEntrance<T>> &schurHessianEntrance;
   // total number for each vertex kind
   std::unique_ptr<int[]> num{nullptr};
   std::vector<std::vector<int>> absolutePosition;
@@ -93,7 +93,7 @@ template <typename T> class EdgeVector {
   EdgeVector() = delete;
 
   EdgeVector(const ProblemOption &option,
-             const std::vector<SchurHEntrance<T>> &schurHEntrance);
+             const std::vector<SchurHessianEntrance<T>> &schurHessianEntrance);
 
   struct SchurEquationContainer {
     explicit SchurEquationContainer(const Device &device) : _device(device) {}

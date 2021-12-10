@@ -11,36 +11,36 @@
 
 namespace MegBA {
 namespace {
-template <typename SchurHEntrance>
-void internalBuildRandomAccess(int i, SchurHEntrance *schurHEntrance) {
-  const auto &hEntranceBlockMatrix = schurHEntrance->nra[i];
-  const auto dimOther = schurHEntrance->dim[1 ^ i];
-  auto &csrRowPtrKind = schurHEntrance->csrRowPtr[i];
-  auto &csrColIndKind = schurHEntrance->csrColInd[i];
+template <typename SchurHessianEntrance>
+void internalBuildRandomAccess(int i, SchurHessianEntrance *schurHessianEntrance) {
+  const auto &hEntranceBlockMatrix = schurHessianEntrance->nra[i];
+  const auto dimOther = schurHessianEntrance->dim[1 ^ i];
+  auto &csrRowPtrKind = schurHessianEntrance->csrRowPtr[i];
+  auto &csrColIndKind = schurHessianEntrance->csrColInd[i];
   csrRowPtrKind.reset(
-      new int[hEntranceBlockMatrix.size() * schurHEntrance->dim[i] + 1]);
+      new int[hEntranceBlockMatrix.size() * schurHessianEntrance->dim[i] + 1]);
   csrColIndKind.reset(
-      new int[schurHEntrance->counter * schurHEntrance->dim[i]]);
+      new int[schurHessianEntrance->counter * schurHessianEntrance->dim[i]]);
   csrRowPtrKind[0] = 0;
   std::size_t rowCounter{0};
   std::size_t nnzCounter{0};
-  auto &HEntranceRaBlockMatrix = schurHEntrance->ra[i];
-  HEntranceRaBlockMatrix.clear();
-  HEntranceRaBlockMatrix.reserve(hEntranceBlockMatrix.size());
+  auto &HessianEntranceRaBlockMatrix = schurHessianEntrance->ra[i];
+  HessianEntranceRaBlockMatrix.clear();
+  HessianEntranceRaBlockMatrix.reserve(hEntranceBlockMatrix.size());
   // row
   for (const auto &rowIter : hEntranceBlockMatrix) {
     const auto &hEntranceBlockRow = rowIter.second;
     const auto rowSize = hEntranceBlockRow.size();
-    typename std::decay_t<decltype(HEntranceRaBlockMatrix)>::value_type
-        HEntranceRaBlockRow;
-    HEntranceRaBlockRow.reserve(rowSize);
+    typename std::decay_t<decltype(HessianEntranceRaBlockMatrix)>::value_type
+        HessianEntranceRaBlockRow;
+    HessianEntranceRaBlockRow.reserve(rowSize);
     // col
     for (const auto &col : hEntranceBlockRow) {
-      HEntranceRaBlockRow.push_back(col);
+      HessianEntranceRaBlockRow.push_back(col);
       csrColIndKind[nnzCounter] = col->absolutePosition;
       nnzCounter++;
     }
-    for (int j = 0; j < schurHEntrance->dim[i]; ++j) {
+    for (int j = 0; j < schurHessianEntrance->dim[i]; ++j) {
       csrRowPtrKind[rowCounter + 1] =
           csrRowPtrKind[rowCounter] + rowSize * dimOther;
       ++rowCounter;
@@ -50,18 +50,18 @@ void internalBuildRandomAccess(int i, SchurHEntrance *schurHEntrance) {
         nnzCounter += rowSize;
       }
     }
-    HEntranceRaBlockMatrix.push_back(std::move(HEntranceRaBlockRow));
+    HessianEntranceRaBlockMatrix.push_back(std::move(HessianEntranceRaBlockRow));
   }
-  schurHEntrance->nnzInE = csrRowPtrKind[rowCounter];
+  schurHessianEntrance->nnzInE = csrRowPtrKind[rowCounter];
 }
 }  // namespace
 
-template <typename T> void SchurHEntrance<T>::buildRandomAccess() {
+template <typename T> void SchurHessianEntrance<T>::buildRandomAccess() {
   // camera and point
   std::vector<std::thread> threads;
-  threads.emplace_back(std::thread{internalBuildRandomAccess<SchurHEntrance<T>>,
+  threads.emplace_back(std::thread{internalBuildRandomAccess<SchurHessianEntrance<T>>,
                                    0, this});
-  threads.emplace_back(std::thread{internalBuildRandomAccess<SchurHEntrance<T>>,
+  threads.emplace_back(std::thread{internalBuildRandomAccess<SchurHessianEntrance<T>>,
                                    1, this});
   for (auto &thread : threads)
     thread.join();
@@ -74,8 +74,8 @@ BaseProblem<T>::BaseProblem(ProblemOption option) : option(option) {
   if (option.useSchur) {
     schurWS.splitSize = option.nElm / option.worldSize + 1;
     schurWS.workingDevice = 0;
-    schurWS.schurHEntrance.resize(option.worldSize);
-    schurWS.schurHEntrance.shrink_to_fit();
+    schurWS.schurHessianEntrance.resize(option.worldSize);
+    schurWS.schurHessianEntrance.shrink_to_fit();
   }
 }
 
@@ -104,14 +104,14 @@ template <typename T> void BaseProblem<T>::addEdge(BaseEdge<T> *edge) {
 
     if (option.useSchur) {
       for (int i = 0; i < option.worldSize; ++i) {
-        auto &workingSchurHEntrance = schurWS.schurHEntrance[i];
-        workingSchurHEntrance.dim[kind] = vertex->getGradShape();
-        auto &connectionBlockMatrix = workingSchurHEntrance.nra[kind];
+        auto &workingSchurHessianEntrance = schurWS.schurHessianEntrance[i];
+        workingSchurHessianEntrance.dim[kind] = vertex->getGradShape();
+        auto &connectionBlockMatrix = workingSchurHessianEntrance.nra[kind];
         auto connectionFind = connectionBlockMatrix.find(vertex);
         if (connectionFind == connectionBlockMatrix.end()) {
           connectionFind =
               connectionBlockMatrix
-                  .emplace(vertex, typename SchurHEntrance<T>::BlockRow{})
+                  .emplace(vertex, typename SchurHessianEntrance<T>::BlockRow{})
                   .first;
         }
         if (i == schurWS.workingDevice) {
@@ -123,9 +123,9 @@ template <typename T> void BaseProblem<T>::addEdge(BaseEdge<T> *edge) {
     }
   }
   if (option.useSchur) {
-    auto &workingSchurHEntrance = schurWS.schurHEntrance[schurWS.workingDevice];
-    workingSchurHEntrance.counter++;
-    if (workingSchurHEntrance.counter >= schurWS.splitSize)
+    auto &workingSchurHessianEntrance = schurWS.schurHessianEntrance[schurWS.workingDevice];
+    workingSchurHessianEntrance.counter++;
+    if (workingSchurHessianEntrance.counter >= schurWS.splitSize)
       schurWS.workingDevice++;
   } else {
     // TODO(Jie Ren): implement this
@@ -199,9 +199,9 @@ template <typename T> void BaseProblem<T>::makeVertices() {
   setAbsolutePosition();
   if (option.useSchur) {
     std::vector<std::thread> threads;
-    for (auto &schurHEntrance : schurWS.schurHEntrance) {
+    for (auto &schurHessianEntrance : schurWS.schurHessianEntrance) {
       threads.emplace_back(
-          std::thread{[&]() { schurHEntrance.buildRandomAccess(); }});
+          std::thread{[&]() { schurHessianEntrance.buildRandomAccess(); }});
     }
     for (auto &thread : threads) {
       thread.join();

@@ -83,8 +83,8 @@ void EdgeVector<T>::PositionAndRelationContainer::clear() {
 
 template <typename T>
 EdgeVector<T>::EdgeVector(const ProblemOption &option,
-                          const std::vector<SchurHEntrance<T>> &schurHEntrance)
-    : _option{option}, schurHEntrance{schurHEntrance},
+                          const std::vector<SchurHessianEntrance<T>> &schurHessianEntrance)
+    : _option{option}, schurHessianEntrance{schurHessianEntrance},
       schurCsrRowPtr(option.worldSize) {
   schurEquationContainer.reserve(option.worldSize);
   for (int i = 0; i < option.worldSize; ++i) {
@@ -290,10 +290,10 @@ template <typename T> void EdgeVector<T>::makeSchurVertices() {
 
     std::size_t total_vertex_idx{0};
     for (int i = 0; i < _option.worldSize; ++i) {
-      const auto &schur_H_entrance_other = schurHEntrance[i].ra[other_kind];
+      const auto &schur_H_entrance_other = schurHessianEntrance[i].ra[other_kind];
       omp_set_num_threads(16);
 #pragma omp parallel for
-      for (int j = 0; j < schurHEntrance[i].counter; ++j) {
+      for (int j = 0; j < schurHessianEntrance[i].counter; ++j) {
         const auto &row =
             schur_H_entrance_other[vertex_vector_other[total_vertex_idx + j]
                                        ->absolutePosition];
@@ -303,10 +303,10 @@ template <typename T> void EdgeVector<T>::makeSchurVertices() {
         absolute_position_inner[i][j] =
             vertex_vector[total_vertex_idx + j]->absolutePosition;
       }
-      total_vertex_idx += schurHEntrance[i].counter;
+      total_vertex_idx += schurHessianEntrance[i].counter;
 
       schurCsrRowPtr[i][vertex_kind_idx] = std::move(
-          const_cast<std::vector<SchurHEntrance<T>> &>(schurHEntrance)[i]
+          const_cast<std::vector<SchurHessianEntrance<T>> &>(schurHessianEntrance)[i]
               .csrRowPtr[vertex_kind_idx]);
       // fill csrRowPtr_. next row's csrRowPtr_ = this row's csrRowPtr_ + this
       // row's non-zero element number.
@@ -314,7 +314,7 @@ template <typename T> void EdgeVector<T>::makeSchurVertices() {
       const unsigned int cols = vertex_vector[0]->getEstimation().cols();
       num[vertex_kind_idx] = vertices_set.size();
 
-      schurEquationContainer[i].nnz[vertex_kind_idx] = schurHEntrance[i].nnzInE;
+      schurEquationContainer[i].nnz[vertex_kind_idx] = schurHessianEntrance[i].nnzInE;
       schurEquationContainer[i].nnz[vertex_kind_idx + 2] =
           num[vertex_kind_idx] * rows * cols * rows * cols;
       schurEquationContainer[i].dim[vertex_kind_idx] = rows * cols;

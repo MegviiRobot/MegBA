@@ -67,7 +67,7 @@ template <typename T> void EdgeVector<T>::preparePositionAndRelationDataCUDA() {
         dim3 grid((entriesInRows - 1) / block.x + 1);
         cudaMalloc(&compressedCsrColInd[i][0], entriesInRows * sizeof(int));
         cudaMemcpyAsync(compressedCsrColInd[i][0],
-                        schurHEntrance[i].csrColInd[0].get(),
+                        schurHessianEntrance[i].csrColInd[0].get(),
                         entriesInRows * sizeof(int), cudaMemcpyHostToDevice);
         broadCastCsrColInd<T><<<grid, block>>>(
             compressedCsrColInd[i][0], schurEquationContainer[i].dim[1],
@@ -85,7 +85,7 @@ template <typename T> void EdgeVector<T>::preparePositionAndRelationDataCUDA() {
         dim3 grid((entriesInRows - 1) / block.x + 1);
         cudaMalloc(&compressedCsrColInd[i][1], entriesInRows * sizeof(int));
         cudaMemcpyAsync(compressedCsrColInd[i][1],
-                        schurHEntrance[i].csrColInd[1].get(),
+                        schurHessianEntrance[i].csrColInd[1].get(),
                         entriesInRows * sizeof(int), cudaMemcpyHostToDevice);
         broadCastCsrColInd<T><<<grid, block>>>(
             compressedCsrColInd[i][1], schurEquationContainer[i].dim[0],
