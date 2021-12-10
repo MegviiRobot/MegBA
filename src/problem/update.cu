@@ -5,7 +5,7 @@
 *
 **/
 
-#include "edge/BaseEdge.h"
+#include "edge/base_edge.h"
 
 namespace MegBA {
 namespace {

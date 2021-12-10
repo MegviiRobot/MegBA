@@ -11,7 +11,7 @@
 #include <thrust/inner_product.h>
 #include <Eigen/Sparse>
 #include "Macro.h"
-#include "edge/BaseEdge.h"
+#include "edge/base_edge.h"
 #include "Wrapper.hpp"
 #include "resource/Manager.h"
 

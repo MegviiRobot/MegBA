@@ -12,7 +12,7 @@
 #include <memory>
 #include <set>
 #include "Common.h"
-#include "edge/BaseEdge.h"
+#include "edge/base_edge.h"
 #include "vertex/BaseVertex.h"
 #include "problem/HEntrance.h"
 

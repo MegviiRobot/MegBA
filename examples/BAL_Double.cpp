@@ -1,6 +1,6 @@
 #include <iostream>
 #include "problem/BaseProblem.h"
-#include "edge/BaseEdge.h"
+#include "edge/base_edge.h"
 #include "vertex/BaseVertex.h"
 #include <unordered_map>
 #include <random>

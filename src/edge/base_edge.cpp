@@ -4,7 +4,7 @@
  * Copyright (c) 2021 Megvii Inc. All rights reserved.
  *
  **/
-#include <edge/BaseEdge.h>
+#include <edge/base_edge.h>
 #include <omp.h>
 #include <utility>
 namespace MegBA {
