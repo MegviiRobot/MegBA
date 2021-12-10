@@ -5,10 +5,10 @@
 *
 **/
 
-#include "resource/MemoryPool.h"
+#include "resource/memory_pool.h"
 #include <unordered_map>
 #include <stack>
-#include "resource/Manager.h"
+#include "resource/handle_manager.h"
 
 namespace MegBA {
 namespace {

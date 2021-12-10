@@ -10,7 +10,7 @@
 #include "problem/BaseProblem.h"
 #include "edge/base_edge.h"
 #include "Wrapper.hpp"
-#include "resource/Manager.h"
+#include "resource/handle_manager.h"
 #include "Macro.h"
 
 #if __CUDA_ARCH__ <= 1120

@@ -10,7 +10,7 @@
 #include <thrust/inner_product.h>
 #include <thrust/async/reduce.h>
 #include "Wrapper.hpp"
-#include "resource/Manager.h"
+#include "resource/handle_manager.h"
 #include "Macro.h"
 
 namespace MegBA {

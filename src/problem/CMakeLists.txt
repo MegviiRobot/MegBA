@@ -11,4 +11,4 @@ target_link_libraries(cumake_H_and_g cuBase_Problem cusolve_Linear ${CUDA_cuspar
 
 cuda_add_library(cuupdate SHARED update.cu)
 
-target_link_libraries(Base_Problem cuBase_Problem cumake_H_and_g cusolve_Linear cuupdate cuManager)
+target_link_libraries(Base_Problem cuBase_Problem cumake_H_and_g cusolve_Linear cuupdate resource)

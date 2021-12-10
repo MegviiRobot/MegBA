@@ -7,7 +7,7 @@
 
 #include <Common.h>
 #include <operator/JetVector.h>
-#include <resource/MemoryPool.h>
+#include <resource/memory_pool.h>
 #include <Macro.h>
 #include <memory>
 

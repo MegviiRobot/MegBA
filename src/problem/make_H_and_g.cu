@@ -13,7 +13,7 @@
 #include "Macro.h"
 #include "edge/base_edge.h"
 #include "Wrapper.hpp"
-#include "resource/Manager.h"
+#include "resource/handle_manager.h"
 
 #if __CUDA_ARCH__ < 600 && defined(__CUDA_ARCH__)
 union AtomicUnion{

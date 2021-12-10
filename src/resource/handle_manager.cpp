@@ -5,9 +5,9 @@
 *
 **/
 
-#include "resource/Manager.h"
+#include "resource/handle_manager.h"
 #include <cassert>
-#include "resource/MemoryPool.h"
+#include "resource/memory_pool.h"
 
 namespace MegBA {
 void HandleManager::create_ncclComm() {

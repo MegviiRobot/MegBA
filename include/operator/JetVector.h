@@ -13,8 +13,8 @@
 #include "Common.h"
 #include "JetVector.inl"
 #include "Jet_Vector_math.inl"
-#include "resource/MemoryPool.h"
-#include "resource/Manager.h"
+#include "resource/memory_pool.h"
+#include "resource/handle_manager.h"
 
 namespace MegBA {
 template <typename T> class JetVector {
