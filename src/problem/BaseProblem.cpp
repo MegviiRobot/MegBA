@@ -79,7 +79,7 @@ BaseProblem<T>::BaseProblem(ProblemOption option) : option(option) {
   }
 }
 
-template <typename T> const device_t &BaseProblem<T>::getDevice() const {
+template <typename T> const Device &BaseProblem<T>::getDevice() const {
   return option.device;
 }
 
@@ -165,7 +165,7 @@ template <typename T> void BaseProblem<T>::eraseVertex(int ID) {
 template <typename T> void BaseProblem<T>::deallocateResource() {
   edges.deallocateResource();
   switch (option.device) {
-  case CUDA_t:
+  case CUDA:
     deallocateResourceCUDA();
     break;
   default:
@@ -185,7 +185,7 @@ template <typename T> unsigned int BaseProblem<T>::getHessianShape() const {
 
 template <typename T> void BaseProblem<T>::prepareUpdateData() {
   switch (option.device) {
-  case CUDA_t:
+  case CUDA:
     prepareUpdateDataCUDA();
     break;
   default:
@@ -252,7 +252,7 @@ template <typename T>
 bool BaseProblem<T>::solveLinear(double tol, double solverRefuseRatio,
                                  std::size_t maxIter) {
   switch (option.device) {
-  case CUDA_t:
+  case CUDA:
     return solveLinearCUDA(tol, solverRefuseRatio, maxIter);
   default:
     throw std::runtime_error("Not Implemented.");

@@ -31,10 +31,10 @@ template <typename T> JetVector<T> &JetVector<T>::CUDA() {
     auto N = _N;
     auto nElm = _nElm;
     switch (_device) {
-    case CUDA_t: {
+    case CUDA: {
       break;
     }
-    case CPU_t: {
+    case CPU: {
       // save counter
       CPU2CUDA(*this);
       clear();
@@ -44,7 +44,7 @@ template <typename T> JetVector<T> &JetVector<T>::CUDA() {
     _N = N;
     _nElm = nElm;
   }
-  _device = CUDA_t;
+  _device = CUDA;
   return *this;
 }
 

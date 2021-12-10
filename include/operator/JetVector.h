@@ -26,7 +26,7 @@ template <typename T> class JetVector {
 
   unsigned int _N = 0;
   unsigned int _nElm = 0;
-  device_t _device = CPU_t;
+  Device _device = CPU;
   std::vector<std::vector<T>> _hvData{};
   std::vector<T *> _dvPtr{};
   std::vector<T> _haData{};
@@ -44,10 +44,10 @@ template <typename T> class JetVector {
       : _N(f._N), _nElm(f._nElm), _device(f._device), _haData(f._haData),
         _hvData(f._hvData) {
     switch (_device) {
-    case CPU_t: {
+    case CPU: {
       break;
     }
-    case CUDA_t: {
+    case CUDA: {
       CUDA2CUDA(f);
       break;
     }
@@ -84,13 +84,13 @@ template <typename T> class JetVector {
   }
 
   void initAs(const JetVector<T> &initTemplate);
-  JetVector<T> &to(device_t device);
+  JetVector<T> &to(Device device);
   JetVector<T> &CPU();
   JetVector<T> &CUDA();
   bool IsEmpty();
   void set_Grad_Shape(unsigned int N);
   void erase(std::size_t idx) {
-    assert(_device == CPU_t || _gradPosition != -1 || _N == 0);
+    assert(_device == CPU || _gradPosition != -1 || _N == 0);
     _haData.erase(_haData.begin() + idx);
     _nElm--;
   }
@@ -98,7 +98,7 @@ template <typename T> class JetVector {
   const unsigned int &getElmNum() const { return _nElm; }
   std::size_t getElmNum(int rank) const { return MemoryPool::getElmNum(rank); }
   int getGradPosition() const { return _gradPosition; }
-  const device_t &getDevice() const { return _device; }
+  const Device &getDevice() const { return _device; }
 
   const std::vector<std::vector<T>> &getCPUGrad() const { return _hvData; }
   std::vector<std::vector<T>> &getCPUGrad() { return _hvData; }
@@ -168,7 +168,7 @@ std::ostream &ostreamCUDA(std::ostream &s, const JetVector<T> &z);
 template <typename T>
 inline std::ostream &operator<<(std::ostream &s, const JetVector<T> &z) {
   switch (z.getDevice()) {
-  case CPU_t: {
+  case CPU: {
     s << "[Res: "
       << "[ ";
     for (auto &data : z.getCPURes())
@@ -184,7 +184,7 @@ inline std::ostream &operator<<(std::ostream &s, const JetVector<T> &z) {
     s << "_device: " << std::to_string(z.getDevice()) << "]";
     break;
   }
-  case CUDA_t: {
+  case CUDA: {
     return ostreamCUDA(s, z);
   }
   }

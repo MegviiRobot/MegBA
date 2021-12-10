@@ -16,7 +16,7 @@ namespace MegBA {
 struct ProblemOption {
   bool useSchur{true};
   int worldSize{1};
-  device_t device{CUDA_t};
+  Device device{CUDA};
   int N{-1};
   int64_t nElm{-1};
 };

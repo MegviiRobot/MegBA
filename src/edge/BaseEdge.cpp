@@ -30,7 +30,7 @@ template <typename T> void EdgeVector<T>::decideEdgeKind() {
 
 template <typename T> void EdgeVector<T>::SchurEquationContainer::clear() {
   switch (_device) {
-  case CPU_t: {
+  case CPU: {
     for (int i = 0; i < 2; ++i)
       free(csrRowPtr[i]);
     for (int i = 0; i < 4; ++i)
@@ -40,7 +40,7 @@ template <typename T> void EdgeVector<T>::SchurEquationContainer::clear() {
     free(g);
     break;
   }
-  case CUDA_t: {
+  case CUDA: {
     clearCUDA();
     break;
   }
@@ -63,14 +63,14 @@ template <typename T> void EdgeVector<T>::SchurEquationContainer::clear() {
 template <typename T>
 void EdgeVector<T>::PositionAndRelationContainer::clear() {
   switch (_device) {
-  case CPU_t:
+  case CPU:
     free(relativePositionCamera);
     free(relativePositionPoint);
     free(absolutePositionCamera);
     free(absolutePositionPoint);
     free(connectionNumPoint);
     break;
-  case CUDA_t:
+  case CUDA:
     clearCUDA();
     break;
   }
@@ -222,7 +222,7 @@ template <typename T> void EdgeVector<T>::allocateResourcePre() {
     // TODO(Jie Ren): implement this
   }
   switch (_option.device) {
-  case CUDA_t: {
+  case CUDA: {
     PrepareUpdateDataCUDA();
     break;
   }
@@ -234,7 +234,7 @@ template <typename T> void EdgeVector<T>::allocateResourcePre() {
 
 template <typename T> void EdgeVector<T>::allocateResourcePost() {
   switch (_option.device) {
-  case CUDA_t: {
+  case CUDA: {
     preparePositionAndRelationDataCUDA();
     break;
   }
@@ -252,7 +252,7 @@ template <typename T> void EdgeVector<T>::deallocateResource() {
       ptr.reset();
 
   switch (_option.device) {
-  case CUDA_t: {
+  case CUDA: {
     deallocateResourceCUDA();
     break;
   }
@@ -328,7 +328,7 @@ template <typename T> JVD<T> EdgeVector<T>::forward() {
 }
 
 template <typename T> void EdgeVector<T>::fitDevice() {
-  if (_option.device == CUDA_t)
+  if (_option.device == CUDA)
     bindCUDAGradPtrs();
 
   for (int vertex_kind_idx = 0; vertex_kind_idx < edges.size();
@@ -372,7 +372,7 @@ template <typename T> void EdgeVector<T>::fitDevice() {
 template <typename T>
 void EdgeVector<T>::buildLinearSystemSchur(const JVD<T> &jetEstimation) {
   switch (_option.device) {
-  case CUDA_t: {
+  case CUDA: {
     buildLinearSystemSchurCUDA(jetEstimation);
     break;
   }

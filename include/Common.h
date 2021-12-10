@@ -24,10 +24,7 @@ namespace port_constants {
 #endif
 
 namespace MegBA {
-    enum device_t {
-        CPU_t,
-        CUDA_t
-    };
+    enum Device { CPU, CUDA };
 
     template<typename T>
     class JetVector;

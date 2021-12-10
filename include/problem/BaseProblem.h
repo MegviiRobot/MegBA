@@ -65,7 +65,7 @@ template <typename T> class BaseProblem {
 
   ~BaseProblem() = default;
 
-  const device_t &getDevice() const;
+  const Device &getDevice() const;
 
   void addVertex(int ID, BaseVertex<T> *vertex);
 

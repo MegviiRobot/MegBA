@@ -96,7 +96,7 @@ template <typename T> class EdgeVector {
              const std::vector<SchurHEntrance<T>> &schurHEntrance);
 
   struct SchurEquationContainer {
-    explicit SchurEquationContainer(const device_t &device) : _device(device) {}
+    explicit SchurEquationContainer(const Device &device) : _device(device) {}
 
     SchurEquationContainer(const SchurEquationContainer &container)
         : _device(container._device) {}
@@ -106,7 +106,7 @@ template <typename T> class EdgeVector {
     void clear();
 
     void clearCUDA();
-    const device_t &_device;
+    const Device &_device;
     std::array<int *, 2> csrRowPtr{nullptr, nullptr};
     std::array<T *, 4> csrVal{nullptr, nullptr, nullptr, nullptr};
     std::array<int *, 2> csrColInd{nullptr, nullptr};
@@ -116,7 +116,7 @@ template <typename T> class EdgeVector {
   };
 
   struct PositionAndRelationContainer {
-    explicit PositionAndRelationContainer(const device_t &device)
+    explicit PositionAndRelationContainer(const Device &device)
         : _device(device) {}
 
     ~PositionAndRelationContainer() { clear(); }
@@ -125,7 +125,7 @@ template <typename T> class EdgeVector {
 
     void clearCUDA();
 
-    const device_t &_device;
+    const Device &_device;
     int *relativePositionCamera{nullptr}, *relativePositionPoint{nullptr};
     int *absolutePositionCamera{nullptr}, *absolutePositionPoint{nullptr};
     int *connectionNumPoint{nullptr};
