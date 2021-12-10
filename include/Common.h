@@ -9,20 +9,6 @@
 #include <cstddef>
 #include <Eigen/Core>
 
-#ifdef USE_CXX11
-namespace port_constants {
-        static constexpr size_t kMaxAlignBytes =
-                // Work around a GCC 4.8 bug
-                // (https://gcc.gnu.org/bugzilla/show_bug.cgi?id=56019) where
-                // std::max_align_t is misplaced.
-#if defined (__GNUC__) && __GNUC__ == 4 && __GNUC_MINOR__ == 8
-                alignof(::max_align_t);
-#else
-                alignof(std::max_align_t);
-#endif
-    }  // namespace port_constants
-#endif
-
 namespace MegBA {
     enum Device { CPU, CUDA };
 
