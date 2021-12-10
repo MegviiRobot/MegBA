@@ -82,7 +82,8 @@ __device__ void makeHll(const T *valSmem, const T valI, const int pointDim,
 }
 
 template <typename T>
-__global__ void make_H_schur(
+__global__ void
+makeHSchur(
     const T *const *const valPtrs, const T *const *const errorPtrs,
     const int *absolutePositionCamera, const int *absolutePositionPoint,
     const int *relativePositionCamera, const int *relativePositionPoint,
@@ -225,7 +226,7 @@ void EdgeVector<T>::buildLinearSystemSchurCUDA(const JVD<T> &jetEstimation) {
       dim3 block(std::min((decltype(edgeNum))32, edgeNum),
                  cameraDim + pointDim);
       dim3 grid((edgeNum - 1) / block.x + 1);
-      make_H_schur<<<grid, block, block.x * block.y * sizeof(T)>>>(
+      makeHSchur<<<grid, block, block.x * block.y * sizeof(T)>>>(
           valPtrsDevice[i], errorPtrsDevice[i],
           schurPositionAndRelationContainer[i].absolutePositionCamera,
           schurPositionAndRelationContainer[i].absolutePositionPoint,
