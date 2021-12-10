@@ -1,4 +1,4 @@
-add_library(JetVector SHARED JetVector.cpp)
+add_library(JetVector SHARED jet_vector.cpp)
 
 cuda_add_library(cuJetVector SHARED JetVector.cu)
 

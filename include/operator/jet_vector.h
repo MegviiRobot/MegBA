@@ -11,8 +11,8 @@
 #include <functional>
 #include <vector>
 #include "common.h"
-#include "JetVector.inl"
-#include "Jet_Vector_math.inl"
+#include "jet_vector-inl.h"
+#include "jet_vector_op-inl.h"
 #include "resource/memory_pool.h"
 #include "resource/handle_manager.h"
 

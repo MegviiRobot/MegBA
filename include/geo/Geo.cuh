@@ -6,7 +6,7 @@
 **/
 
 #pragma once
-#include <operator/JetVector.h>
+#include <operator/jet_vector.h>
 #include <Eigen/Core>
 #include <Eigen/Geometry>
 

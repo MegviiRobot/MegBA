@@ -6,7 +6,7 @@
 **/
 #include "operator/math_function_Jet_Vector_CUDA.cuh"
 #include <array>
-#include "operator/JetVector.h"
+#include "operator/jet_vector.h"
 
 namespace MegBA {
 namespace math {
@@ -1248,7 +1248,7 @@ __global__ void abs_JetVector_Kernel(const unsigned int N,
   out_res[grid_thread_rank] = mask_local * f_res_local;
 }
 template <typename T>
-void abs_JetVector_CUDA(const MegBA::JetVector<T> &f,
+void absJetVectorCUDA(const MegBA::JetVector<T> &f,
                         MegBA::JetVector<T> *out) {
   for (int i = 0; i < MemoryPool::getWorldSize(); ++i) {
     cudaSetDevice(i);
@@ -1260,10 +1260,10 @@ void abs_JetVector_CUDA(const MegBA::JetVector<T> &f,
         out->getCUDAResPtr()[i], out->getCUDAGradPtr()[i]);
   }
 }
-template void abs_JetVector_CUDA<double>(const MegBA::JetVector<double> &f,
+template void absJetVectorCUDA<double>(const MegBA::JetVector<double> &f,
                                          MegBA::JetVector<double> *out);
 
-template void abs_JetVector_CUDA<float>(const MegBA::JetVector<float> &f,
+template void absJetVectorCUDA<float>(const MegBA::JetVector<float> &f,
                                         MegBA::JetVector<float> *out);
 
 template <typename T>
@@ -1283,7 +1283,7 @@ __global__ void cos_JetVector_Kernel(const unsigned int N,
   out_res[grid_thread_rank] = std::cos(f_res_local);
 }
 template <typename T>
-void cos_JetVector_CUDA(const MegBA::JetVector<T> &f,
+void cosJetVectorCUDA(const MegBA::JetVector<T> &f,
                         MegBA::JetVector<T> *out) {
   for (int i = 0; i < MemoryPool::getWorldSize(); ++i) {
     cudaSetDevice(i);
@@ -1295,10 +1295,10 @@ void cos_JetVector_CUDA(const MegBA::JetVector<T> &f,
         out->getCUDAResPtr()[i], out->getCUDAGradPtr()[i]);
   }
 }
-template void cos_JetVector_CUDA<double>(const MegBA::JetVector<double> &f,
+template void cosJetVectorCUDA<double>(const MegBA::JetVector<double> &f,
                                          MegBA::JetVector<double> *out);
 
-template void cos_JetVector_CUDA<float>(const MegBA::JetVector<float> &f,
+template void cosJetVectorCUDA<float>(const MegBA::JetVector<float> &f,
                                         MegBA::JetVector<float> *out);
 
 template <typename T>
@@ -1318,7 +1318,7 @@ __global__ void sin_JetVector_Kernel(const unsigned int N,
   out_res[grid_thread_rank] = std::sin(f_res_local);
 }
 template <typename T>
-void sin_JetVector_CUDA(const MegBA::JetVector<T> &f,
+void sinJetVectorCUDA(const MegBA::JetVector<T> &f,
                         MegBA::JetVector<T> *out) {
   for (int i = 0; i < MemoryPool::getWorldSize(); ++i) {
     cudaSetDevice(i);
@@ -1330,10 +1330,10 @@ void sin_JetVector_CUDA(const MegBA::JetVector<T> &f,
         out->getCUDAResPtr()[i], out->getCUDAGradPtr()[i]);
   }
 }
-template void sin_JetVector_CUDA<double>(const MegBA::JetVector<double> &f,
+template void sinJetVectorCUDA<double>(const MegBA::JetVector<double> &f,
                                          MegBA::JetVector<double> *out);
 
-template void sin_JetVector_CUDA<float>(const MegBA::JetVector<float> &f,
+template void sinJetVectorCUDA<float>(const MegBA::JetVector<float> &f,
                                         MegBA::JetVector<float> *out);
 
 template <typename T>
@@ -1355,7 +1355,7 @@ __global__ void sqrt_JetVector_Kernel(const unsigned int N,
   out_res[grid_thread_rank] = f_res_sqrt_local;
 }
 template <typename T>
-void sqrt_JetVector_CUDA(const MegBA::JetVector<T> &f,
+void sqrtJetVectorCUDA(const MegBA::JetVector<T> &f,
                          MegBA::JetVector<T> *out) {
   for (int i = 0; i < MemoryPool::getWorldSize(); ++i) {
     cudaSetDevice(i);
@@ -1367,10 +1367,10 @@ void sqrt_JetVector_CUDA(const MegBA::JetVector<T> &f,
         out->getCUDAResPtr()[i], out->getCUDAGradPtr()[i]);
   }
 }
-template void sqrt_JetVector_CUDA<double>(const MegBA::JetVector<double> &f,
+template void sqrtJetVectorCUDA<double>(const MegBA::JetVector<double> &f,
                                           MegBA::JetVector<double> *out);
 
-template void sqrt_JetVector_CUDA<float>(const MegBA::JetVector<float> &f,
+template void sqrtJetVectorCUDA<float>(const MegBA::JetVector<float> &f,
                                          MegBA::JetVector<float> *out);
 
 }  // namespace function

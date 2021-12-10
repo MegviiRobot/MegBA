@@ -8,7 +8,7 @@
 #pragma once
 #include "math_function_Jet_Vector_CPU.h"
 #include "math_function_Jet_Vector_CUDA.cuh"
-#include "JetVector.h"
+#include "jet_vector.h"
 
 namespace MegBA {
 template <typename T>
@@ -44,7 +44,7 @@ template <typename T> inline JetVector<T> abs(const JetVector<T> &f) {
     break;
   }
   case Device::CUDA: {
-    function::abs_JetVector_CUDA(f, out);
+    function::absJetVectorCUDA(f, out);
     break;
   }
   } // switch _device
@@ -81,7 +81,7 @@ template <typename T> inline JetVector<T> sqrt(JetVector<T> f) {
     break;
   }
   case Device::CUDA: {
-    function::sqrt_JetVector_CUDA(f, out);
+    function::sqrtJetVectorCUDA(f, out);
     break;
   }
   } // switch _device
@@ -98,7 +98,7 @@ template <typename T> inline JetVector<T> cos(JetVector<T> f) {
     break;
   }
   case Device::CUDA: {
-    function::cos_JetVector_CUDA(f, out);
+    function::cosJetVectorCUDA(f, out);
     break;
   }
   } // switch _device
@@ -125,7 +125,7 @@ template <typename T> inline JetVector<T> sin(JetVector<T> f) {
     break;
   }
   case Device::CUDA: {
-    function::sin_JetVector_CUDA(f, out);
+    function::sinJetVectorCUDA(f, out);
     break;
   }
   } // switch _device
@@ -213,5 +213,5 @@ template <typename T> inline JetVector<T> sin(JetVector<T> f) {
 //            f.a = ceil(f.a);
 //            return f;
 //        }
-} // namespace math
+}  // namespace math
 }  // namespace MegBA

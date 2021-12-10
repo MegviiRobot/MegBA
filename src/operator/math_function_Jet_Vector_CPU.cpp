@@ -8,7 +8,7 @@
 #include <thrust/copy.h>
 #include <thrust/transform.h>
 #include <thrust/iterator/constant_iterator.h>
-#include "operator/JetVector.h"
+#include "operator/jet_vector.h"
 #include "operator/math_function_Jet_Vector_CPU.h"
 namespace MegBA {
 namespace math {
