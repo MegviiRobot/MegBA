@@ -7,7 +7,7 @@
 
 #include <cublas_v2.h>
 #include <cusparse_v2.h>
-#include "problem/BaseProblem.h"
+#include "problem/base_problem.h"
 #include "edge/base_edge.h"
 #include "Wrapper.hpp"
 #include "resource/handle_manager.h"

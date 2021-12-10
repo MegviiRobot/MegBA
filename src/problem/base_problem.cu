@@ -5,7 +5,7 @@
 *
 **/
 
-#include "problem/BaseProblem.h"
+#include "problem/base_problem.h"
 #include <thrust/device_ptr.h>
 #include <thrust/inner_product.h>
 #include <thrust/async/reduce.h>

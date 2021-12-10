@@ -1,5 +1,5 @@
 #include <iostream>
-#include "problem/BaseProblem.h"
+#include "problem/base_problem.h"
 #include "edge/base_edge.h"
 #include "vertex/base_vertex.h"
 #include <unordered_map>

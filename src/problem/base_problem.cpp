@@ -7,7 +7,7 @@
 
 #include <thread>
 #include <condition_variable>
-#include "problem/BaseProblem.h"
+#include "problem/base_problem.h"
 
 namespace MegBA {
 namespace {
