@@ -49,23 +49,6 @@ template <typename T> void BaseProblem<T>::prepareUpdateDataCUDA() {
 }
 
 namespace {
-template <typename T>
-__global__ void H_add_ueye_CUDA(T *csrVal, const int *csrColInd,
-                                const int *csrRowPtr, const T u,
-                                const int Hessian_shape) {
-  unsigned int idx = blockDim.x * blockIdx.x + threadIdx.x;
-  if (idx >= Hessian_shape)
-    return;
-  int start_bias_this_row = csrRowPtr[idx];
-  int nnz_in_this_row = csrRowPtr[idx + 1] - start_bias_this_row;
-  for (int i = 0; i < nnz_in_this_row; ++i) {
-    if (csrColInd[start_bias_this_row + i] == idx) {
-      csrVal[start_bias_this_row + i] += u;
-      return;
-    }
-  }
-}
-
 template <typename T> struct compare_abs_value {
   __host__ __device__ bool operator()(T lhs, T rhs) {
     return std::abs(lhs) < std::abs(rhs);
@@ -79,7 +62,7 @@ struct compare_abs_value_ret_max : public thrust::binary_function<T, T, T> {
   }
 };
 
-template <typename T> inline T L2Norm_pow2(const T *vector, const int size) {
+template <typename T> inline T l2NormPow2(const T *vector, const int size) {
   return thrust::inner_product(thrust::device_ptr<const T>(vector),
                                thrust::device_ptr<const T>{vector + size},
                                thrust::device_ptr<const T>(vector), T(0.));
@@ -132,7 +115,7 @@ __global__ void RecoverDiagKernel(const T *in, const T a, const int batchSize,
 }
 
 template <typename T>
-void ExtractOldAndApplyNewDiag(const T a, const int batchSize, const int dim,
+void extractOldAndApplyNewDiag(const T a, const int batchSize, const int dim,
                                T *csrVal, T *diag) {
   dim3 block(dim, std::min(decltype(batchSize)(32), batchSize));
   dim3 grid((batchSize - 1) / block.y + 1);
@@ -148,25 +131,24 @@ void RecoverDiag(const T *diag, const T a, const int batchSize, const int dim,
 }
 
 template <typename T>
-__global__ void JdxpF(const T *grad, const T *delta_x, const T *res,
-                      const int *abs_camera_position,
-                      const int *abs_point_position, const int nElm,
-                      const int camera_dim, const int camera_num,
-                      const int point_dim, T *out) {
+__global__ void JdxpF(const T *grad, const T *deltaX, const T *res,
+                      const int *absCameraPosition,
+                      const int *absPointPosition, const int nElm,
+                      const int cameraDim, const int cameraNum,
+                      const int pointDim, T *out) {
   unsigned int tid = threadIdx.x + blockIdx.x * blockDim.x;
   if (tid >= nElm)
     return;
   T sum{0};
-  const int abs_camera_position_local = abs_camera_position[tid];
-  const int abs_point_position_local = abs_point_position[tid];
-  for (int i = 0; i < camera_dim; ++i) {
+  const int absCameraPositionLocal = absCameraPosition[tid];
+  const int absPointPositionLocal = absPointPosition[tid];
+  for (int i = 0; i < cameraDim; ++i) {
     sum += grad[tid + i * nElm] *
-           delta_x[i + abs_camera_position_local * camera_dim];
+           deltaX[i + absCameraPositionLocal * cameraDim];
   }
-  for (int i = 0; i < point_dim; ++i) {
-    sum += grad[tid + (i + camera_dim) * nElm] *
-           delta_x[i + camera_dim * camera_num +
-                   abs_point_position_local * point_dim];
+  for (int i = 0; i < pointDim; ++i) {
+    sum += grad[tid + (i + cameraDim) * nElm] *
+        deltaX[i + cameraDim * cameraNum + absPointPositionLocal * pointDim];
   }
   out[tid] = (sum + res[tid]) * (sum + res[tid]);
 }
@@ -180,8 +162,8 @@ void BaseProblem<T>::solveLM(int iter, double solverTol,
   makeVertices();
   Eigen::Matrix<JetVector<T>, Eigen::Dynamic, Eigen::Dynamic> JV_backup;
   int k = 0;
-  T new_residual_norm = 0;
-  T residual_norm = 0;
+  T residualNormNew = 0;
+  T residualNorm = 0;
 
   edges.backupDaPtrs();
   edges.regetCUDAGradPtrs();
@@ -192,17 +174,17 @@ void BaseProblem<T>::solveLM(int iter, double solverTol,
     // TODO: implement this
   }
 
-  std::vector<std::vector<T>> new_residual_norm_in_flight;
-  new_residual_norm_in_flight.resize(MemoryPool::getWorldSize());
-  for (auto &vec : new_residual_norm_in_flight)
+  std::vector<std::vector<T>> residualNormNewInFlight;
+  residualNormNewInFlight.resize(MemoryPool::getWorldSize());
+  for (auto &vec : residualNormNewInFlight)
     vec.resize(JV_backup.size());
   for (int i = 0; i < JV_backup.rows(); ++i) {
     for (int j = 0; j < MemoryPool::getWorldSize(); ++j) {
       cudaSetDevice(j);
-      const T *Res_ptr = JV_backup(i).getCUDAResPtr()[j];
+      const T *resPtr = JV_backup(i).getCUDAResPtr()[j];
       Wrapper::cublasGdot::call(cublasHandle[j], MemoryPool::getElmNum(j),
-                                Res_ptr, 1, Res_ptr, 1,
-                                &new_residual_norm_in_flight[j][i]);
+                                resPtr, 1, resPtr, 1,
+                                &residualNormNewInFlight[j][i]);
     }
   }
   for (int i = 0; i < MemoryPool::getWorldSize(); ++i) {
@@ -210,13 +192,13 @@ void BaseProblem<T>::solveLM(int iter, double solverTol,
     cudaSetDevice(i);
     cublasGetStream_v2(cublasHandle[i], &stream);
     cudaStreamSynchronize(stream);
-    for (const auto new_residual_norm_landed : new_residual_norm_in_flight[i]) {
-      new_residual_norm += new_residual_norm_landed;
+    for (const auto residualNormNewLanded : residualNormNewInFlight[i]) {
+      residualNormNew += residualNormNewLanded;
     }
   }
 
-  std::cout << "start with error: " << new_residual_norm / 2
-            << ", log error: " << std::log10(new_residual_norm / 2)
+  std::cout << "start with error: " << residualNormNew / 2
+            << ", log error: " << std::log10(residualNormNew / 2)
             << std::endl;
 
   MemoryPool::redistribute();
@@ -225,70 +207,70 @@ void BaseProblem<T>::solveLM(int iter, double solverTol,
   T v = 2;
   T rho = 0;
 
-  std::vector<std::array<T *, 2>> ExtractedDiag;
-  ExtractedDiag.resize(MemoryPool::getWorldSize());
+  std::vector<std::array<T *, 2>> extractedDiag;
+  extractedDiag.resize(MemoryPool::getWorldSize());
   for (int i = 0; i < MemoryPool::getWorldSize(); ++i) {
     cudaSetDevice(i);
     auto &container = edges.schurEquationContainer[i];
-    cudaMalloc(&ExtractedDiag[i][0],
+    cudaMalloc(&extractedDiag[i][0],
                container.nnz[2] / container.dim[0] * sizeof(T));
-    cudaMalloc(&ExtractedDiag[i][1],
+    cudaMalloc(&extractedDiag[i][1],
                container.nnz[3] / container.dim[1] * sizeof(T));
   }
-  bool recover_diag{false};
+  bool recoverDiagFlag{false};
   while (!stop && k < iter) {
     k++;
     if (option.useSchur) {
-      if (recover_diag) {
+      if (recoverDiagFlag) {
         for (int i = 0; i < MemoryPool::getWorldSize(); ++i) {
           cudaSetDevice(i);
           auto &container = edges.schurEquationContainer[i];
           ASSERT_CUDA_NO_ERROR();
-          RecoverDiag(ExtractedDiag[i][0], T(1.) / u,
+          RecoverDiag(extractedDiag[i][0], T(1.) / u,
                       container.nnz[2] / container.dim[0] / container.dim[0],
                       container.dim[0], container.csrVal[2]);
           ASSERT_CUDA_NO_ERROR();
-          RecoverDiag(ExtractedDiag[i][1], T(1.) / u,
+          RecoverDiag(extractedDiag[i][1], T(1.) / u,
                       container.nnz[3] / container.dim[1] / container.dim[1],
                       container.dim[1], container.csrVal[3]);
           ASSERT_CUDA_NO_ERROR();
         }
-        recover_diag = false;
+        recoverDiagFlag = false;
       } else {
         for (int i = 0; i < MemoryPool::getWorldSize(); ++i) {
           cudaSetDevice(i);
           auto &container = edges.schurEquationContainer[i];
-          ExtractOldAndApplyNewDiag(
+          extractOldAndApplyNewDiag(
               T(1.) / u, container.nnz[2] / container.dim[0] / container.dim[0],
-              container.dim[0], container.csrVal[2], ExtractedDiag[i][0]);
-          ExtractOldAndApplyNewDiag(
+              container.dim[0], container.csrVal[2], extractedDiag[i][0]);
+          extractOldAndApplyNewDiag(
               T(1.) / u, container.nnz[3] / container.dim[1] / container.dim[1],
-              container.dim[1], container.csrVal[3], ExtractedDiag[i][1]);
+              container.dim[1], container.csrVal[3], extractedDiag[i][1]);
         }
       }
     } else {
       // TODO: implement this
     }
-    bool solver_success =
+    bool solverSuccess =
         solveLinear(solverTol, solverRefuseRatio, solverMaxIter);
     MemoryPool::redistribute();
     ASSERT_CUDA_NO_ERROR();
 
-    T delta_x_l2, x_l2;
+    T deltaXL2, xL2;
     if (option.useSchur) {
       cudaSetDevice(0);
-      delta_x_l2 = L2Norm_pow2(schurDeltaXPtr[0], hessianShape);
-      x_l2 = L2Norm_pow2(schurXPtr[0], hessianShape);
+      deltaXL2 = l2NormPow2(schurDeltaXPtr[0], hessianShape);
+      xL2 = l2NormPow2(schurXPtr[0], hessianShape);
     } else {
       // TODO: implement this
     }
     ASSERT_CUDA_NO_ERROR();
 
-    delta_x_l2 = std::sqrt(delta_x_l2);
-    x_l2 = std::sqrt(x_l2);
-    if (delta_x_l2 <= epsilon2 * (x_l2 + epsilon1)) {
-      std::cout << "Stopped for delta_x_l2{" << delta_x_l2 << "} <= epsilon2{"
-                << epsilon2 << "} * (x_l2{" << x_l2 << "} + epsilon1{"
+    deltaXL2 = std::sqrt(deltaXL2);
+    xL2 = std::sqrt(xL2);
+    if (deltaXL2 <= epsilon2 * (xL2 + epsilon1)) {
+      std::cout << "Stopped for deltaXL2{" << deltaXL2 << "} <= epsilon2{"
+                << epsilon2 << "} * (xL2{" << xL2 << "} + epsilon1{"
                 << epsilon1 << "})" << std::endl;
       break;
     } else {
@@ -298,14 +280,14 @@ void BaseProblem<T>::solveLM(int iter, double solverTol,
         // TODO: implement this
       }
 
-      T rho_Denominator{0};
+      T rhoDenominator{0};
       if (option.useSchur) {
         std::vector<std::vector<T *>> Jdx;
         Jdx.resize(MemoryPool::getWorldSize());
-        const int camera_dim = edges.schurEquationContainer[0].dim[0];
-        const int camera_num =
-            edges.schurEquationContainer[0].nnz[2] / camera_dim / camera_dim;
-        const int point_dim = edges.schurEquationContainer[0].dim[1];
+        const int cameraDim = edges.schurEquationContainer[0].dim[0];
+        const int cameraNum =
+            edges.schurEquationContainer[0].nnz[2] / cameraDim / cameraDim;
+        const int pointDim = edges.schurEquationContainer[0].dim[1];
 
         std::vector<std::vector<thrust::system::cuda::unique_eager_future<T>>>
             futures;
@@ -314,8 +296,8 @@ void BaseProblem<T>::solveLM(int iter, double solverTol,
         for (int i = 0; i < MemoryPool::getWorldSize(); ++i) {
           cudaSetDevice(i);
           const auto nElm = MemoryPool::getElmNum(i);
-          const auto &eq_container = edges.schurEquationContainer[i];
-          const auto &position_container =
+          const auto &eqContainer = edges.schurEquationContainer[i];
+          const auto &positionContainer =
               edges.schurPositionAndRelationContainer[i];
           futures[i].resize(JV_backup.size());
           for (int j = 0; j < JV_backup.size(); ++j) {
@@ -327,9 +309,8 @@ void BaseProblem<T>::solveLM(int iter, double solverTol,
             JdxpF<<<grid, block>>>(
                 J.getCUDAGradPtr()[i], schurDeltaXPtr[i],
                 J.getCUDAResPtr()[i],
-                position_container.absolutePositionCamera,
-                position_container.absolutePositionPoint, nElm, camera_dim,
-                camera_num, point_dim, ptr);
+                                   positionContainer.absolutePositionCamera,
+                                   positionContainer.absolutePositionPoint, nElm, cameraDim, cameraNum, pointDim, ptr);
             futures[i][j] = thrust::async::reduce(
                 thrust::cuda::par.on(nullptr), thrust::device_ptr<T>{ptr},
                 thrust::device_ptr<T>{ptr} + nElm, T(0.), thrust::plus<T>{});
@@ -338,26 +319,26 @@ void BaseProblem<T>::solveLM(int iter, double solverTol,
         }
         for (int i = 0; i < futures.size(); ++i) {
           for (int j = futures[i].size() - 1; j >= 0; --j) {
-            rho_Denominator += futures[i][j].get();
+            rhoDenominator += futures[i][j].get();
             MemoryPool::deallocateNormal((void *)Jdx[i][j], i);
           }
         }
-        rho_Denominator -= new_residual_norm;
+        rhoDenominator -= residualNormNew;
       } else {
         // TODO: implement this
       }
       ASSERT_CUDA_NO_ERROR();
 
-      residual_norm = new_residual_norm;
-      new_residual_norm = 0.;
+      residualNorm = residualNormNew;
+      residualNormNew = 0.;
       auto JV = edges.forward();
       for (int i = 0; i < JV.size(); ++i) {
         for (int j = 0; j < MemoryPool::getWorldSize(); ++j) {
           cudaSetDevice(j);
-          const T *Res_ptr = JV(i).getCUDAResPtr()[j];
+          const T *resPtr = JV(i).getCUDAResPtr()[j];
           Wrapper::cublasGdot::call(cublasHandle[j], MemoryPool::getElmNum(j),
-                                    Res_ptr, 1, Res_ptr, 1,
-                                    &new_residual_norm_in_flight[j][i]);
+                                    resPtr, 1, resPtr, 1,
+                                    &residualNormNewInFlight[j][i]);
         }
       }
       for (int i = 0; i < MemoryPool::getWorldSize(); ++i) {
@@ -365,16 +346,15 @@ void BaseProblem<T>::solveLM(int iter, double solverTol,
         cudaSetDevice(i);
         cublasGetStream_v2(cublasHandle[i], &stream);
         cudaStreamSynchronize(stream);
-        for (const auto new_residual_norm_landed :
-             new_residual_norm_in_flight[i]) {
-          new_residual_norm += new_residual_norm_landed;
+        for (const auto residualNormNewLanded : residualNormNewInFlight[i]) {
+          residualNormNew += residualNormNewLanded;
         }
       }
       ASSERT_CUDA_NO_ERROR();
 
-      rho = -(residual_norm - new_residual_norm) / rho_Denominator;
+      rho = -(residualNorm - residualNormNew) / rhoDenominator;
 
-      if (residual_norm > new_residual_norm) {
+      if (residualNorm > residualNormNew) {
         for (int i = 0; i < JV.size(); ++i)
           JV_backup(i) = JV(i);
         if (option.useSchur) {
@@ -382,12 +362,12 @@ void BaseProblem<T>::solveLM(int iter, double solverTol,
         } else {
           // TODO: implement this
         }
-        std::cout << k << "-th iter error: " << new_residual_norm / 2
-                  << ", log error: " << std::log10(new_residual_norm / 2)
+        std::cout << k << "-th iter error: " << residualNormNew / 2
+                  << ", log error: " << std::log10(residualNormNew / 2)
                   << std::endl;
 
         backupLM();
-        residual_norm = new_residual_norm;
+        residualNorm = residualNormNew;
         if (option.useSchur) {
           cudaSetDevice(0);
           auto &container = edges.schurEquationContainer[0];
@@ -402,11 +382,11 @@ void BaseProblem<T>::solveLM(int iter, double solverTol,
         u /= std::max(1. / 3., 1 - std::pow(2 * rho - 1, 3));
         v = 2;
       } else {
-        new_residual_norm = residual_norm;
+        residualNormNew = residualNorm;
         rollbackLM();
         u /= v;
         v *= 2;
-        recover_diag = true;
+        recoverDiagFlag = true;
       }
     }
     if (stop)
@@ -416,8 +396,8 @@ void BaseProblem<T>::solveLM(int iter, double solverTol,
   deallocateResource();
   for (int i = 0; i < MemoryPool::getWorldSize(); ++i) {
     cudaSetDevice(i);
-    cudaFree(ExtractedDiag[i][0]);
-    cudaFree(ExtractedDiag[i][1]);
+    cudaFree(extractedDiag[i][0]);
+    cudaFree(extractedDiag[i][1]);
   }
 }
 
