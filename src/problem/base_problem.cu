@@ -156,7 +156,7 @@ void BaseProblem<T>::solveLM(int iter, double solverTol,
                              double solverRefuseRatio, int solverMaxIter,
                              const double tau, const double epsilon1,
                              const double epsilon2) {
-  const auto &cublasHandle = HandleManager::get_cublasHandle();
+  const auto &cublasHandle = HandleManager::getCublasHandle();
   makeVertices();
   Eigen::Matrix<JetVector<T>, Eigen::Dynamic, Eigen::Dynamic> JV_backup;
   int k = 0;
@@ -402,7 +402,7 @@ void BaseProblem<T>::solveLM(int iter, double solverTol,
 
 template <typename T> void BaseProblem<T>::backupLM() {
   const std::vector<cublasHandle_t> &cublasHandle =
-      HandleManager::get_cublasHandle();
+      HandleManager::getCublasHandle();
   T one = 1.;
   if (option.useSchur) {
     for (int i = 0; i < MemoryPool::getWorldSize(); ++i) {

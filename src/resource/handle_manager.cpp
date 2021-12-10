@@ -10,75 +10,75 @@
 #include "resource/memory_pool.h"
 
 namespace MegBA {
-void HandleManager::create_ncclComm() {
+void HandleManager::createNcclComm() {
   std::vector<int> devs;
   devs.resize(MemoryPool::getWorldSize());
-  comms_.resize(MemoryPool::getWorldSize());
+  _comms.resize(MemoryPool::getWorldSize());
   for (int i = 0; i < MemoryPool::getWorldSize(); ++i)
     devs[i] = i;
-  ncclCommInitAll(comms_.data(), MemoryPool::getWorldSize(), devs.data());
+  ncclCommInitAll(_comms.data(), MemoryPool::getWorldSize(), devs.data());
 }
 
-const std::vector<ncclComm_t> &HandleManager::get_ncclComm() { return comms_; }
+const std::vector<ncclComm_t> &HandleManager::getNcclComm() { return _comms; }
 
-void HandleManager::destroy_ncclComm() {
-  for (auto comm : comms_) {
+void HandleManager::destroyNcclComm() {
+  for (auto comm : _comms) {
     ncclCommDestroy(comm);
   }
 }
 
-void HandleManager::create_cublasHandle() {
-  std::unique_lock<std::mutex> lock{mutex_};
-  assert(cublasHandle_.empty());
-  cublasHandle_.resize(MemoryPool::getWorldSize());
+void HandleManager::createCublasHandle() {
+  std::unique_lock<std::mutex> lock{_mutex};
+  assert(_cublasHandle.empty());
+  _cublasHandle.resize(MemoryPool::getWorldSize());
   for (int i = 0; i < MemoryPool::getWorldSize(); ++i) {
     cudaSetDevice(i);
-    cublasCreate_v2(&cublasHandle_[i]);
+    cublasCreate_v2(&_cublasHandle[i]);
   }
 }
 
-const std::vector<cublasHandle_t> &HandleManager::get_cublasHandle() {
-  std::unique_lock<std::mutex> lock{mutex_};
-  assert(!cublasHandle_.empty());
-  return cublasHandle_;
+const std::vector<cublasHandle_t> &HandleManager::getCublasHandle() {
+  std::unique_lock<std::mutex> lock{_mutex};
+  assert(!_cublasHandle.empty());
+  return _cublasHandle;
 }
 
-void HandleManager::destroy_cublasHandle() {
-  std::unique_lock<std::mutex> lock{mutex_};
-  for (int i = 0; i < cublasHandle_.size(); ++i) {
+void HandleManager::destroyCublasHandle() {
+  std::unique_lock<std::mutex> lock{_mutex};
+  for (int i = 0; i < _cublasHandle.size(); ++i) {
     cudaSetDevice(i);
-    cublasDestroy_v2(cublasHandle_[i]);
+    cublasDestroy_v2(_cublasHandle[i]);
   }
-  cublasHandle_.clear();
+  _cublasHandle.clear();
 }
 
-void HandleManager::create_cusparseHandle() {
-  std::unique_lock<std::mutex> lock{mutex_};
-  assert(cusparseHandle_.empty());
-  cusparseHandle_.resize(MemoryPool::getWorldSize());
+void HandleManager::createCusparseHandle() {
+  std::unique_lock<std::mutex> lock{_mutex};
+  assert(_cusparseHandle.empty());
+  _cusparseHandle.resize(MemoryPool::getWorldSize());
   for (int i = 0; i < MemoryPool::getWorldSize(); ++i) {
     cudaSetDevice(i);
-    cusparseCreate(&cusparseHandle_[i]);
+    cusparseCreate(&_cusparseHandle[i]);
   }
 }
 
-const std::vector<cusparseHandle_t> &HandleManager::get_cusparseHandle() {
-  std::unique_lock<std::mutex> lock{mutex_};
-  assert(!cusparseHandle_.empty());
-  return cusparseHandle_;
+const std::vector<cusparseHandle_t> &HandleManager::getCusparseHandle() {
+  std::unique_lock<std::mutex> lock{_mutex};
+  assert(!_cusparseHandle.empty());
+  return _cusparseHandle;
 }
 
-void HandleManager::destroy_cusparseHandle() {
-  std::unique_lock<std::mutex> lock{mutex_};
-  for (int i = 0; i < cusparseHandle_.size(); ++i) {
+void HandleManager::destroyCusparseHandle() {
+  std::unique_lock<std::mutex> lock{_mutex};
+  for (int i = 0; i < _cusparseHandle.size(); ++i) {
     cudaSetDevice(i);
-    cusparseDestroy(cusparseHandle_[i]);
+    cusparseDestroy(_cusparseHandle[i]);
   }
-  cusparseHandle_.clear();
+  _cusparseHandle.clear();
 }
 
-std::vector<ncclComm_t> HandleManager::comms_{};
-std::vector<cublasHandle_t> HandleManager::cublasHandle_{};
-std::vector<cusparseHandle_t> HandleManager::cusparseHandle_{};
-std::mutex HandleManager::mutex_{};
+std::vector<ncclComm_t> HandleManager::_comms{};
+std::vector<cublasHandle_t> HandleManager::_cublasHandle{};
+std::vector<cusparseHandle_t> HandleManager::_cusparseHandle{};
+std::mutex HandleManager::_mutex{};
 }  // namespace MegBA

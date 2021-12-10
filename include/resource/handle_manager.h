@@ -15,28 +15,28 @@
 
 namespace MegBA {
 class HandleManager {
-  static std::vector<ncclComm_t> comms_;
-  static std::vector<cublasHandle_t> cublasHandle_;
-  static std::vector<cusparseHandle_t> cusparseHandle_;
-  static std::mutex mutex_;
+  static std::vector<ncclComm_t> _comms;
+  static std::vector<cublasHandle_t> _cublasHandle;
+  static std::vector<cusparseHandle_t> _cusparseHandle;
+  static std::mutex _mutex;
 
  public:
-  static void create_ncclComm();
+  static void createNcclComm();
 
-  static const std::vector<ncclComm_t> &get_ncclComm();
+  static const std::vector<ncclComm_t> &getNcclComm();
 
-  static void destroy_ncclComm();
+  static void destroyNcclComm();
 
-  static void create_cublasHandle();
+  static void createCublasHandle();
 
-  static const std::vector<cublasHandle_t> &get_cublasHandle();
+  static const std::vector<cublasHandle_t> &getCublasHandle();
 
-  static void destroy_cublasHandle();
+  static void destroyCublasHandle();
 
-  static void create_cusparseHandle();
+  static void createCusparseHandle();
 
-  static const std::vector<cusparseHandle_t> &get_cusparseHandle();
+  static const std::vector<cusparseHandle_t> &getCusparseHandle();
 
-  static void destroy_cusparseHandle();
+  static void destroyCusparseHandle();
 };
 }  // namespace MegBA

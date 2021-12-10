@@ -40,7 +40,7 @@ __global__ void fillPtr(const T *aData, T *ainvData, const int batchSize,
 
 template <typename T>
 void invert(const T *aFlat, int n, const int pointNum, T *cFlat) {
-  cublasHandle_t handle = HandleManager::get_cublasHandle()[0];
+  cublasHandle_t handle = HandleManager::getCublasHandle()[0];
 
   const T **a;
   T **ainv;
@@ -65,7 +65,7 @@ void invert(const T *aFlat, int n, const int pointNum, T *cFlat) {
 template <typename T>
 void invertDistributed(const std::vector<T *> aFlat, int n, const int pointNum,
                        std::vector<T *> cFlat) {
-  const auto &handle = HandleManager::get_cublasHandle();
+  const auto &handle = HandleManager::getCublasHandle();
   const auto worldSize = MemoryPool::getWorldSize();
 
   std::vector<const T **> a{static_cast<std::size_t>(worldSize)};
@@ -140,11 +140,11 @@ bool PreconditionedConjugateGradientSolverLargeSchurDistributedCUDA(
     const std::vector<int *> &hlpCsrRowPtr,
     const std::vector<T *> &hllInvCsrVal, const std::vector<T *> &g,
     const std::vector<T *> &d_x) {
-  const auto &comms = HandleManager::get_ncclComm();
+  const auto &comms = HandleManager::getNcclComm();
   const auto worldSize = MemoryPool::getWorldSize();
   constexpr auto cudaDataType = Wrapper::declared_cudaDatatype<T>::cuda_dtype;
-  const auto &cusparseHandle = HandleManager::get_cusparseHandle();
-  const auto &cublasHandle = HandleManager::get_cublasHandle();
+  const auto &cusparseHandle = HandleManager::getCusparseHandle();
+  const auto &cublasHandle = HandleManager::getCublasHandle();
   std::vector<cudaStream_t> cusparseStream, cublasStream;
   const T one{1.0}, zero{0.0}, neg_one{-1.0};
   T alphaN, alphaNegN, rhoNm1;
@@ -435,9 +435,9 @@ void SchurMakeVDistributed(std::vector<T *> *SpMVbuffer, const int pointNum,
                            const std::vector<int *> &hplCsrRowPtr,
                            const std::vector<T *> &hllInvCsrVal,
                            const std::vector<T *> &r) {
-  const auto &comms = HandleManager::get_ncclComm();
+  const auto &comms = HandleManager::getNcclComm();
   const auto worldSize = MemoryPool::getWorldSize();
-  const auto &cusparseHandle = HandleManager::get_cusparseHandle();
+  const auto &cusparseHandle = HandleManager::getCusparseHandle();
   constexpr auto cudaDataType = Wrapper::declared_cudaDatatype<T>::cuda_dtype;
 
   std::vector<T *> v, w;
@@ -526,7 +526,7 @@ void SchurSolveWDistributed(
     const std::vector<int *> &hlpCsrRowPtr,
     const std::vector<T *> &hllInvCsrVal, const std::vector<T *> &d_r,
     const std::vector<T *> &d_x) {
-  const auto comms = HandleManager::get_ncclComm();
+  const auto comms = HandleManager::getNcclComm();
   const auto worldSize = MemoryPool::getWorldSize();
   constexpr auto cudaDataType = Wrapper::declared_cudaDatatype<T>::cuda_dtype;
 
@@ -540,7 +540,7 @@ void SchurSolveWDistributed(
     w[i] = &d_r[i][hppRows];
   }
 
-  const auto &cusparseHandle = HandleManager::get_cusparseHandle();
+  const auto &cusparseHandle = HandleManager::getCusparseHandle();
 
   std::vector<cudaStream_t> cusparseStream;
   std::vector<cusparseDnVecDescr_t> vecxc, vecxp, vecw;

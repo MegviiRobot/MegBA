@@ -43,12 +43,12 @@ void MemoryPool::resetPool(int N, std::size_t nElm, std::int8_t sizeofType,
   _nElm = nElm;
   _sizeofType = sizeofType;
   _worldSize = worldSize;
-  HandleManager::destroy_ncclComm();
-  HandleManager::create_ncclComm();
-  HandleManager::destroy_cublasHandle();
-  HandleManager::destroy_cusparseHandle();
-  HandleManager::create_cublasHandle();
-  HandleManager::create_cusparseHandle();
+  HandleManager::destroyNcclComm();
+  HandleManager::createNcclComm();
+  HandleManager::destroyCublasHandle();
+  HandleManager::destroyCusparseHandle();
+  HandleManager::createCublasHandle();
+  HandleManager::createCusparseHandle();
 }
 
 void MemoryPool::allocateJetVector(std::vector<void *> *daPtr,
