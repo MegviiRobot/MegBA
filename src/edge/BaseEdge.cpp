@@ -99,7 +99,7 @@ template <typename T> void EdgeVector<T>::rollback() {
   } else {
     // TODO(Jie Ren): implement this
   }
-  regetCUDAGradPtrs();
+  bindCUDAGradPtrs();
   backupDaPtrs();
 }
 
@@ -329,7 +329,7 @@ template <typename T> JVD<T> EdgeVector<T>::forward() {
 
 template <typename T> void EdgeVector<T>::fitDevice() {
   if (_option.device == CUDA_t)
-    regetCUDAGradPtrs();
+    bindCUDAGradPtrs();
 
   for (int vertex_kind_idx = 0; vertex_kind_idx < edges.size();
        ++vertex_kind_idx) {

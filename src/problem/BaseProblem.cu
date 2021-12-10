@@ -164,7 +164,7 @@ void BaseProblem<T>::solveLM(int iter, double solverTol,
   T residualNorm = 0;
 
   edges.backupDaPtrs();
-  edges.regetCUDAGradPtrs();
+  edges.bindCUDAGradPtrs();
   JV_backup = edges.forward();
   if (option.useSchur) {
     edges.buildLinearSystemSchur(JV_backup);

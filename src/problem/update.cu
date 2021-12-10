@@ -6,7 +6,6 @@
 **/
 
 #include "edge/BaseEdge.h"
-#include <Macro.h>
 
 namespace MegBA {
 namespace {
@@ -20,8 +19,12 @@ updateDeltaXTwoVertices(const T *deltaX, const int *absolutePositionCamera,
   if (tid >= nElm)
     return;
   // ix : index in edges
-  // absolute_position_camera[ix] : index in cameras
-  // absolute_position_camera[ix] * camera_dim : starting position of its camera_block(dim = camera_dim) threadIdx.y : offset of its camera_block
+  // absolute_position_camera[ix] :
+  // index in cameras
+  // absolute_position_camera[ix] * camera_dim :
+  // starting position of its camera_block(dim = camera_dim)
+  // threadIdx.y :
+  // offset of its camera_block
   unsigned int idx = tid;
   for (int i = 0; i < cameraDim; ++i) {
     cameraX[idx] += deltaX[absolutePositionCamera[tid] * cameraDim + i];
@@ -35,7 +38,7 @@ updateDeltaXTwoVertices(const T *deltaX, const int *absolutePositionCamera,
     idx += nElm;
   }
 }
-}
+}  // namespace
 
     template <typename T>
 void EdgeVector<T>::updateSchur(const std::vector<T *> &deltaXPtr) {
@@ -49,7 +52,7 @@ void EdgeVector<T>::updateSchur(const std::vector<T *> &deltaXPtr) {
       verticesSetPtr->find(edges[0][0]->kind())->second.size();
   const auto pointDim = edges[1][0]->getGradShape();
 
-  // TODO: merge into method 'solve_Linear'
+  // TODO(Jie Ren): merge into method 'solve_Linear'
   for (int i = 0; i < MemoryPool::getWorldSize(); ++i) {
     cudaSetDevice(i);
     const auto nElm = MemoryPool::getElmNum(i);
@@ -63,7 +66,7 @@ void EdgeVector<T>::updateSchur(const std::vector<T *> &deltaXPtr) {
   }
 }
 
-template <typename T> void EdgeVector<T>::regetCUDAGradPtrs() {
+template <typename T> void EdgeVector<T>::bindCUDAGradPtrs() {
   int vertexKindIdxUnfixed = 0;
   for (auto &vertexVector : edges) {
     if (vertexVector[0]->fixed)
@@ -83,7 +86,7 @@ template <typename T> void EdgeVector<T>::regetCUDAGradPtrs() {
         }
         jetEstimation(i).bindDaPtr(std::move(daPtrs));
       } else {
-        // TODO: implement this
+        // TODO(Jie Ren): implement this
       }
     }
     vertexKindIdxUnfixed++;
@@ -91,4 +94,4 @@ template <typename T> void EdgeVector<T>::regetCUDAGradPtrs() {
 }
 template class EdgeVector<double>;
 template class EdgeVector<float>;
-}
+}  // namespace MegBA

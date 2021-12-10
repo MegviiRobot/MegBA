@@ -191,7 +191,7 @@ template <typename T> class EdgeVector {
 
   void updateSchur(const std::vector<T *> &deltaXPtr);
 
-  void regetCUDAGradPtrs();
+  void bindCUDAGradPtrs();
 
   std::vector<SchurEquationContainer> schurEquationContainer;
 
