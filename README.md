@@ -10,13 +10,12 @@ Experiments show that MegBA can out-perform state-of-the-art BA libraries (i.e.,
 
 
 ## Version
-* 2021/12/06 Beta version released! It corresponds to this [paper](https://arxiv.org/abs/2112.01349).
+* 2021/12/06 Beta version released! It corresponds to this [paper](https://arxiv.org/abs/2112.01349)
 * General version code release (Expected Dec 31 2021)
 * memory-efficient version with implicit Hessian (TBD)
 * analytical differential module, IMU factor, prior factor (TBD)
 
-Paper:
-* First Draft: https://arxiv.org/abs/2112.01349 (an updated version will be released by Dec 10)
+Paper: https://arxiv.org/abs/2112.01349 (updated version)
 
 
 ## Quickstart
@@ -56,7 +55,7 @@ Demo with BAL dataset:
 
 
 ## Notes for the practitioners
-* Currently, MegBA implements automatic differentation only for generalizability. Please consider implementing your own analytical differentiation module.
+* Currently, MegBA implements automatic differentiation only for generalizability. Please consider implementing your own analytical differentiation module.
 * If you use devices without modern inter-device communication (i.e., NVLinks..), you might find the data transfer is the bottleneck.
 * Empirically, we found it is necessary to customize the LM trust-region strategies and tune its hyper-parameters to further boost the performance. 
 
@@ -68,7 +67,7 @@ Under doc/  (Coming soon...)
 ## Collaborate with Us
 Please check here for [MegBA's future plan](https://docs.google.com/document/d/1fHYuw_qRFHrBcGSeQ8Ld4y2wK9oxF0am3xA9r6veUwM/edit?usp=sharing).
 
-If you are intereted in MegBA and want to collaborate, you can:
+If you are interested in MegBA and want to collaborate, you can:
 * Apply for an Internship at Megvii Research 3D, please send your resume to ur@megvii.com, with your expected starting date. (subject: 3D组CUDA实习生-Name) Unfortunately, now we are only able to host interns with work authorization in China. 
 * As an external collaborator (coding), just fork this repo and send PRs. We will review your PR carefully (and merge it into MegBA).
 * As an algorithm/novelty contributor, please send an email to MegBA@googlegroups.com.
