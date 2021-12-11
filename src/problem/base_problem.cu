@@ -18,13 +18,13 @@ template <typename T> void BaseProblem<T>::deallocateResourceCUDA() {
   if (option.useSchur) {
     for (int i = 0; i < MemoryPool::getWorldSize(); ++i) {
       cudaSetDevice(i);
-      cudaFree(schurXPtr[i]);
-      cudaFree(schurDeltaXPtr[i]);
-      cudaFree(schurDeltaXPtrBackup[i]);
+      cudaFree(xPtr[i]);
+      cudaFree(deltaXPtr[i]);
+      cudaFree(deltaXPtrBackup[i]);
     }
-    schurXPtr.clear();
-    schurDeltaXPtr.clear();
-    schurDeltaXPtrBackup.clear();
+    xPtr.clear();
+    deltaXPtr.clear();
+    deltaXPtrBackup.clear();
   } else {
     // TODO(Jie Ren): implement this
   }
@@ -33,15 +33,15 @@ template <typename T> void BaseProblem<T>::deallocateResourceCUDA() {
 template <typename T> void BaseProblem<T>::prepareUpdateDataCUDA() {
   if (option.useSchur) {
     const auto world_size = MemoryPool::getWorldSize();
-    schurXPtr.resize(world_size);
-    schurDeltaXPtr.resize(world_size);
-    schurDeltaXPtrBackup.resize(world_size);
+    xPtr.resize(world_size);
+    deltaXPtr.resize(world_size);
+    deltaXPtrBackup.resize(world_size);
     for (int i = 0; i < world_size; ++i) {
       cudaSetDevice(i);
-      cudaMalloc(&schurXPtr[i], hessianShape * sizeof(T));
-      cudaMalloc(&schurDeltaXPtr[i], hessianShape * sizeof(T));
-      cudaMalloc(&schurDeltaXPtrBackup[i], hessianShape * sizeof(T));
-      cudaMemsetAsync(schurDeltaXPtr[i], 0, hessianShape * sizeof(T));
+      cudaMalloc(&xPtr[i], hessianShape * sizeof(T));
+      cudaMalloc(&deltaXPtr[i], hessianShape * sizeof(T));
+      cudaMalloc(&deltaXPtrBackup[i], hessianShape * sizeof(T));
+      cudaMemsetAsync(deltaXPtr[i], 0, hessianShape * sizeof(T));
     }
   } else {
     // TODO(Jie Ren): implement this
@@ -149,6 +149,53 @@ __global__ void JdxpF(const T *grad, const T *deltaX, const T *res,
   }
   out[tid] = (sum + res[tid]) * (sum + res[tid]);
 }
+
+template <typename T>
+double computeRhoDenominator(JVD<T> &JV, std::vector<T *> &schurDeltaXPtr, EdgeVector<T> &edges) {
+  T rhoDenominator{0};
+  std::vector<std::vector<T *>> Jdx;
+  Jdx.resize(MemoryPool::getWorldSize());
+  const int cameraDim = edges.schurEquationContainer[0].dim[0];
+  const int cameraNum =
+      edges.schurEquationContainer[0].nnz[2] / cameraDim / cameraDim;
+  const int pointDim = edges.schurEquationContainer[0].dim[1];
+
+  std::vector<std::vector<thrust::system::cuda::unique_eager_future<T>>>
+      futures;
+  futures.resize(MemoryPool::getWorldSize());
+
+  for (int i = 0; i < MemoryPool::getWorldSize(); ++i) {
+    cudaSetDevice(i);
+    const auto nElm = MemoryPool::getElmNum(i);
+    const auto &positionContainer =
+        edges.schurPositionAndRelationContainer[i];
+    futures[i].resize(JV.size());
+    for (int j = 0; j < JV.size(); ++j) {
+      auto &J = JV(j);
+      T *ptr;
+      MemoryPool::allocateNormal(reinterpret_cast<void **>(&ptr),
+                                 nElm * sizeof(T), i);
+      dim3 block(std::min((std::size_t)256, nElm));
+      dim3 grid((nElm - 1) / block.x + 1);
+      JdxpF<<<grid, block>>>(J.getCUDAGradPtr()[i], schurDeltaXPtr[i],
+                             J.getCUDAResPtr()[i],
+                             positionContainer.absolutePositionCamera,
+                             positionContainer.absolutePositionPoint,
+                             nElm, cameraDim, cameraNum, pointDim, ptr);
+      futures[i][j] = thrust::async::reduce(
+          thrust::cuda::par.on(nullptr), thrust::device_ptr<T>{ptr},
+          thrust::device_ptr<T>{ptr} + nElm, T(0.), thrust::plus<T>{});
+      Jdx[i].push_back(ptr);
+    }
+  }
+  for (int i = 0; i < futures.size(); ++i) {
+    for (int j = futures[i].size() - 1; j >= 0; --j) {
+      rhoDenominator += futures[i][j].get();
+      MemoryPool::deallocateNormal(reinterpret_cast<void *>(Jdx[i][j]), i);
+    }
+  }
+  return rhoDenominator;
+}
 }  // namespace
 
 template <typename T>
@@ -245,15 +292,16 @@ void BaseProblem<T>::solveLM() {
     } else {
       // TODO(Jie Ren): implement this
     }
-    bool solverSuccess = solveLinear();
+//    bool solverSuccess = solveLinear();
+    solver->solve();
     MemoryPool::redistribute();
     ASSERT_CUDA_NO_ERROR();
 
     T deltaXL2, xL2;
     if (option.useSchur) {
       cudaSetDevice(0);
-      deltaXL2 = l2NormPow2(schurDeltaXPtr[0], hessianShape);
-      xL2 = l2NormPow2(schurXPtr[0], hessianShape);
+      deltaXL2 = l2NormPow2(deltaXPtr[0], hessianShape);
+      xL2 = l2NormPow2(xPtr[0], hessianShape);
     } else {
       // TODO(Jie Ren): implement this
     }
@@ -265,56 +313,14 @@ void BaseProblem<T>::solveLM() {
       break;
     } else {
       if (option.useSchur) {
-        edges.updateSchur(schurDeltaXPtr);
+        edges.updateSchur(deltaXPtr);
       } else {
         // TODO(Jie Ren): implement this
       }
 
       T rhoDenominator{0};
       if (option.useSchur) {
-        std::vector<std::vector<T *>> Jdx;
-        Jdx.resize(MemoryPool::getWorldSize());
-        const int cameraDim = edges.schurEquationContainer[0].dim[0];
-        const int cameraNum =
-            edges.schurEquationContainer[0].nnz[2] / cameraDim / cameraDim;
-        const int pointDim = edges.schurEquationContainer[0].dim[1];
-
-        std::vector<std::vector<thrust::system::cuda::unique_eager_future<T>>>
-            futures;
-        futures.resize(MemoryPool::getWorldSize());
-
-        for (int i = 0; i < MemoryPool::getWorldSize(); ++i) {
-          cudaSetDevice(i);
-          const auto nElm = MemoryPool::getElmNum(i);
-          const auto &eqContainer = edges.schurEquationContainer[i];
-          const auto &positionContainer =
-              edges.schurPositionAndRelationContainer[i];
-          futures[i].resize(JV_backup.size());
-          for (int j = 0; j < JV_backup.size(); ++j) {
-            auto &J = JV_backup(j);
-            T *ptr;
-            MemoryPool::allocateNormal(reinterpret_cast<void **>(&ptr),
-                                       nElm * sizeof(T), i);
-            dim3 block(std::min((std::size_t)256, nElm));
-            dim3 grid((nElm - 1) / block.x + 1);
-            JdxpF<<<grid, block>>>(J.getCUDAGradPtr()[i], schurDeltaXPtr[i],
-                                   J.getCUDAResPtr()[i],
-                                   positionContainer.absolutePositionCamera,
-                                   positionContainer.absolutePositionPoint,
-                                   nElm, cameraDim, cameraNum, pointDim, ptr);
-            futures[i][j] = thrust::async::reduce(
-                thrust::cuda::par.on(nullptr), thrust::device_ptr<T>{ptr},
-                thrust::device_ptr<T>{ptr} + nElm, T(0.), thrust::plus<T>{});
-            Jdx[i].push_back(ptr);
-          }
-        }
-        for (int i = 0; i < futures.size(); ++i) {
-          for (int j = futures[i].size() - 1; j >= 0; --j) {
-            rhoDenominator += futures[i][j].get();
-            MemoryPool::deallocateNormal(reinterpret_cast<void *>(Jdx[i][j]),
-                                         i);
-          }
-        }
+        rhoDenominator = computeRhoDenominator(JV_backup, deltaXPtr, edges);
         rhoDenominator -= residualNormNew;
       } else {
         // TODO(Jie Ren): implement this
@@ -397,10 +403,10 @@ template <typename T> void BaseProblem<T>::backupLM() {
   if (option.useSchur) {
     for (int i = 0; i < MemoryPool::getWorldSize(); ++i) {
       cudaSetDevice(i);
-      cudaMemcpyAsync(schurDeltaXPtrBackup[i], schurDeltaXPtr[i],
+      cudaMemcpyAsync(deltaXPtrBackup[i], deltaXPtr[i],
                       hessianShape * sizeof(T), cudaMemcpyDeviceToDevice);
       Wrapper::cublasGaxpy::call(cublasHandle[i], hessianShape, &one,
-                                 schurDeltaXPtr[i], 1, schurXPtr[i], 1);
+                                 deltaXPtr[i], 1, xPtr[i], 1);
     }
   } else {
     // TODO(Jie Ren): implement this
@@ -413,7 +419,7 @@ template <typename T> void BaseProblem<T>::rollbackLM() {
   if (option.useSchur) {
     for (int i = 0; i < MemoryPool::getWorldSize(); ++i) {
       cudaSetDevice(i);
-      cudaMemcpyAsync(schurDeltaXPtr[i], schurDeltaXPtrBackup[i],
+      cudaMemcpyAsync(deltaXPtr[i], deltaXPtrBackup[i],
                       hessianShape * sizeof(T), cudaMemcpyDeviceToDevice);
     }
   } else {

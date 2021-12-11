@@ -1,13 +1,14 @@
 /**
-* MegBA is Licensed under the Apache License, Version 2.0 (the "License")
-*
-* Copyright (c) 2021 Megvii Inc. All rights reserved.
-*
-**/
+ * MegBA is Licensed under the Apache License, Version 2.0 (the "License")
+ *
+ * Copyright (c) 2021 Megvii Inc. All rights reserved.
+ *
+ **/
 
 #pragma once
-#include <cstddef>
 #include <Eigen/Core>
+#include <cstddef>
+#include <memory>
 #include <set>
 
 namespace MegBA {
@@ -42,20 +43,33 @@ struct ProblemOption {
   SolverOptionPCG solverOptionPCG{};
 };
 
-template <typename T> class JetVector;
+template <typename T>
+class JetVector;
 
-template <typename T> class BaseProblem;
+template <typename T>
+class BaseProblem;
 
-template <typename T> class BaseVertex;
+template <typename T>
+class BaseVertex;
 
-template <typename T> class BaseEdge;
+template <typename T>
+class BaseEdge;
 
-template <typename T> class EdgeVector;
-}
+template <typename T>
+class EdgeVector;
+
+template <typename T>
+class BaseSolver;
+
+template <typename T>
+using JVD = Eigen::Matrix<JetVector<T>, Eigen::Dynamic, Eigen::Dynamic>;
+}  // namespace MegBA
 
 namespace Eigen {
 namespace internal {
-// template<typename T, int Rows_, int Cols_, int Options_, int MaxRows_, int MaxCols_> struct traits<Matrix<MegBA::JetVector<T>, Rows_, Cols_, Options_, MaxRows_, MaxCols_> >
+// template<typename T, int Rows_, int Cols_, int Options_, int MaxRows_, int
+// MaxCols_> struct traits<Matrix<MegBA::JetVector<T>, Rows_, Cols_, Options_,
+// MaxRows_, MaxCols_> >
 //{
 // private:
 //   using Scalar_ = MegBA::JetVector<T>;
@@ -68,7 +82,9 @@ namespace internal {
 //     default_alignment = compute_default_alignment<Scalar_,max_size>::value,
 //     actual_alignment = ((Options_&DontAlign)==0) ? default_alignment : 0,
 //     required_alignment = unpacket_traits<PacketScalar>::alignment,
-//     packet_access_bit = (packet_traits<Scalar_>::Vectorizable && (EIGEN_UNALIGNED_VECTORIZE || (actual_alignment>=required_alignment))) ? PacketAccessBit : 0
+//     packet_access_bit = (packet_traits<Scalar_>::Vectorizable &&
+//     (EIGEN_UNALIGNED_VECTORIZE || (actual_alignment>=required_alignment))) ?
+//     PacketAccessBit : 0
 //   };
 //
 // public:
@@ -81,30 +97,45 @@ namespace internal {
 //     ColsAtCompileTime = Cols_,
 //     MaxRowsAtCompileTime = MaxRows_,
 //     MaxColsAtCompileTime = MaxCols_,
-//     Flags = compute_matrix_flags<Scalar_, Rows_, Cols_, Options_, MaxRows_, MaxCols_>::ret, Options = Options_, InnerStrideAtCompileTime = 1,
-//     OuterStrideAtCompileTime = (Options&RowMajor) ? ColsAtCompileTime : RowsAtCompileTime,
+//     Flags = compute_matrix_flags<Scalar_, Rows_, Cols_, Options_, MaxRows_,
+//     MaxCols_>::ret, Options = Options_, InnerStrideAtCompileTime = 1,
+//     OuterStrideAtCompileTime = (Options&RowMajor) ? ColsAtCompileTime :
+//     RowsAtCompileTime,
 //
-//     // FIXME, the following flag in only used to define NeedsToAlign in PlainObjectBase EvaluatorFlags = LinearAccessBit | DirectAccessBit | packet_access_bit | row_major_bit, Alignment = actual_alignment
+//     // FIXME, the following flag in only used to define NeedsToAlign in
+//     PlainObjectBase EvaluatorFlags = LinearAccessBit | DirectAccessBit |
+//     packet_access_bit | row_major_bit, Alignment = actual_alignment
 //   };
 // };
 
-// template<typename T, int Rows_, int Cols_, int Options_, int MaxRows_, int MaxCols_, int MapOptions, typename StrideType> struct traits<Map<const Matrix<MegBA::JetVector<T>, Rows_, Cols_, Options_, MaxRows_, MaxCols_>, MapOptions, StrideType> >
-//     : public traits<const Matrix<MegBA::JetVector<T>, Rows_, Cols_, Options_, MaxRows_, MaxCols_>>
+// template<typename T, int Rows_, int Cols_, int Options_, int MaxRows_, int
+// MaxCols_, int MapOptions, typename StrideType> struct traits<Map<const
+// Matrix<MegBA::JetVector<T>, Rows_, Cols_, Options_, MaxRows_, MaxCols_>,
+// MapOptions, StrideType> >
+//     : public traits<const Matrix<MegBA::JetVector<T>, Rows_, Cols_, Options_,
+//     MaxRows_, MaxCols_>>
 //{
-//   using PlainObjectType = const Matrix<MegBA::JetVector<T>, Rows_, Cols_, Options_, MaxRows_, MaxCols_>; typedef traits<PlainObjectType> TraitsBase;
+//   using PlainObjectType = const Matrix<MegBA::JetVector<T>, Rows_, Cols_,
+//   Options_, MaxRows_, MaxCols_>; typedef traits<PlainObjectType> TraitsBase;
 //   enum {
-//     PlainObjectTypeInnerSize = ((traits<PlainObjectType>::Flags&RowMajorBit)==RowMajorBit)
+//     PlainObjectTypeInnerSize =
+//     ((traits<PlainObjectType>::Flags&RowMajorBit)==RowMajorBit)
 //                                    ? PlainObjectType::ColsAtCompileTime
 //                                    : PlainObjectType::RowsAtCompileTime,
 //
 //     InnerStrideAtCompileTime = StrideType::InnerStrideAtCompileTime == 0
-//                                    ? int(PlainObjectType::InnerStrideAtCompileTime)
-//                                    : int(StrideType::InnerStrideAtCompileTime),
+//                                    ?
+//                                    int(PlainObjectType::InnerStrideAtCompileTime)
+//                                    :
+//                                    int(StrideType::InnerStrideAtCompileTime),
 //     OuterStrideAtCompileTime = StrideType::OuterStrideAtCompileTime == 0
-//                                    ? (InnerStrideAtCompileTime==Dynamic || PlainObjectTypeInnerSize==Dynamic
+//                                    ? (InnerStrideAtCompileTime==Dynamic ||
+//                                    PlainObjectTypeInnerSize==Dynamic
 //                                           ? Dynamic
-//                                           : int(InnerStrideAtCompileTime) * int(PlainObjectTypeInnerSize))
-//                                    : int(StrideType::OuterStrideAtCompileTime),
+//                                           : int(InnerStrideAtCompileTime) *
+//                                           int(PlainObjectTypeInnerSize))
+//                                    :
+//                                    int(StrideType::OuterStrideAtCompileTime),
 //     Alignment = int(MapOptions)&int(AlignedMask),
 //     Flags = int(TraitsBase::Flags & (~NestByRefBit))
 //   };
@@ -112,10 +143,15 @@ namespace internal {
 //   enum { Options }; // Expressions don't have Options
 // };
 //
-// template<typename PlainObjectType, int MapOptions, typename StrideType> class Map;
+// template<typename PlainObjectType, int MapOptions, typename StrideType> class
+// Map;
 //
-// template<typename T, int Rows_, int Cols_, int Options_, int MaxRows_, int MaxCols_, int MapOptions, typename StrideType> class Map<const Matrix<MegBA::JetVector<T>, Rows_, Cols_, Options_, MaxRows_, MaxCols_>, MapOptions, StrideType>
-//     : public MapBase<Map<const Matrix<MegBA::JetVector<T>, Rows_, Cols_, Options_, MaxRows_, MaxCols_>, MapOptions, StrideType> >
+// template<typename T, int Rows_, int Cols_, int Options_, int MaxRows_, int
+// MaxCols_, int MapOptions, typename StrideType> class Map<const
+// Matrix<MegBA::JetVector<T>, Rows_, Cols_, Options_, MaxRows_, MaxCols_>,
+// MapOptions, StrideType>
+//     : public MapBase<Map<const Matrix<MegBA::JetVector<T>, Rows_, Cols_,
+//     Options_, MaxRows_, MaxCols_>, MapOptions, StrideType> >
 //{
 // public:
 //
@@ -137,8 +173,13 @@ namespace internal {
 //       inline Index outerStride() const
 //   {
 //     return StrideType::OuterStrideAtCompileTime != 0 ? m_stride.outer()
-//            : internal::traits<Map>::OuterStrideAtCompileTime != Dynamic ? Index(internal::traits<Map>::OuterStrideAtCompileTime) : IsVectorAtCompileTime ? (this->size() * innerStride()) : int(Flags)&RowMajorBit ? (this->cols() * innerStride())
-//                                                                         : (this->rows() * innerStride());
+//            : internal::traits<Map>::OuterStrideAtCompileTime != Dynamic ?
+//            Index(internal::traits<Map>::OuterStrideAtCompileTime) :
+//            IsVectorAtCompileTime ? (this->size() * innerStride()) :
+//            int(Flags)&RowMajorBit ? (this->cols() * innerStride())
+//                                                                         :
+//                                                                         (this->rows()
+//                                                                         * innerStride());
 //   }
 //
 //   /** Constructor in the fixed-size case.
@@ -147,7 +188,8 @@ namespace internal {
 //       * \param stride optional Stride object, passing the strides.
 //    */
 //   EIGEN_DEVICE_FUNC
-//   explicit inline Map(PointerArgType dataPtr, const StrideType& stride = StrideType())
+//   explicit inline Map(PointerArgType dataPtr, const StrideType& stride =
+//   StrideType())
 //       : Base(cast_to_pointer_type(dataPtr)), m_stride(stride)
 //   {
 //   }
@@ -159,7 +201,8 @@ namespace internal {
 //       * \param stride optional Stride object, passing the strides.
 //    */
 //   EIGEN_DEVICE_FUNC
-//   inline Map(PointerArgType dataPtr, Index size, const StrideType& stride = StrideType())
+//   inline Map(PointerArgType dataPtr, Index size, const StrideType& stride =
+//   StrideType())
 //       : Base(cast_to_pointer_type(dataPtr), size), m_stride(stride)
 //   {
 //   }
@@ -172,7 +215,8 @@ namespace internal {
 //       * \param stride optional Stride object, passing the strides.
 //    */
 //   EIGEN_DEVICE_FUNC
-//   inline Map(PointerArgType dataPtr, Index rows, Index cols, const StrideType& stride = StrideType())
+//   inline Map(PointerArgType dataPtr, Index rows, Index cols, const
+//   StrideType& stride = StrideType())
 //       : Base(cast_to_pointer_type(dataPtr), rows, cols), m_stride(stride)
 //   {
 //   }
@@ -182,5 +226,5 @@ namespace internal {
 // protected:
 //   StrideType m_stride;
 // };
-}
-}
+}  // namespace internal
+}  // namespace Eigen

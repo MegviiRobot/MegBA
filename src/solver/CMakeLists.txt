@@ -1,0 +1,4 @@
+add_library(schur_distributed_pcg_solver SHARED schur_distributed_pcg_solver.cpp)
+cuda_add_library(schur_distributed_pcg_solver_CUDA SHARED schur_distributed_pcg_solver.cu)
+target_link_libraries(schur_distributed_pcg_solver_CUDA ${CUDA_cusparse_LIBRARY} ${CUDA_cublas_LIBRARY} nccl)
+target_link_libraries(schur_distributed_pcg_solver schur_distributed_pcg_solver_CUDA)

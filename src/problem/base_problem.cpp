@@ -5,9 +5,10 @@
 *
 **/
 
+#include "problem/base_problem.h"
 #include <thread>
 #include <condition_variable>
-#include "problem/base_problem.h"
+#include "solver/solver_dispatcher.h"
 
 namespace MegBA {
 namespace {
@@ -68,7 +69,7 @@ template <typename T> void SchurHessianEntrance<T>::buildRandomAccess() {
 }
 
 template <typename T>
-BaseProblem<T>::BaseProblem(ProblemOption option) : option(option) {
+BaseProblem<T>::BaseProblem(const ProblemOption& option) : option(option), solver(dispatchSolver(*this)) {
   if (option.N != -1 && option.nElm != -1)
     MemoryPool::resetPool(option.N, option.nElm, sizeof(T), option.deviceUsed.size());
   if (option.useSchur) {
@@ -239,7 +240,7 @@ template <typename T> void BaseProblem<T>::setAbsolutePosition() {
   if (option.useSchur) {
     for (int i = 0; i < MemoryPool::getWorldSize(); ++i) {
       cudaSetDevice(i);
-      cudaMemcpyAsync(schurXPtr[i], hxPtr, hessianShape * sizeof(T),
+      cudaMemcpyAsync(xPtr[i], hxPtr, hessianShape * sizeof(T),
                       cudaMemcpyHostToDevice);
     }
   } else {
@@ -248,22 +249,12 @@ template <typename T> void BaseProblem<T>::setAbsolutePosition() {
   delete[] hxPtr;
 }
 
-template <typename T>
-bool BaseProblem<T>::solveLinear() {
-  switch (option.device) {
-  case Device::CUDA:
-    return solveLinearCUDA();
-  default:
-    throw std::runtime_error("Not Implemented.");
-  }
-}
-
 template <typename T> void BaseProblem<T>::writeBack() {
   T *hxPtr = new T[hessianShape];
   std::size_t entrance_bias{0};
   if (option.useSchur) {
     cudaSetDevice(0);
-    cudaMemcpy(hxPtr, schurXPtr[0], hessianShape * sizeof(T),
+    cudaMemcpy(hxPtr, xPtr[0], hessianShape * sizeof(T),
                cudaMemcpyDeviceToHost);
   } else {
     // TODO(Jie Ren): implement this

@@ -1,23 +1,32 @@
 /**
-* MegBA is Licensed under the Apache License, Version 2.0 (the "License")
-*
-* Copyright (c) 2021 Megvii Inc. All rights reserved.
-*
-**/
+ * MegBA is Licensed under the Apache License, Version 2.0 (the "License")
+ *
+ * Copyright (c) 2021 Megvii Inc. All rights reserved.
+ *
+ **/
 
 #pragma once
 #include <cusparse_v2.h>
-#include <vector>
-#include <unordered_map>
+
 #include <memory>
 #include <set>
+#include <unordered_map>
+#include <vector>
+
 #include "common.h"
 #include "edge/base_edge.h"
-#include "vertex/base_vertex.h"
 #include "problem/hessian_entrance.h"
+#include "solver/base_solver.h"
+#include "vertex/base_vertex.h"
 
 namespace MegBA {
-template <typename T> class BaseProblem {
+template <typename T>
+std::unique_ptr<BaseSolver<T>> dispatchSolver(const BaseProblem<T> &problem);
+
+template <typename T>
+class BaseProblem {
+  friend std::unique_ptr<BaseSolver<T>> dispatchSolver<T>(
+      const BaseProblem<T> &problem);
   const ProblemOption option;
 
   std::size_t hessianShape{0};
@@ -31,9 +40,11 @@ template <typename T> class BaseProblem {
   } schurWS{};
   EdgeVector<T> edges{option, schurWS.schurHessianEntrance};
 
-  std::vector<T *> schurXPtr{nullptr};
-  std::vector<T *> schurDeltaXPtr{nullptr};
-  std::vector<T *> schurDeltaXPtrBackup{nullptr};
+  std::vector<T *> xPtr{nullptr};
+  std::vector<T *> deltaXPtr{nullptr};
+  std::vector<T *> deltaXPtrBackup{nullptr};
+
+  std::unique_ptr<BaseSolver<T>> solver;
 
   void deallocateResource();
 
@@ -45,10 +56,6 @@ template <typename T> class BaseProblem {
 
   void setAbsolutePosition();
 
-  bool solveLinear();
-
-  bool solveLinearCUDA();
-
   void prepareUpdateData();
 
   void writeBack();
@@ -58,8 +65,9 @@ template <typename T> class BaseProblem {
   void backupLM();
 
   void rollbackLM();
+
  public:
-  explicit BaseProblem(ProblemOption option = ProblemOption{});
+  explicit BaseProblem(const ProblemOption &option = ProblemOption{});
 
   ~BaseProblem() = default;
 
