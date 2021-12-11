@@ -152,10 +152,7 @@ __global__ void JdxpF(const T *grad, const T *deltaX, const T *res,
 }  // namespace
 
 template <typename T>
-void BaseProblem<T>::solveLM(int iter, double solverTol,
-                             double solverRefuseRatio, int solverMaxIter,
-                             const double tau, const double epsilon1,
-                             const double epsilon2) {
+void BaseProblem<T>::solveLM() {
   const auto &cublasHandle = HandleManager::getCublasHandle();
   makeVertices();
   Eigen::Matrix<JetVector<T>, Eigen::Dynamic, Eigen::Dynamic> JV_backup;
@@ -200,7 +197,7 @@ void BaseProblem<T>::solveLM(int iter, double solverTol,
 
   MemoryPool::redistribute();
   bool stop{false};
-  T u = tau;
+  T u = option.algoOptionLM.initialRegion;
   T v = 2;
   T rho = 0;
 
@@ -215,7 +212,7 @@ void BaseProblem<T>::solveLM(int iter, double solverTol,
                container.nnz[3] / container.dim[1] * sizeof(T));
   }
   bool recoverDiagFlag{false};
-  while (!stop && k < iter) {
+  while (!stop && k < option.algoOptionLM.maxIter) {
     k++;
     if (option.useSchur) {
       if (recoverDiagFlag) {
@@ -248,8 +245,7 @@ void BaseProblem<T>::solveLM(int iter, double solverTol,
     } else {
       // TODO(Jie Ren): implement this
     }
-    bool solverSuccess =
-        solveLinear(solverTol, solverRefuseRatio, solverMaxIter);
+    bool solverSuccess = solveLinear();
     MemoryPool::redistribute();
     ASSERT_CUDA_NO_ERROR();
 
@@ -265,10 +261,7 @@ void BaseProblem<T>::solveLM(int iter, double solverTol,
 
     deltaXL2 = std::sqrt(deltaXL2);
     xL2 = std::sqrt(xL2);
-    if (deltaXL2 <= epsilon2 * (xL2 + epsilon1)) {
-      std::cout << "Stopped for deltaXL2{" << deltaXL2 << "} <= epsilon2{"
-                << epsilon2 << "} * (xL2{" << xL2 << "} + epsilon1{" << epsilon1
-                << "})" << std::endl;
+    if (deltaXL2 <= option.algoOptionLM.epsilon2 * (xL2 + option.algoOptionLM.epsilon1)) {
       break;
     } else {
       if (option.useSchur) {
@@ -371,10 +364,7 @@ void BaseProblem<T>::solveLM(int iter, double solverTol,
           cudaSetDevice(0);
           auto &container = edges.schurEquationContainer[0];
           const auto norm = LinfNorm(container.g, hessianShape);
-          stop = norm <= epsilon1;
-          if (stop)
-            std::cout << "Stopped for norm{" << norm << "} <= epsilon1{"
-                      << epsilon1 << "}" << std::endl;
+          stop = norm <= option.algoOptionLM.epsilon1;
         } else {
           // TODO(Jie Ren): implement this
         }

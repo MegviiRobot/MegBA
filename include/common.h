@@ -13,12 +13,18 @@
 namespace MegBA {
 enum Device { CPU, CUDA };
 
-enum SolverKind { LM };
+enum AlgoKind { LM };
 
-struct SolverOptionLM {
+enum SolverKind { PCG };
+
+struct SolverOptionPCG {
   int maxIter{-1};
   double tol{1e-2};
   double refuseRatio{1e0};
+};
+
+struct AlgoOptionLM {
+  int maxIter{-1};
   double initialRegion{1e4};
   double epsilon1{0};
   double epsilon2{1e-8};
@@ -30,8 +36,10 @@ struct ProblemOption {
   std::set<int> deviceUsed{};
   int N{-1};
   int64_t nElm{-1};
-  SolverKind solverKind{LM};
-  SolverOptionLM solverOptionLM{};
+  AlgoKind algoKind{LM};
+  SolverKind solverKind{PCG};
+  AlgoOptionLM algoOptionLM{};
+  SolverOptionPCG solverOptionPCG{};
 };
 
 template <typename T> class JetVector;

@@ -128,9 +128,8 @@ this block
 }
 
 template <typename T>
-bool PreconditionedConjugateGradientSolverLargeSchurDistributedCUDA(
-    const std::vector<T *> &SpMVbuffer, std::size_t maxIter,
-    double solverRefuseRatio, const double tol, const int cameraNum,
+bool schurPCGSolverDistributedCUDA(
+    const std::vector<T *> &SpMVbuffer, SolverOptionPCG option, const int cameraNum,
     const int pointNum, const int cameraDim, const int pointDim,
     const std::vector<int> &hplNnz, const int hppRows, const int hllRows,
     const std::vector<T *> &hppCsrVal, const std::vector<T *> &hplCsrVal,
@@ -289,7 +288,7 @@ bool PreconditionedConjugateGradientSolverLargeSchurDistributedCUDA(
       cudaStreamSynchronize(cublasStream[i]);
       rhoN += rho_n_item[i];
     }
-    if (rhoN > solverRefuseRatio * rhoMinimum) {
+    if (rhoN > option.refuseRatio * rhoMinimum) {
       for (int i = 0; i < worldSize; ++i) {
         cudaSetDevice(i);
         cudaMemcpyAsync(d_x[i], deltaXBackup[i], hppRows * sizeof(T),
@@ -403,8 +402,8 @@ bool PreconditionedConjugateGradientSolverLargeSchurDistributedCUDA(
     rhoNm1 = rhoN;
     // printf("iteration = %3d, residual = %f\n", n, std::abs(rhoN));
     ++n;
-    done = std::abs(rhoN) < tol;
-  } while (!done && n < maxIter);
+    done = std::abs(rhoN) < option.tol;
+  } while (!done && n < option.maxIter);
   // cudaSetDevice(0);
   // PRINT_DMEMORY_SEGMENT(d_x[0], 0, 2, T);
   for (int i = 0; i < worldSize; ++i) {
@@ -427,7 +426,7 @@ bool PreconditionedConjugateGradientSolverLargeSchurDistributedCUDA(
 }
 
 template <typename T>
-void SchurMakeVDistributed(std::vector<T *> *SpMVbuffer, const int pointNum,
+void schurMakeVDistributed(std::vector<T *> *SpMVbuffer, const int pointNum,
                            const int pointDim, const std::vector<int> &hplNnz,
                            const int hppRows, const int hllRows,
                            const std::vector<T *> &hplCsrVal,
@@ -519,7 +518,7 @@ void SchurMakeVDistributed(std::vector<T *> *SpMVbuffer, const int pointNum,
 }
 
 template <typename T>
-void SchurSolveWDistributed(
+void schurSolveWDistributed(
     const std::vector<T *> &SpMVbuffer, const int pointNum, const int pointDim,
     const std::vector<int> &hplNnz, const int hppRows, const int hllRows,
     const std::vector<T *> &hlpCsrVal, const std::vector<int *> &hlpCsrColInd,
@@ -603,8 +602,8 @@ void SchurSolveWDistributed(
 }  // namespace
 
 template <typename T>
-bool SchurSolverDistributed(
-    double tol, double solverRefuseRatio, std::size_t maxIter,
+bool SchurPCGSolverDistributed(
+    SolverOptionPCG option,
     const std::vector<T *> &hppCsrVal, const std::vector<T *> &hllCsrVal,
     const std::vector<T *> &hplCsrVal, const std::vector<int *> &hplCsrColInd,
     const std::vector<int *> &hplCsrRowPtr, const std::vector<T *> &hlpCsrVal,
@@ -634,18 +633,15 @@ bool SchurSolverDistributed(
   // PRINT_DMEMORY(hllInvCsrVal[0], 9, T);
   ASSERT_CUDA_NO_ERROR();
 
-  SchurMakeVDistributed(&SpMVbuffer, pointNum, pointDim, hplNnz, hppRows,
+  schurMakeVDistributed(&SpMVbuffer, pointNum, pointDim, hplNnz, hppRows,
                         hllRows, hplCsrVal, hplCsrColInd, hplCsrRowPtr,
                         hllInvCsrVal, g);
-  bool PCG_success =
-      PreconditionedConjugateGradientSolverLargeSchurDistributedCUDA(
-          SpMVbuffer, maxIter, solverRefuseRatio, tol, cameraNum, pointNum,
-          cameraDim, pointDim, hplNnz, hppRows, hllRows,
-          hppCsrVal,
-          hplCsrVal, hplCsrColInd, hplCsrRowPtr,
-          hlpCsrVal, hlpCsrColInd, hlpCsrRowPtr,
-          hllInvCsrVal, g, deltaX);
-  SchurSolveWDistributed(SpMVbuffer, pointNum, pointDim, hplNnz, hppRows,
+  bool PCG_success = schurPCGSolverDistributedCUDA(
+      SpMVbuffer, option, cameraNum, pointNum,
+      cameraDim, pointDim, hplNnz, hppRows, hllRows, hppCsrVal, hplCsrVal,
+      hplCsrColInd, hplCsrRowPtr, hlpCsrVal, hlpCsrColInd, hlpCsrRowPtr,
+      hllInvCsrVal, g, deltaX);
+  schurSolveWDistributed(SpMVbuffer, pointNum, pointDim, hplNnz, hppRows,
                          hllRows, hlpCsrVal, hlpCsrColInd, hlpCsrRowPtr,
                          hllInvCsrVal, g, deltaX);
   for (int i = 0; i < worldSize; ++i) {
@@ -660,22 +656,21 @@ bool SchurSolverDistributed(
 }
 
 template <typename T>
-bool BaseProblem<T>::solveLinearCUDA(double tol, double solverRefuseRatio,
-                                     std::size_t maxIter) {
+bool BaseProblem<T>::solveLinearCUDA() {
   bool success;
 
   if (option.useSchur) {
     // TODO(Jie Ren): need great change
-    const auto worldSize = MemoryPool::getWorldSize();
-    std::vector<T *> hppCsrVal{static_cast<std::size_t>(worldSize)};
-    std::vector<T *> hllCsrVal{static_cast<std::size_t>(worldSize)};
-    std::vector<T *> hplCsrVal{static_cast<std::size_t>(worldSize)};
-    std::vector<T *> hlpCsrVal{static_cast<std::size_t>(worldSize)};
-    std::vector<int *> hplCsrColInd{static_cast<std::size_t>(worldSize)};
-    std::vector<int *> hlpCsrColInd{static_cast<std::size_t>(worldSize)};
-    std::vector<int *> hplCsrRowPtr{static_cast<std::size_t>(worldSize)};
-    std::vector<int *> hlpCsrRowPtr{static_cast<std::size_t>(worldSize)};
-    std::vector<T *> g{static_cast<std::size_t>(worldSize)};
+    const auto worldSize = option.deviceUsed.size();
+    std::vector<T *> hppCsrVal{worldSize};
+    std::vector<T *> hllCsrVal{worldSize};
+    std::vector<T *> hplCsrVal{worldSize};
+    std::vector<T *> hlpCsrVal{worldSize};
+    std::vector<int *> hplCsrColInd{worldSize};
+    std::vector<int *> hlpCsrColInd{worldSize};
+    std::vector<int *> hplCsrRowPtr{worldSize};
+    std::vector<int *> hlpCsrRowPtr{worldSize};
+    std::vector<T *> g{worldSize};
     int cameraDim;
     int cameraNum;
     int pointDim;
@@ -684,7 +679,7 @@ bool BaseProblem<T>::solveLinearCUDA(double tol, double solverRefuseRatio,
     hplNnz.resize(worldSize);
     int hppRows;
     int hllRows;
-    std::vector<T *> delta_x{static_cast<std::size_t>(worldSize)};
+    std::vector<T *> delta_x{worldSize};
 
     for (int i = 0; i < worldSize; ++i) {
       auto &schurEquationContainer = edges.schurEquationContainer[i];
@@ -709,8 +704,8 @@ bool BaseProblem<T>::solveLinearCUDA(double tol, double solverRefuseRatio,
       delta_x[i] = schurDeltaXPtr[i];
     }
 
-    success = SchurSolverDistributed(
-        tol, solverRefuseRatio, maxIter, hppCsrVal, hllCsrVal, hplCsrVal,
+    success = SchurPCGSolverDistributed(
+        option.solverOptionPCG, hppCsrVal, hllCsrVal, hplCsrVal,
         hplCsrColInd, hplCsrRowPtr, hlpCsrVal, hlpCsrColInd, hlpCsrRowPtr, g,
         cameraDim, cameraNum, pointDim, pointNum, hplNnz, hppRows, hllRows,
         delta_x);

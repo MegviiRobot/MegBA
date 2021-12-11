@@ -249,11 +249,10 @@ template <typename T> void BaseProblem<T>::setAbsolutePosition() {
 }
 
 template <typename T>
-bool BaseProblem<T>::solveLinear(double tol, double solverRefuseRatio,
-                                 std::size_t maxIter) {
+bool BaseProblem<T>::solveLinear() {
   switch (option.device) {
   case Device::CUDA:
-    return solveLinearCUDA(tol, solverRefuseRatio, maxIter);
+    return solveLinearCUDA();
   default:
     throw std::runtime_error("Not Implemented.");
   }
@@ -282,6 +281,13 @@ template <typename T> void BaseProblem<T>::writeBack() {
     }
   }
   delete[] hxPtr;
+}
+template <typename T> void BaseProblem<T>::solve() {
+  switch (option.algoKind) {
+  case LM:
+    solveLM();
+    break;
+  }
 }
 
 template class BaseProblem<double>;

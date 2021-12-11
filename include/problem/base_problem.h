@@ -45,11 +45,9 @@ template <typename T> class BaseProblem {
 
   void setAbsolutePosition();
 
-  bool solveLinear(double tol, double solverRefuseRatio,
-                   std::size_t maxIter);
+  bool solveLinear();
 
-  bool solveLinearCUDA(double tol, double solverRefuseRatio,
-                       std::size_t maxIter);
+  bool solveLinearCUDA();
 
   void prepareUpdateData();
 
@@ -77,8 +75,8 @@ template <typename T> class BaseProblem {
 
   void eraseVertex(int ID);
 
-  void solveLM(int iter, double solverTol, double solverRefuseRatio,
-               int solverMaxIter, double tau, double epsilon1,
-               double epsilon2);
+  void solve();
+
+  void solveLM();
 };
 }  // namespace MegBA
