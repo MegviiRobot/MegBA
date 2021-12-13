@@ -73,9 +73,9 @@ class BaseProblem {
 
   const Device &getDevice() const;
 
-  void addVertex(int ID, BaseVertex<T> *vertex);
+  void appendVertex(int ID, BaseVertex<T> *vertex);
 
-  void addEdge(BaseEdge<T> *edge);
+  void appendEdge(BaseEdge<T> *edge);
 
   BaseVertex<T> &getVertex(int ID);
 
