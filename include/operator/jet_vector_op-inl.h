@@ -37,7 +37,7 @@ namespace math {
 // abs(x + h) ~= x + h or -(x + h)
 template <typename T> inline JetVector<T> abs(const JetVector<T> &f) {
   JetVector<T> out;
-  out.Init_as(f);
+  out.initAs(f);
   switch (f.getDevice()) {
   case Device::CPU: {
     impl::absJetVectorCPU(f, out);
@@ -74,7 +74,7 @@ template <typename T> inline JetVector<T> abs(const JetVector<T> &f) {
 // sqrt(a + h) ~= sqrt(a) + h / (2 sqrt(a))
 template <typename T> inline JetVector<T> sqrt(JetVector<T> f) {
   JetVector<T> out;
-  out.Init_as(f);
+  out.initAs(f);
   switch (f.getDevice()) {
   case Device::CPU: {
     impl::sqrtJetVectorCPU(f, out);
@@ -91,7 +91,7 @@ template <typename T> inline JetVector<T> sqrt(JetVector<T> f) {
 // cos(a + h) ~= cos(a) - sin(a) h
 template <typename T> inline JetVector<T> cos(JetVector<T> f) {
   JetVector<T> out;
-  out.Init_as(f);
+  out.initAs(f);
   switch (f.getDevice()) {
   case Device::CPU: {
     impl::cosJetVectorCPU(f, out);
@@ -118,7 +118,7 @@ template <typename T> inline JetVector<T> cos(JetVector<T> f) {
 // sin(a + h) ~= sin(a) + cos(a) h
 template <typename T> inline JetVector<T> sin(JetVector<T> f) {
   JetVector<T> out;
-  out.Init_as(f);
+  out.initAs(f);
   switch (f.getDevice()) {
   case Device::CPU: {
     impl::sinJetVectorCPU(f, out);

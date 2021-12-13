@@ -215,7 +215,7 @@ namespace MegAutoBA{
             const MegAutoBA::JetVector<T> &JV_Template = Q(0, 0);
             for (int i = 0; i < 3; ++i) {
                 for (int j = 0; j < 3; ++j) {
-                    R(i, j).Init_as(JV_Template);
+                    R(i, j).initAs(JV_Template);
                 }
             }
 
@@ -261,7 +261,7 @@ namespace MegAutoBA{
             cudaMemcpyToSymbolAsync(W::get_dR(), address_dR, 9 * sizeof(T *), 0, cudaMemcpyHostToDevice, stream);
             const MegAutoBA::JetVector<T> &JV_Template = R(0, 0);
             for (int i = 0; i < 4; ++i) {
-                Q(i).Init_as(JV_Template);
+                Q(i).initAs(JV_Template);
             }
 
             T *const address_Q[4] {
