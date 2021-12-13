@@ -10,14 +10,14 @@
 namespace MegBA {
 namespace CHK {
 template <typename T>
-inline bool Device_Same(const JetVector<T> &f, const JetVector<T> &g) {
+inline bool deviceSame(const JetVector<T> &f, const JetVector<T> &g) {
   return f.getDevice() == g.getDevice();
 }
 
 template <typename T>
 inline void deviceThrow(const JetVector<T> &f, const JetVector<T> &g) {
 
-  if (!Device_Same(f, g))
+  if (!deviceSame(f, g))
     throw std::runtime_error("Different _device for item #1 is on " +
                              std::to_string(f.getDevice()) + " item #2 is on " +
                              std::to_string(g.getDevice()));
