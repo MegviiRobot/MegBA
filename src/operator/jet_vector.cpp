@@ -166,7 +166,7 @@ template <typename T> void JetVector<T>::clear() {
   _nElm = 0;
 }
 
-template <typename T> void JetVector<T>::append_Jet(T a, int n) {
+template <typename T> void JetVector<T>::appendJet(T a, int n) {
   /*
          * This method not support negative index so far. If n < 0, it has the same effect as a _pureScalar. 'if (std::abs(n) > _N)' guarantees a negative index won't raise error.
    */
@@ -182,7 +182,7 @@ template <typename T> void JetVector<T>::append_Jet(T a, int n) {
   _nElm++;
 }
 
-template <typename T> void JetVector<T>::append_Jet(T a) {
+template <typename T> void JetVector<T>::appendJet(T a) {
   assert(_gradPosition >= 0 || _N == 0);
   _haData.push_back(a);
   _nElm++;

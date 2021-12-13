@@ -157,12 +157,12 @@ template <typename T> bool EdgeVector<T>::tryPushBack(BaseEdge<T> *edge) {
 
   const auto &measurement = edge->_measurement;
   for (int i = 0; i < measurement.size(); ++i) {
-    jetMeasurement(i).append_Jet(measurement(i));
+    jetMeasurement(i).appendJet(measurement(i));
   }
 
   const auto &information = edge->_information;
   for (int i = 0; i < information.size(); ++i) {
-    jetInformation(i).append_Jet(information(i));
+    jetInformation(i).appendJet(information(i));
   }
   return true;
 }

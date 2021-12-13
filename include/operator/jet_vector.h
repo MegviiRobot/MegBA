@@ -74,8 +74,8 @@ template <typename T> class JetVector {
 
   ~JetVector() { clear(); }
 
-  void append_Jet(T a, int n);
-  void append_Jet(T a);
+  void appendJet(T a, int n);
+  void appendJet(T a);
   void clear();
 
   static const JetVector<T> &getInitTemplate(const JetVector<T> &f,

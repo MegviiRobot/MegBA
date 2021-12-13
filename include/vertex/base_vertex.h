@@ -163,14 +163,14 @@ template <typename T> class VertexVector : public std::vector<BaseVertex<T> *> {
     const auto &estimation = vertex->getEstimation();
     for (int i = 0; i < _estimationRows; ++i) {
       for (int j = 0; j < _estimationCols; ++j) {
-        _JVEstimation(i, j).append_Jet(estimation(i, j));
+        _JVEstimation(i, j).appendJet(estimation(i, j));
       }
     }
 
     const auto &observation = vertex->getObservation();
     for (int i = 0; i < _observationRows; ++i) {
       for (int j = 0; j < _observationCols; ++j) {
-        _JVObservation(i, j).append_Jet(observation(i, j));
+        _JVObservation(i, j).appendJet(observation(i, j));
       }
     }
   }
