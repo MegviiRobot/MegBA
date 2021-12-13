@@ -27,7 +27,7 @@ void HandleManager::destroyNcclComm() {
   }
 }
 
-void HandleManager::createCublasHandle() {
+void HandleManager::createCUBLASHandle() {
   std::unique_lock<std::mutex> lock{mutex};
   assert(cublasHandle.empty());
   cublasHandle.resize(MemoryPool::getWorldSize());
@@ -37,13 +37,13 @@ void HandleManager::createCublasHandle() {
   }
 }
 
-const std::vector<cublasHandle_t> &HandleManager::getCublasHandle() {
+const std::vector<cublasHandle_t> &HandleManager::getCUBLASHandle() {
   std::unique_lock<std::mutex> lock{mutex};
   assert(!cublasHandle.empty());
   return cublasHandle;
 }
 
-void HandleManager::destroyCublasHandle() {
+void HandleManager::destroyCUBLASHandle() {
   std::unique_lock<std::mutex> lock{mutex};
   for (int i = 0; i < cublasHandle.size(); ++i) {
     cudaSetDevice(i);
@@ -52,7 +52,7 @@ void HandleManager::destroyCublasHandle() {
   cublasHandle.clear();
 }
 
-void HandleManager::createCusparseHandle() {
+void HandleManager::createCUSPARSEHandle() {
   std::unique_lock<std::mutex> lock{mutex};
   assert(cusparseHandle.empty());
   cusparseHandle.resize(MemoryPool::getWorldSize());
@@ -62,13 +62,13 @@ void HandleManager::createCusparseHandle() {
   }
 }
 
-const std::vector<cusparseHandle_t> &HandleManager::getCusparseHandle() {
+const std::vector<cusparseHandle_t> &HandleManager::getCUSPARSEHandle() {
   std::unique_lock<std::mutex> lock{mutex};
   assert(!cusparseHandle.empty());
   return cusparseHandle;
 }
 
-void HandleManager::destroyCusparseHandle() {
+void HandleManager::destroyCUSPARSEHandle() {
   std::unique_lock<std::mutex> lock{mutex};
   for (int i = 0; i < cusparseHandle.size(); ++i) {
     cudaSetDevice(i);

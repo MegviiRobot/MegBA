@@ -29,7 +29,7 @@ __global__ void fillPtr(const T *aData, T *ainvData, const int batchSize,
 
 template <typename T>
 void invert(const T *aFlat, int n, const int pointNum, T *cFlat) {
-  cublasHandle_t handle = HandleManager::getCublasHandle()[0];
+  cublasHandle_t handle = HandleManager::getCUBLASHandle()[0];
 
   const T **a;
   T **ainv;
@@ -54,7 +54,7 @@ void invert(const T *aFlat, int n, const int pointNum, T *cFlat) {
 template <typename T>
 void invertDistributed(const std::vector<T *> aFlat, int n, const int pointNum,
                        std::vector<T *> cFlat) {
-  const auto &handle = HandleManager::getCublasHandle();
+  const auto &handle = HandleManager::getCUBLASHandle();
   const auto worldSize = MemoryPool::getWorldSize();
 
   std::vector<const T **> a{static_cast<std::size_t>(worldSize)};
@@ -129,8 +129,8 @@ bool schurPCGSolverDistributedCUDA(
   const auto &comms = HandleManager::getNcclComm();
   const auto worldSize = MemoryPool::getWorldSize();
   constexpr auto cudaDataType = Wrapper::declared_cudaDatatype<T>::cuda_dtype;
-  const auto &cusparseHandle = HandleManager::getCusparseHandle();
-  const auto &cublasHandle = HandleManager::getCublasHandle();
+  const auto &cusparseHandle = HandleManager::getCUSPARSEHandle();
+  const auto &cublasHandle = HandleManager::getCUBLASHandle();
   std::vector<cudaStream_t> cusparseStream, cublasStream;
   const T one{1.0}, zero{0.0}, neg_one{-1.0};
   T alphaN, alphaNegN, rhoNm1;
@@ -422,7 +422,7 @@ void schurMakeVDistributed(std::vector<T *> *SpMVbuffer, const int pointNum,
                            const std::vector<T *> &r) {
   const auto &comms = HandleManager::getNcclComm();
   const auto worldSize = MemoryPool::getWorldSize();
-  const auto &cusparseHandle = HandleManager::getCusparseHandle();
+  const auto &cusparseHandle = HandleManager::getCUSPARSEHandle();
   constexpr auto cudaDataType = Wrapper::declared_cudaDatatype<T>::cuda_dtype;
 
   std::vector<T *> v, w;
@@ -523,7 +523,7 @@ void schurSolveWDistributed(
     w[i] = &d_r[i][hppRows];
   }
 
-  const auto &cusparseHandle = HandleManager::getCusparseHandle();
+  const auto &cusparseHandle = HandleManager::getCUSPARSEHandle();
 
   std::vector<cudaStream_t> cusparseStream;
   std::vector<cusparseDnVecDescr_t> vecxc, vecxp, vecw;

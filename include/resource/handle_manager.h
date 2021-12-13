@@ -27,16 +27,16 @@ class HandleManager {
 
   static void destroyNcclComm();
 
-  static void createCublasHandle();
+  static void createCUBLASHandle();
 
-  static const std::vector<cublasHandle_t> &getCublasHandle();
+  static const std::vector<cublasHandle_t> &getCUBLASHandle();
 
-  static void destroyCublasHandle();
+  static void destroyCUBLASHandle();
 
-  static void createCusparseHandle();
+  static void createCUSPARSEHandle();
 
-  static const std::vector<cusparseHandle_t> &getCusparseHandle();
+  static const std::vector<cusparseHandle_t> &getCUSPARSEHandle();
 
-  static void destroyCusparseHandle();
+  static void destroyCUSPARSEHandle();
 };
 }  // namespace MegBA

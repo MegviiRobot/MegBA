@@ -200,7 +200,7 @@ double computeRhoDenominator(JVD<T> &JV, std::vector<T *> &schurDeltaXPtr, EdgeV
 
 template <typename T>
 void BaseProblem<T>::solveLM() {
-  const auto &cublasHandle = HandleManager::getCublasHandle();
+  const auto &cublasHandle = HandleManager::getCUBLASHandle();
   makeVertices();
   Eigen::Matrix<JetVector<T>, Eigen::Dynamic, Eigen::Dynamic> JV_backup;
   int k = 0;
@@ -398,7 +398,7 @@ void BaseProblem<T>::solveLM() {
 
 template <typename T> void BaseProblem<T>::backupLM() {
   const std::vector<cublasHandle_t> &cublasHandle =
-      HandleManager::getCublasHandle();
+      HandleManager::getCUBLASHandle();
   T one = 1.;
   if (option.useSchur) {
     for (int i = 0; i < MemoryPool::getWorldSize(); ++i) {
