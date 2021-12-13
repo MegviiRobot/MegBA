@@ -12,12 +12,12 @@ namespace MegBA {
     namespace geo {
         namespace {
             template<typename T>
-            __global__ void Rotation2DToRotation(const int nEle, const int N,
+            __global__ void Rotation2DToRotation(const int nElm, const int N,
                                                  const T *R, const T *dR,
                                                  T *R00, T *R01, T *R10, T *R11,
                                                  T *dR00, T *dR01, T *dR10, T *dR11) {
                 unsigned int idx = threadIdx.x + blockDim.x * blockIdx.x;
-                if (idx >= nEle) return;
+                if (idx >= nElm) return;
 
                 T r = R[idx];
                 T sinr, cosr;
@@ -27,7 +27,7 @@ namespace MegBA {
                 R10[idx] = -sinr;
                 R11[idx] = cosr;
                 for (int i = 0; i < N; ++i) {
-                    unsigned int index = idx + i * nEle;
+                    unsigned int index = idx + i * nElm;
                     dR00[index] *= -sinr;
                     dR01[index] *= -cosr;
                     dR10[index] *= cosr;
@@ -49,12 +49,12 @@ namespace MegBA {
             const auto N = JV_Template.getGradShape();
             for (int i = 0; i < MemoryPool::getWorldSize(); ++i) {
                 cudaSetDevice(i);
-                const auto nEle = JV_Template.getEleNum(i);
+                const auto nElm = JV_Template.getElmNum(i);
                 // 512 instead of 1024 for the limitation of registers
-                dim3 block_dim(std::min(decltype(nEle)(768), nEle));
-                dim3 grid_dim((nEle - 1) / block_dim.x + 1);
+                dim3 block_dim(std::min(decltype(nElm)(768), nElm));
+                dim3 grid_dim((nElm - 1) / block_dim.x + 1);
                 Rotation2DToRotation<T><<<grid_dim, block_dim>>>(
-                        nEle, N,
+                        nElm, N,
                         Rotation2D.angle().getCUDAResPtr()[i], Rotation2D.angle().getCUDAGradPtr()[i],
                         R(0, 0).getCUDAResPtr()[i], R(1, 0).getCUDAResPtr()[i],
                         R(0, 1).getCUDAResPtr()[i], R(1, 1).getCUDAResPtr()[i],

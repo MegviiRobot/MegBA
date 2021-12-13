@@ -209,7 +209,7 @@ template <typename T> void EdgeVector<T>::allocateResourcePre() {
     for (auto &vs : schurAbsolutePosition) {
       vs.resize(MemoryPool::getWorldSize());
       for (int i = 0; i < MemoryPool::getWorldSize(); ++i) {
-        vs[i].resize(MemoryPool::getEleNum(i));
+        vs[i].resize(MemoryPool::getElmNum(i));
       }
     }
 
@@ -217,7 +217,7 @@ template <typename T> void EdgeVector<T>::allocateResourcePre() {
     for (auto &vs : schurRelativePosition) {
       vs.resize(MemoryPool::getWorldSize());
       for (int i = 0; i < MemoryPool::getWorldSize(); ++i) {
-        vs[i].resize(MemoryPool::getEleNum(i));
+        vs[i].resize(MemoryPool::getElmNum(i));
       }
     }
   } else {

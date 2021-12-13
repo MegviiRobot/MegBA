@@ -11,10 +11,10 @@
 namespace MegBA {
 namespace {
 template <typename T>
-__global__ void weightedPlusKernel(int nEle, const T *x, const T *y, T weight,
+__global__ void weightedPlusKernel(int nElm, const T *x, const T *y, T weight,
                                    T *z) {
   unsigned int tid = threadIdx.x + blockIdx.x * blockDim.x;
-  if (tid >= nEle) return;
+  if (tid >= nElm) return;
   z[tid] = x[tid] + weight * y[tid];
 }
 
@@ -264,10 +264,10 @@ bool schurPCGSolverDistributedCUDA(
                                             axN[i]);
 
       // rhoN = rTr
-      const auto nEle = MemoryPool::getEleNum(i, hppRows);
-      Wrapper::cublasGdot::call(cublasHandle[i], nEle, &rN[i][offset], 1,
+      const auto nElm = MemoryPool::getElmNum(i, hppRows);
+      Wrapper::cublasGdot::call(cublasHandle[i], nElm, &rN[i][offset], 1,
                                 &axN[i][offset], 1, &rho_n_item[i]);
-      offset += nEle;
+      offset += nElm;
     }
     for (int i = 0; i < worldSize; ++i) {
       cudaSetDevice(i);
@@ -355,10 +355,10 @@ bool schurPCGSolverDistributedCUDA(
       cudaSetDevice(i);
       cudaStreamSynchronize(cusparseStream[i]);
       // dot :dTq
-      const auto nEle = MemoryPool::getEleNum(i, hppRows);
-      Wrapper::cublasGdot::call(cublasHandle[i], nEle, &pN[i][offset], 1,
+      const auto nElm = MemoryPool::getElmNum(i, hppRows);
+      Wrapper::cublasGdot::call(cublasHandle[i], nElm, &pN[i][offset], 1,
                                 &axN[i][offset], 1, &dot[i]);
-      offset += nEle;
+      offset += nElm;
     }
     // beta_n: one = rhoN / dTq
     double dot_sum{0};

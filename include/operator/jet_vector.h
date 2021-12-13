@@ -25,7 +25,7 @@ template <typename T> class JetVector {
   void CUDA2CPU(const JetVector<T> &f);
 
   unsigned int _N = 0;
-  unsigned int _nEle = 0;
+  unsigned int _nElm = 0;
   Device _device = Device::CPU;
   std::vector<std::vector<T>> _hvData{};
   std::vector<T *> _dvPtr{};
@@ -41,7 +41,7 @@ template <typename T> class JetVector {
   explicit JetVector(T scalar) : _pureScalarFlag(true), _pureScalar(scalar) {}
 
   JetVector(const JetVector<T> &f)
-      : _N(f._N), _nEle(f._nEle), _device(f._device), _haData(f._haData),
+      : _N(f._N), _nElm(f._nElm), _device(f._device), _haData(f._haData),
         _hvData(f._hvData) {
     switch (_device) {
     case Device::CPU: {
@@ -55,14 +55,14 @@ template <typename T> class JetVector {
   }
 
   JetVector(JetVector<T> &&f) noexcept
-      : _N(std::move(f._N)), _nEle(std::move(f._nEle)),
+      : _N(std::move(f._N)), _nElm(std::move(f._nElm)),
         _device(std::move(f._device)), _hvData(std::move(f._hvData)),
         _dvPtr(std::move(f._dvPtr)), _haData(std::move(f._haData)),
         _daPtr(std::move(f._daPtr)), _gradPosition(std::move(f._gradPosition)),
         _pureScalarFlag(std::move(f._pureScalarFlag)),
         _pureScalar(std::move((f._pureScalar))) {
     f._N = 0;
-    f._nEle = 0;
+    f._nElm = 0;
     f._gradPosition = -1;
   }
 
@@ -92,11 +92,11 @@ template <typename T> class JetVector {
   void erase(std::size_t idx) {
     assert(_device == Device::CPU || _gradPosition != -1 || _N == 0);
     _haData.erase(_haData.begin() + idx);
-    _nEle--;
+    _nElm--;
   }
   const unsigned int &getGradShape() const { return _N; }
-  const unsigned int &getEleNum() const { return _nEle; }
-  std::size_t getEleNum(int rank) const { return MemoryPool::getEleNum(rank); }
+  const unsigned int &getElmNum() const { return _nElm; }
+  std::size_t getElmNum(int rank) const { return MemoryPool::getElmNum(rank); }
   int getGradPosition() const { return _gradPosition; }
   const Device &getDevice() const { return _device; }
 

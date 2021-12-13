@@ -36,7 +36,7 @@ struct ProblemOption {
   Device device{Device::CUDA};
   std::set<int> deviceUsed{};
   int N{-1};
-  int64_t nEle{-1};
+  int64_t nElm{-1};
   AlgoKind algoKind{LM};
   SolverKind solverKind{PCG};
   AlgoOptionLM algoOptionLM{};
