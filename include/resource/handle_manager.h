@@ -21,11 +21,11 @@ class HandleManager {
   static std::mutex mutex;
 
  public:
-  static void createNcclComm();
+  static void createNCCLComm();
 
-  static const std::vector<ncclComm_t> &getNcclComm();
+  static const std::vector<ncclComm_t> &getNCCLComm();
 
-  static void destroyNcclComm();
+  static void destroyNCCLComm();
 
   static void createCUBLASHandle();
 

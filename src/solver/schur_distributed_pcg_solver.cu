@@ -126,7 +126,7 @@ bool schurPCGSolverDistributedCUDA(
     const std::vector<int *> &hlpCsrRowPtr,
     const std::vector<T *> &hllInvCsrVal, const std::vector<T *> &g,
     const std::vector<T *> &d_x) {
-  const auto &comms = HandleManager::getNcclComm();
+  const auto &comms = HandleManager::getNCCLComm();
   const auto worldSize = MemoryPool::getWorldSize();
   constexpr auto cudaDataType = Wrapper::declared_cudaDatatype<T>::cuda_dtype;
   const auto &cusparseHandle = HandleManager::getCUSPARSEHandle();
@@ -420,7 +420,7 @@ void schurMakeVDistributed(std::vector<T *> *SpMVbuffer, const int pointNum,
                            const std::vector<int *> &hplCsrRowPtr,
                            const std::vector<T *> &hllInvCsrVal,
                            const std::vector<T *> &r) {
-  const auto &comms = HandleManager::getNcclComm();
+  const auto &comms = HandleManager::getNCCLComm();
   const auto worldSize = MemoryPool::getWorldSize();
   const auto &cusparseHandle = HandleManager::getCUSPARSEHandle();
   constexpr auto cudaDataType = Wrapper::declared_cudaDatatype<T>::cuda_dtype;
@@ -509,7 +509,7 @@ void schurSolveWDistributed(
     const std::vector<int *> &hlpCsrRowPtr,
     const std::vector<T *> &hllInvCsrVal, const std::vector<T *> &d_r,
     const std::vector<T *> &d_x) {
-  const auto comms = HandleManager::getNcclComm();
+  const auto comms = HandleManager::getNCCLComm();
   const auto worldSize = MemoryPool::getWorldSize();
   constexpr auto cudaDataType = Wrapper::declared_cudaDatatype<T>::cuda_dtype;
 

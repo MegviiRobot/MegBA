@@ -244,7 +244,7 @@ void EdgeVector<T>::buildLinearSystemSchurCUDA(const JVD<T> &jetEstimation) {
     cudaFree(totalPtrsDevice[i]);
   }
 
-  const auto &comms = HandleManager::getNcclComm();
+  const auto &comms = HandleManager::getNCCLComm();
   ncclGroupStart();
   for (int i = 0; i < _option.deviceUsed.size(); ++i) {
     ncclAllReduce(schurEquationContainer[i].csrVal[2],

@@ -43,8 +43,8 @@ void MemoryPool::resetPool(int N, std::size_t nElm, std::int8_t sizeofType,
   _nElm = nElm;
   _sizeofType = sizeofType;
   _worldSize = worldSize;
-  HandleManager::destroyNcclComm();
-  HandleManager::createNcclComm();
+  HandleManager::destroyNCCLComm();
+  HandleManager::createNCCLComm();
   HandleManager::destroyCUBLASHandle();
   HandleManager::destroyCUSPARSEHandle();
   HandleManager::createCUBLASHandle();

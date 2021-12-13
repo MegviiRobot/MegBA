@@ -10,7 +10,7 @@
 #include "resource/memory_pool.h"
 
 namespace MegBA {
-void HandleManager::createNcclComm() {
+void HandleManager::createNCCLComm() {
   std::vector<int> devs;
   devs.resize(MemoryPool::getWorldSize());
   comms.resize(MemoryPool::getWorldSize());
@@ -19,9 +19,9 @@ void HandleManager::createNcclComm() {
   ncclCommInitAll(comms.data(), MemoryPool::getWorldSize(), devs.data());
 }
 
-const std::vector<ncclComm_t> &HandleManager::getNcclComm() { return comms; }
+const std::vector<ncclComm_t> &HandleManager::getNCCLComm() { return comms; }
 
-void HandleManager::destroyNcclComm() {
+void HandleManager::destroyNCCLComm() {
   for (auto comm : comms) {
     ncclCommDestroy(comm);
   }
