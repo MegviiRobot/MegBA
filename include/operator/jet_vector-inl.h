@@ -24,7 +24,7 @@ inline void deviceThrow(const JetVector<T> &f, const JetVector<T> &g) {
 }
 
 template <typename T>
-inline bool Shape_Same(const JetVector<T> &f, const JetVector<T> &g) {
+inline bool shapeSame(const JetVector<T> &f, const JetVector<T> &g) {
   const auto fGradShape = f.getGradShape();
   const auto gGradShape = g.getGradShape();
   return (fGradShape == 0 || gGradShape == 0 || fGradShape == gGradShape) &&
@@ -33,7 +33,7 @@ inline bool Shape_Same(const JetVector<T> &f, const JetVector<T> &g) {
 
 template <typename T>
 inline void shapeThrow(const JetVector<T> &f, const JetVector<T> &g) {
-  if (!Shape_Same(f, g))
+  if (!shapeSame(f, g))
     throw std::runtime_error("Different shape for gradient of item #1 is " +
                              std::to_string(f.getGradShape()) + " item #2 is " +
                              std::to_string(g.getGradShape()) +
