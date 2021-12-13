@@ -16,17 +16,11 @@
 #include "common.h"
 #include "edge/base_edge.h"
 #include "problem/hessian_entrance.h"
-#include "solver/base_solver.h"
 #include "vertex/base_vertex.h"
 
 namespace MegBA {
 template <typename T>
-std::unique_ptr<BaseSolver<T>> dispatchSolver(const BaseProblem<T> &problem);
-
-template <typename T>
 class BaseProblem {
-  friend std::unique_ptr<BaseSolver<T>> dispatchSolver<T>(
-      const BaseProblem<T> &problem);
   const ProblemOption option;
 
   std::size_t hessianShape{0};
@@ -44,7 +38,7 @@ class BaseProblem {
   std::vector<T *> deltaXPtr{nullptr};
   std::vector<T *> deltaXPtrBackup{nullptr};
 
-  std::unique_ptr<BaseSolver<T>> solver;
+  const std::unique_ptr<BaseSolver<T>> solver;
 
   void deallocateResource();
 
@@ -69,9 +63,15 @@ class BaseProblem {
  public:
   explicit BaseProblem(const ProblemOption &option = ProblemOption{});
 
-  ~BaseProblem() = default;
+  ~BaseProblem();
 
   const Device &getDevice() const;
+
+  const ProblemOption &getProblemOption() const { return option; };
+
+  const std::vector<T *> &getDeltaXPtr() const { return deltaXPtr; };
+
+  const EdgeVector<T> &getEdges() const { return edges; };
 
   void appendVertex(int ID, BaseVertex<T> *vertex);
 

@@ -586,7 +586,7 @@ void schurSolveWDistributed(
 
 template <typename T>
 bool SchurPCGSolverDistributed(
-    SolverOptionPCG option, const std::vector<T *> &hppCsrVal,
+    const SolverOptionPCG &option, const std::vector<T *> &hppCsrVal,
     const std::vector<T *> &hllCsrVal, const std::vector<T *> &hplCsrVal,
     const std::vector<int *> &hplCsrColInd,
     const std::vector<int *> &hplCsrRowPtr, const std::vector<T *> &hlpCsrVal,
@@ -632,7 +632,7 @@ bool SchurPCGSolverDistributed(
 
 template <typename T>
 void SchurDistributedPCGSolver<T>::solveCUDA() {
-  const auto worldSize = this->option.deviceUsed.size();
+  const auto worldSize = this->problem.getProblemOption().deviceUsed.size();
   std::vector<T *> hppCsrVal{worldSize};
   std::vector<T *> hllCsrVal{worldSize};
   std::vector<T *> hplCsrVal{worldSize};
@@ -653,7 +653,7 @@ void SchurDistributedPCGSolver<T>::solveCUDA() {
   std::vector<T *> delta_x{worldSize};
 
   for (int i = 0; i < worldSize; ++i) {
-    const auto &schurEquationContainer = schurEquationContainers[i];
+    const auto &schurEquationContainer = this->problem.getEdges().schurEquationContainer[i];
     hppCsrVal[i] = schurEquationContainer.csrVal[2];
     hllCsrVal[i] = schurEquationContainer.csrVal[3];
     hplCsrVal[i] = schurEquationContainer.csrVal[0];
@@ -672,10 +672,10 @@ void SchurDistributedPCGSolver<T>::solveCUDA() {
     hplNnz[i] = schurEquationContainer.nnz[0];
     hppRows = schurEquationContainer.nnz[2] / schurEquationContainer.dim[0];
     hllRows = schurEquationContainer.nnz[3] / schurEquationContainer.dim[1];
-    delta_x[i] = this->deltaXPtr[i];
+    delta_x[i] = this->problem.getDeltaXPtr()[i];
   }
 
-  SchurPCGSolverDistributed(this->option.solverOptionPCG, hppCsrVal, hllCsrVal,
+  SchurPCGSolverDistributed(this->problem.getProblemOption().solverOptionPCG, hppCsrVal, hllCsrVal,
                             hplCsrVal, hplCsrColInd, hplCsrRowPtr, hlpCsrVal,
                             hlpCsrColInd, hlpCsrRowPtr, g, cameraDim, cameraNum,
                             pointDim, pointNum, hplNnz, hppRows, hllRows,

@@ -280,6 +280,8 @@ template <typename T> void BaseProblem<T>::solve() {
     break;
   }
 }
+template <typename T>
+BaseProblem<T>::~BaseProblem() {}
 
 template class BaseProblem<double>;
 template class BaseProblem<float>;

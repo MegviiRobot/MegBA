@@ -12,6 +12,7 @@
 #include "wrapper.hpp"
 #include "resource/handle_manager.h"
 #include "macro.h"
+#include "solver/base_solver.h"
 
 namespace MegBA {
 template <typename T> void BaseProblem<T>::deallocateResourceCUDA() {

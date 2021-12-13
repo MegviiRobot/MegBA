@@ -15,12 +15,11 @@
 namespace MegBA {
 template <typename T>
 std::unique_ptr<BaseSolver<T>> dispatchSolver(const BaseProblem<T> &problem) {
-  if (problem.option.useSchur) {
-    switch (problem.option.solverKind) {
+  const ProblemOption &option = problem.getProblemOption();
+  if (option.useSchur) {
+    switch (option.solverKind) {
       case PCG:
-        return std::unique_ptr<BaseSolver<T>>{new SchurDistributedPCGSolver<T>{
-            problem.option, problem.deltaXPtr,
-            problem.edges.schurEquationContainer}};
+        return std::unique_ptr<BaseSolver<T>>{new SchurDistributedPCGSolver<T>{problem}};
     }
   } else {
     throw std::runtime_error("Not implemented");
