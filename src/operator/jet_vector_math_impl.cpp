@@ -17,7 +17,7 @@ namespace impl {
 namespace {
 namespace TT {
 template<typename T>
-struct JetVectorMultipliesJetVectorV {
+struct JetVectorMulJetVectorV {
   __host__ __device__
       T operator()(thrust::tuple<T, T, T, T> zip) {
     T fa, fv, ga, gv;
@@ -33,7 +33,7 @@ struct Inverse : public thrust::unary_function<T, T> {
 };
 
 template<typename T>
-struct JetVectorDividesJetVectorV {
+struct JetVectorDivJetVectorV {
   __host__ __device__
       T operator()(thrust::tuple<T, T, T, T> zip) {
     T fa, fv, inv_ga, gv;
@@ -43,7 +43,7 @@ struct JetVectorDividesJetVectorV {
 };
 
 template<typename T>
-struct ScalarVectorDividesJetVectorV {
+struct ScalarVectorDivJetVectorV {
   __host__ __device__
       T operator()(thrust::tuple<T, T, T> zip) {
     T fa, inv_ga, gv;
@@ -53,25 +53,25 @@ struct ScalarVectorDividesJetVectorV {
 };
 
 template <typename T>
-struct ScalarMinusJetVector : public thrust::unary_function<T, T> {
+struct ScalarSubJetVector : public thrust::unary_function<T, T> {
   T scalar;
-  explicit ScalarMinusJetVector(T scalar) : scalar(scalar) {}
+  explicit ScalarSubJetVector(T scalar) : scalar(scalar) {}
   __host__ __device__
       T operator()(T x) { return scalar - x; }
 };
 
 template <typename T>
-struct ScalarDividesJetVectorA : public thrust::unary_function<T, T> {
+struct ScalarDivJetVectorA : public thrust::unary_function<T, T> {
   T scalar;
-  explicit ScalarDividesJetVectorA(T scalar) : scalar(scalar) {}
+  explicit ScalarDivJetVectorA(T scalar) : scalar(scalar) {}
   __host__ __device__
       T operator()(T x) { return scalar / x; }
 };
 
 template <typename T>
-struct ScalarDividesJetVectorV : public thrust::binary_function<T, T, T> {
+struct ScalarDivJetVectorV : public thrust::binary_function<T, T, T> {
   T scalar;
-  explicit ScalarDividesJetVectorV(T scalar) : scalar(scalar) {}
+  explicit ScalarDivJetVectorV(T scalar) : scalar(scalar) {}
   __host__ __device__
       T operator()(T a, T v) { return -v * scalar / (a * a); }
 };
@@ -89,7 +89,7 @@ struct Sin : public thrust::unary_function<T, T> {
 };
 
 template <typename T>
-struct NegativeSinMultiplies : public thrust::binary_function<T, T, T> {
+struct NegativeSinMul : public thrust::binary_function<T, T, T> {
   __host__ __device__
       T operator()(T a, T v) { return -std::sin(a) * v; }
 };
@@ -101,7 +101,7 @@ struct Cos : public thrust::unary_function<T, T> {
 };
 
 template <typename T>
-struct CosMultiplies : public thrust::binary_function<T, T, T> {
+struct CosMul : public thrust::binary_function<T, T, T> {
   __host__ __device__
       T operator()(T a, T v) { return std::cos(a) * v; }
 };
@@ -197,7 +197,7 @@ void JetVector_minus_JetVector_CPU(const MegBA::JetVector<T> &f,
 }
 
 template <typename T>
-void jetVectorMinusScalarVectorCPU(const MegBA::JetVector<T> &f,
+void jetVectorSubScalarVectorCPU(const MegBA::JetVector<T> &f,
                                    const MegBA::JetVector<T> &g,
                                    MegBA::JetVector<T> *out) {
   out->getCPUGrad() = f.getCPUGrad();
@@ -208,7 +208,7 @@ void jetVectorMinusScalarVectorCPU(const MegBA::JetVector<T> &f,
 }
 
 template <typename T>
-void scalarVectorMinusJetVectorCPU(const MegBA::JetVector<T> &f,
+void scalarVectorSubJetVectorCPU(const MegBA::JetVector<T> &f,
                                    const MegBA::JetVector<T> &g,
                                    MegBA::JetVector<T> *out) {
   for (unsigned int i = 0; i < out->getGradShape(); ++i) {
@@ -222,7 +222,7 @@ void scalarVectorMinusJetVectorCPU(const MegBA::JetVector<T> &f,
 }
 
 template <typename T>
-void scalarVectorMinusScalarVectorCPU(const MegBA::JetVector<T> &f,
+void scalarVectorSubScalarVectorCPU(const MegBA::JetVector<T> &f,
                                       const MegBA::JetVector<T> &g,
                                       MegBA::JetVector<T> *out) {
   thrust::transform(f.getCPURes().begin(), f.getCPURes().end(),
@@ -231,33 +231,33 @@ void scalarVectorMinusScalarVectorCPU(const MegBA::JetVector<T> &f,
 }
 
 template <typename T>
-void vectorMinusVectorCPU(const MegBA::JetVector<T> &f,
+void vectorSubVectorCPU(const MegBA::JetVector<T> &f,
                           const MegBA::JetVector<T> &g,
                           MegBA::JetVector<T> *out) {
   if (f.getGradShape() != 0) {
     if (g.getGradShape() != 0) {
       JetVector_minus_JetVector_CPU(f, g, out);
     } else {
-      jetVectorMinusScalarVectorCPU(f, g, out);
+      jetVectorSubScalarVectorCPU(f, g, out);
     }
   } else {
     if (g.getGradShape() != 0) {
-      scalarVectorMinusJetVectorCPU(f, g, out);
+      scalarVectorSubJetVectorCPU(f, g, out);
     } else {
-      scalarVectorMinusScalarVectorCPU(f, g, out);
+      scalarVectorSubScalarVectorCPU(f, g, out);
     }
   }
 }
-template void vectorMinusVectorCPU<double>(const MegBA::JetVector<double> &f,
+template void vectorSubVectorCPU<double>(const MegBA::JetVector<double> &f,
                                            const MegBA::JetVector<double> &g,
                                            MegBA::JetVector<double> *out);
 
-template void vectorMinusVectorCPU<float>(const MegBA::JetVector<float> &f,
+template void vectorSubVectorCPU<float>(const MegBA::JetVector<float> &f,
                                           const MegBA::JetVector<float> &g,
                                           MegBA::JetVector<float> *out);
 
 template <typename T>
-void jetVectorMultipliesJetVectorCPU(const MegBA::JetVector<T> &f,
+void jetVectorMulJetVectorCPU(const MegBA::JetVector<T> &f,
                                      const MegBA::JetVector<T> &g,
                                      MegBA::JetVector<T> *out) {
   for (unsigned int i = 0; i < out->getGradShape(); ++i) {
@@ -268,7 +268,7 @@ void jetVectorMultipliesJetVectorCPU(const MegBA::JetVector<T> &f,
                           f.getCPURes().end(), f.getCPUGrad()[i].end(),
                           g.getCPURes().end(), g.getCPUGrad()[i].end())),
                       out->getCPUGrad()[i].begin(),
-                      TT::JetVectorMultipliesJetVectorV<T>());
+                      TT::JetVectorMulJetVectorV<T>());
   }
 
   thrust::transform(f.getCPURes().begin(), f.getCPURes().end(),
@@ -276,7 +276,7 @@ void jetVectorMultipliesJetVectorCPU(const MegBA::JetVector<T> &f,
                     thrust::multiplies<T>());
 }
 template <typename T>
-void jetVectorMultipliesScalarVectorCPU(const MegBA::JetVector<T> &f,
+void jetVectorMulScalarVectorCPU(const MegBA::JetVector<T> &f,
                                         const MegBA::JetVector<T> &g,
                                         MegBA::JetVector<T> *out) {
   for (unsigned int i = 0; i < out->getGradShape(); ++i) {
@@ -291,7 +291,7 @@ void jetVectorMultipliesScalarVectorCPU(const MegBA::JetVector<T> &f,
 }
 
 template <typename T>
-void scalarVectorMultipliesScalarVectorCPU(const MegBA::JetVector<T> &f,
+void scalarVectorMulScalarVectorCPU(const MegBA::JetVector<T> &f,
                                            const MegBA::JetVector<T> &g,
                                            MegBA::JetVector<T> *out) {
   thrust::transform(f.getCPURes().begin(), f.getCPURes().end(),
@@ -300,34 +300,34 @@ void scalarVectorMultipliesScalarVectorCPU(const MegBA::JetVector<T> &f,
 }
 
 template <typename T>
-void vectorMultipliesVectorCPU(const MegBA::JetVector<T> &f,
+void vectorMulVectorCPU(const MegBA::JetVector<T> &f,
                                const MegBA::JetVector<T> &g,
                                MegBA::JetVector<T> *out) {
   if (f.getGradShape() != 0) {
     if (g.getGradShape() != 0) {
-      jetVectorMultipliesJetVectorCPU(f, g, out);
+      jetVectorMulJetVectorCPU(f, g, out);
     } else {
-      jetVectorMultipliesScalarVectorCPU(f, g, out);
+      jetVectorMulScalarVectorCPU(f, g, out);
     }
   } else {
     if (g.getGradShape() != 0) {
-      jetVectorMultipliesScalarVectorCPU(g, f, out);
+      jetVectorMulScalarVectorCPU(g, f, out);
     } else {
-      scalarVectorMultipliesScalarVectorCPU(f, g, out);
+      scalarVectorMulScalarVectorCPU(f, g, out);
     }
   }
 }
 template void
-vectorMultipliesVectorCPU<double>(const MegBA::JetVector<double> &f,
+vectorMulVectorCPU<double>(const MegBA::JetVector<double> &f,
                                   const MegBA::JetVector<double> &g,
                                   MegBA::JetVector<double> *out);
 
-template void vectorMultipliesVectorCPU<float>(const MegBA::JetVector<float> &f,
+template void vectorMulVectorCPU<float>(const MegBA::JetVector<float> &f,
                                                const MegBA::JetVector<float> &g,
                                                MegBA::JetVector<float> *out);
 
 template <typename T>
-void jetVectorDividesJetVectorCPU(const MegBA::JetVector<T> &f,
+void jetVectorDivJetVectorCPU(const MegBA::JetVector<T> &f,
                                   const MegBA::JetVector<T> &g,
                                   MegBA::JetVector<T> *out) {
   std::vector<T> inv_ga(f.getCPURes().size());
@@ -341,7 +341,7 @@ void jetVectorDividesJetVectorCPU(const MegBA::JetVector<T> &f,
                           f.getCPURes().end(), f.getCPUGrad()[i].end(),
                           inv_ga.end(), g.getCPUGrad()[i].end())),
                       out->getCPUGrad()[i].begin(),
-                      TT::JetVectorDividesJetVectorV<T>());
+                      TT::JetVectorDivJetVectorV<T>());
   }
 
   thrust::transform(f.getCPURes().begin(), f.getCPURes().end(), inv_ga.begin(),
@@ -349,7 +349,7 @@ void jetVectorDividesJetVectorCPU(const MegBA::JetVector<T> &f,
 }
 
 template <typename T>
-void jetVectorDividesScalarVectorCPU(const MegBA::JetVector<T> &f,
+void jetVectorDivScalarVectorCPU(const MegBA::JetVector<T> &f,
                                      const MegBA::JetVector<T> &g,
                                      MegBA::JetVector<T> *out) {
   std::vector<T> inv_ga(f.getCPURes().size());
@@ -366,7 +366,7 @@ void jetVectorDividesScalarVectorCPU(const MegBA::JetVector<T> &f,
 }
 
 template <typename T>
-void scalarVectorDividesJetVectorCPU(const MegBA::JetVector<T> &f,
+void scalarVectorDivJetVectorCPU(const MegBA::JetVector<T> &f,
                                      const MegBA::JetVector<T> &g,
                                      MegBA::JetVector<T> *out) {
   std::vector<T> inv_ga(f.getCPURes().size());
@@ -379,7 +379,7 @@ void scalarVectorDividesJetVectorCPU(const MegBA::JetVector<T> &f,
         thrust::make_zip_iterator(thrust::make_tuple(
             f.getCPURes().end(), inv_ga.end(), g.getCPUGrad()[i].end())),
         out->getCPUGrad()[i].begin(),
-        TT::ScalarVectorDividesJetVectorV<T>());
+        TT::ScalarVectorDivJetVectorV<T>());
   }
 
   thrust::transform(f.getCPURes().begin(), f.getCPURes().end(), inv_ga.begin(),
@@ -387,7 +387,7 @@ void scalarVectorDividesJetVectorCPU(const MegBA::JetVector<T> &f,
 }
 
 template <typename T>
-void scalarVectorDividesScalarVectorCPU(const MegBA::JetVector<T> &f,
+void scalarVectorDivScalarVectorCPU(const MegBA::JetVector<T> &f,
                                         const MegBA::JetVector<T> &g,
                                         MegBA::JetVector<T> *out) {
   thrust::transform(f.getCPURes().begin(), f.getCPURes().end(),
@@ -396,28 +396,28 @@ void scalarVectorDividesScalarVectorCPU(const MegBA::JetVector<T> &f,
 }
 
 template <typename T>
-void vectorDividesVectorCPU(const MegBA::JetVector<T> &f,
+void vectorDivVectorCPU(const MegBA::JetVector<T> &f,
                             const MegBA::JetVector<T> &g,
                             MegBA::JetVector<T> *out) {
   if (f.getGradShape() != 0) {
     if (g.getGradShape() != 0) {
-      jetVectorDividesJetVectorCPU(f, g, out);
+      jetVectorDivJetVectorCPU(f, g, out);
     } else {
-      jetVectorDividesScalarVectorCPU(f, g, out);
+      jetVectorDivScalarVectorCPU(f, g, out);
     }
   } else {
     if (g.getGradShape() != 0) {
-      scalarVectorDividesJetVectorCPU(f, g, out);
+      scalarVectorDivJetVectorCPU(f, g, out);
     } else {
-      scalarVectorDividesScalarVectorCPU(f, g, out);
+      scalarVectorDivScalarVectorCPU(f, g, out);
     }
   }
 }
-template void vectorDividesVectorCPU<double>(const MegBA::JetVector<double> &f,
+template void vectorDivVectorCPU<double>(const MegBA::JetVector<double> &f,
                                              const MegBA::JetVector<double> &g,
                                              MegBA::JetVector<double> *out);
 
-template void vectorDividesVectorCPU<float>(const MegBA::JetVector<float> &f,
+template void vectorDivVectorCPU<float>(const MegBA::JetVector<float> &f,
                                             const MegBA::JetVector<float> &g,
                                             MegBA::JetVector<float> *out);
 
@@ -440,7 +440,7 @@ template void jetVectorAddScalarCPU<float>(const MegBA::JetVector<float> &f,
                                            MegBA::JetVector<float> *out);
 
 template <typename T>
-void jetVectorMinusScalarCPU(const MegBA::JetVector<T> &f, T g,
+void jetVectorSubScalarCPU(const MegBA::JetVector<T> &f, T g,
                              MegBA::JetVector<T> *out) {
   thrust::transform(f.getCPURes().begin(), f.getCPURes().end(),
                     thrust::make_constant_iterator(g), out->getCPURes().begin(),
@@ -450,16 +450,16 @@ void jetVectorMinusScalarCPU(const MegBA::JetVector<T> &f, T g,
     thrust::copy(f.getCPUGrad()[i].begin(), f.getCPUGrad()[i].end(),
                  out->getCPUGrad()[i].begin());
 }
-template void jetVectorMinusScalarCPU<double>(const MegBA::JetVector<double> &f,
+template void jetVectorSubScalarCPU<double>(const MegBA::JetVector<double> &f,
                                               double g,
                                               MegBA::JetVector<double> *out);
 
-template void jetVectorMinusScalarCPU<float>(const MegBA::JetVector<float> &f,
+template void jetVectorSubScalarCPU<float>(const MegBA::JetVector<float> &f,
                                              float g,
                                              MegBA::JetVector<float> *out);
 
 template <typename T>
-void jetVectorMultipliesScalarCPU(const MegBA::JetVector<T> &f, T g,
+void jetVectorMulScalarCPU(const MegBA::JetVector<T> &f, T g,
                                   MegBA::JetVector<T> *out) {
   for (unsigned int i = 0; i < out->getGradShape(); ++i) {
     thrust::transform(f.getCPUGrad()[i].begin(), f.getCPUGrad()[i].end(),
@@ -472,15 +472,15 @@ void jetVectorMultipliesScalarCPU(const MegBA::JetVector<T> &f, T g,
                     thrust::multiplies<T>());
 }
 template void
-jetVectorMultipliesScalarCPU<double>(const MegBA::JetVector<double> &f,
+jetVectorMulScalarCPU<double>(const MegBA::JetVector<double> &f,
                                      double g, MegBA::JetVector<double> *out);
 
 template void
-jetVectorMultipliesScalarCPU<float>(const MegBA::JetVector<float> &f, float g,
+jetVectorMulScalarCPU<float>(const MegBA::JetVector<float> &f, float g,
                                     MegBA::JetVector<float> *out);
 
 template <typename T>
-void jetVectorDividesScalarCPU(const MegBA::JetVector<T> &f, T g,
+void jetVectorDivScalarCPU(const MegBA::JetVector<T> &f, T g,
                                MegBA::JetVector<T> *out) {
   for (unsigned int i = 0; i < out->getGradShape(); ++i) {
     thrust::transform(f.getCPUGrad()[i].begin(), f.getCPUGrad()[i].end(),
@@ -493,48 +493,48 @@ void jetVectorDividesScalarCPU(const MegBA::JetVector<T> &f, T g,
                     out->getCPURes().begin(), thrust::multiplies<T>());
 }
 template void
-jetVectorDividesScalarCPU<double>(const MegBA::JetVector<double> &f, double g,
+jetVectorDivScalarCPU<double>(const MegBA::JetVector<double> &f, double g,
                                   MegBA::JetVector<double> *out);
 
-template void jetVectorDividesScalarCPU<float>(const MegBA::JetVector<float> &f,
+template void jetVectorDivScalarCPU<float>(const MegBA::JetVector<float> &f,
                                                float g,
                                                MegBA::JetVector<float> *out);
 
 template <typename T>
-void scalarMinusJetVectorCPU(T f, const JetVector<T> &g, JetVector<T> *out) {
+void scalarSubJetVectorCPU(T f, const JetVector<T> &g, JetVector<T> *out) {
   for (unsigned int i = 0; i < out->getGradShape(); ++i) {
     thrust::transform(g.getCPUGrad()[i].begin(), g.getCPUGrad()[i].end(),
                       out->getCPUGrad()[i].begin(), thrust::negate<T>());
   }
 
   thrust::transform(g.getCPURes().begin(), g.getCPURes().end(),
-                    out->getCPURes().begin(), TT::ScalarMinusJetVector<T>(f));
+                    out->getCPURes().begin(), TT::ScalarSubJetVector<T>(f));
 }
-template void scalarMinusJetVectorCPU<double>(double f,
+template void scalarSubJetVectorCPU<double>(double f,
                                               const MegBA::JetVector<double> &g,
                                               MegBA::JetVector<double> *out);
 
-template void scalarMinusJetVectorCPU<float>(float f,
+template void scalarSubJetVectorCPU<float>(float f,
                                              const MegBA::JetVector<float> &g,
                                              MegBA::JetVector<float> *out);
 
 template <typename T>
-void scalarDividesJetVectorCPU(T f, const JetVector<T> &g, JetVector<T> *out) {
+void scalarDivJetVectorCPU(T f, const JetVector<T> &g, JetVector<T> *out) {
   for (unsigned int i = 0; i < out->getGradShape(); ++i) {
     thrust::transform(g.getCPURes().begin(), g.getCPURes().end(),
                       g.getCPUGrad()[i].begin(), out->getCPUGrad()[i].begin(),
-                      TT::ScalarDividesJetVectorV<T>(f));
+                      TT::ScalarDivJetVectorV<T>(f));
   }
 
   thrust::transform(g.getCPURes().begin(), g.getCPURes().end(),
                     out->getCPURes().begin(),
-                    TT::ScalarDividesJetVectorA<T>(f));
+                    TT::ScalarDivJetVectorA<T>(f));
 }
 template void
-scalarDividesJetVectorCPU<double>(double f, const MegBA::JetVector<double> &g,
+scalarDivJetVectorCPU<double>(double f, const MegBA::JetVector<double> &g,
                                   MegBA::JetVector<double> *out);
 
-template void scalarDividesJetVectorCPU<float>(float f,
+template void scalarDivJetVectorCPU<float>(float f,
                                                const MegBA::JetVector<float> &g,
                                                MegBA::JetVector<float> *out);
 
@@ -563,7 +563,7 @@ void cosJetVectorCPU(const MegBA::JetVector<T> &f, MegBA::JetVector<T> *out) {
   for (unsigned int i = 0; i < out->getGradShape(); ++i) {
     thrust::transform(f.getCPURes().begin(), f.getCPURes().end(),
                       f.getCPUGrad()[i].begin(), out->getCPUGrad()[i].begin(),
-                      TT::NegativeSinMultiplies<T>());
+                      TT::NegativeSinMul<T>());
   }
 
   thrust::transform(f.getCPURes().begin(), f.getCPURes().end(),
@@ -580,7 +580,7 @@ void sinJetVectorCPU(const MegBA::JetVector<T> &f, MegBA::JetVector<T> *out) {
   for (unsigned int i = 0; i < out->getGradShape(); ++i) {
     thrust::transform(f.getCPURes().begin(), f.getCPURes().end(),
                       f.getCPUGrad()[i].begin(), out->getCPUGrad()[i].begin(),
-                      TT::CosMultiplies<T>());
+                      TT::CosMul<T>());
   }
 
   thrust::transform(f.getCPURes().begin(), f.getCPURes().end(),

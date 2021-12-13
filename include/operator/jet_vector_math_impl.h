@@ -16,35 +16,35 @@ void vectorAddVectorCPU(const JetVector<T> &f, const JetVector<T> &g,
                         JetVector<T> *out);
 
 template <typename T>
-void vectorMinusVectorCPU(const JetVector<T> &f, const JetVector<T> &g,
+void vectorSubVectorCPU(const JetVector<T> &f, const JetVector<T> &g,
                           JetVector<T> *out);
 
 template <typename T>
-void vectorMultipliesVectorCPU(const JetVector<T> &f, const JetVector<T> &g,
+void vectorMulVectorCPU(const JetVector<T> &f, const JetVector<T> &g,
                                JetVector<T> *out);
 
 template <typename T>
-void vectorDividesVectorCPU(const JetVector<T> &f, const JetVector<T> &g,
+void vectorDivVectorCPU(const JetVector<T> &f, const JetVector<T> &g,
                             JetVector<T> *out);
 
 template <typename T>
 void jetVectorAddScalarCPU(const JetVector<T> &f, T g, JetVector<T> *out);
 
 template <typename T>
-void jetVectorMinusScalarCPU(const JetVector<T> &f, T g, JetVector<T> *out);
+void jetVectorSubScalarCPU(const JetVector<T> &f, T g, JetVector<T> *out);
 
 template <typename T>
-void jetVectorMultipliesScalarCPU(const JetVector<T> &f, T g,
+void jetVectorMulScalarCPU(const JetVector<T> &f, T g,
                                   JetVector<T> *out);
 
 template <typename T>
-void jetVectorDividesScalarCPU(const JetVector<T> &f, T g, JetVector<T> *out);
+void jetVectorDivScalarCPU(const JetVector<T> &f, T g, JetVector<T> *out);
 
 template <typename T>
-void scalarMinusJetVectorCPU(T f, const JetVector<T> &g, JetVector<T> *out);
+void scalarSubJetVectorCPU(T f, const JetVector<T> &g, JetVector<T> *out);
 
 template <typename T>
-void scalarDividesJetVectorCPU(T f, const JetVector<T> &g, JetVector<T> *out);
+void scalarDivJetVectorCPU(T f, const JetVector<T> &g, JetVector<T> *out);
 
 template <typename T>
 void absJetVectorCPU(const MegBA::JetVector<T> &f, MegBA::JetVector<T> *out);

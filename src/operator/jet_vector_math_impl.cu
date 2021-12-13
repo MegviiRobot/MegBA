@@ -486,7 +486,7 @@ void Scalar_Vector_minus_Scalar_Vector_CUDA(const MegBA::JetVector<T> &f,
 }
 
 template <typename T>
-void vectorMinusVectorCUDA(const MegBA::JetVector<T> &f,
+void vectorSubVectorCUDA(const MegBA::JetVector<T> &f,
                            const MegBA::JetVector<T> &g,
                            MegBA::JetVector<T> *out) {
   if (f.getGradShape() != 0) {
@@ -503,11 +503,11 @@ void vectorMinusVectorCUDA(const MegBA::JetVector<T> &f,
     }
   }
 }
-template void vectorMinusVectorCUDA<double>(const MegBA::JetVector<double> &f,
+template void vectorSubVectorCUDA<double>(const MegBA::JetVector<double> &f,
                                             const MegBA::JetVector<double> &g,
                                             MegBA::JetVector<double> *out);
 
-template void vectorMinusVectorCUDA<float>(const MegBA::JetVector<float> &f,
+template void vectorSubVectorCUDA<float>(const MegBA::JetVector<float> &f,
                                            const MegBA::JetVector<float> &g,
                                            MegBA::JetVector<float> *out);
 
@@ -703,7 +703,7 @@ void Scalar_Vector_multiplies_Scalar_Vector_CUDA(const MegBA::JetVector<T> &f,
 }
 
 template <typename T>
-void vectorMultipliesVectorCUDA(const MegBA::JetVector<T> &f,
+void vectorMulVectorCUDA(const MegBA::JetVector<T> &f,
                                 const MegBA::JetVector<T> &g,
                                 MegBA::JetVector<T> *out) {
   if (f.getGradShape() != 0) {
@@ -721,12 +721,12 @@ void vectorMultipliesVectorCUDA(const MegBA::JetVector<T> &f,
   }
 }
 template void
-vectorMultipliesVectorCUDA<double>(const MegBA::JetVector<double> &f,
+vectorMulVectorCUDA<double>(const MegBA::JetVector<double> &f,
                                    const MegBA::JetVector<double> &g,
                                    MegBA::JetVector<double> *out);
 
 template void
-vectorMultipliesVectorCUDA<float>(const MegBA::JetVector<float> &f,
+vectorMulVectorCUDA<float>(const MegBA::JetVector<float> &f,
                                   const MegBA::JetVector<float> &g,
                                   MegBA::JetVector<float> *out);
 
@@ -1018,7 +1018,7 @@ void Scalar_Vector_divides_JetVector_CUDA(const MegBA::JetVector<T> &f,
 }
 
 template <typename T>
-void vectorDividesVectorCUDA(const MegBA::JetVector<T> &f,
+void vectorDivVectorCUDA(const MegBA::JetVector<T> &f,
                              const MegBA::JetVector<T> &g,
                              MegBA::JetVector<T> *out) {
   if (f.getGradShape() != 0) {
@@ -1035,11 +1035,11 @@ void vectorDividesVectorCUDA(const MegBA::JetVector<T> &f,
     }
   }
 }
-template void vectorDividesVectorCUDA<double>(const MegBA::JetVector<double> &f,
+template void vectorDivVectorCUDA<double>(const MegBA::JetVector<double> &f,
                                               const MegBA::JetVector<double> &g,
                                               MegBA::JetVector<double> *out);
 
-template void vectorDividesVectorCUDA<float>(const MegBA::JetVector<float> &f,
+template void vectorDivVectorCUDA<float>(const MegBA::JetVector<float> &f,
                                              const MegBA::JetVector<float> &g,
                                              MegBA::JetVector<float> *out);
 
@@ -1096,7 +1096,7 @@ JetVector_minus_Scalar_Kernel(const unsigned int N, const unsigned int nElm,
   out_res[grid_thread_rank] = f_res[grid_thread_rank] - g;
 }
 template <typename T>
-void jetVectorMinusScalarCUDA(const MegBA::JetVector<T> &f, T g,
+void jetVectorSubScalarCUDA(const MegBA::JetVector<T> &f, T g,
                               MegBA::JetVector<T> *out) {
   for (int i = 0; i < MemoryPool::getWorldSize(); ++i) {
     cudaSetDevice(i);
@@ -1109,10 +1109,10 @@ void jetVectorMinusScalarCUDA(const MegBA::JetVector<T> &f, T g,
   }
 }
 template void
-jetVectorMinusScalarCUDA<double>(const MegBA::JetVector<double> &f, double g,
+jetVectorSubScalarCUDA<double>(const MegBA::JetVector<double> &f, double g,
                                  MegBA::JetVector<double> *out);
 
-template void jetVectorMinusScalarCUDA<float>(const MegBA::JetVector<float> &f,
+template void jetVectorSubScalarCUDA<float>(const MegBA::JetVector<float> &f,
                                               float g,
                                               MegBA::JetVector<float> *out);
 
@@ -1134,7 +1134,7 @@ __global__ void JetVector_multiplies_Scalar_Kernel(const unsigned int N,
   out_res[grid_thread_rank] = f_res[grid_thread_rank] * g;
 }
 template <typename T>
-void jetVectorMultipliesScalarCUDA(const MegBA::JetVector<T> &f, T g,
+void jetVectorMulScalarCUDA(const MegBA::JetVector<T> &f, T g,
                                    MegBA::JetVector<T> *out) {
   for (int i = 0; i < MemoryPool::getWorldSize(); ++i) {
     cudaSetDevice(i);
@@ -1147,11 +1147,11 @@ void jetVectorMultipliesScalarCUDA(const MegBA::JetVector<T> &f, T g,
   }
 }
 template void
-jetVectorMultipliesScalarCUDA<double>(const MegBA::JetVector<double> &f,
+jetVectorMulScalarCUDA<double>(const MegBA::JetVector<double> &f,
                                       double g, MegBA::JetVector<double> *out);
 
 template void
-jetVectorMultipliesScalarCUDA<float>(const MegBA::JetVector<float> &f, float g,
+jetVectorMulScalarCUDA<float>(const MegBA::JetVector<float> &f, float g,
                                      MegBA::JetVector<float> *out);
 
 template <typename T>
@@ -1171,7 +1171,7 @@ Scalar_minus_JetVector_Kernel(const unsigned int N, const unsigned int nElm,
   out_res[grid_thread_rank] = f - g_res[grid_thread_rank];
 }
 template <typename T>
-void scalarMinusJetVectorCUDA(T f, const JetVector<T> &g, JetVector<T> *out) {
+void scalarSubJetVectorCUDA(T f, const JetVector<T> &g, JetVector<T> *out) {
   for (int i = 0; i < MemoryPool::getWorldSize(); ++i) {
     cudaSetDevice(i);
     unsigned int nElm = out->getElmNum(i);
@@ -1184,10 +1184,10 @@ void scalarMinusJetVectorCUDA(T f, const JetVector<T> &g, JetVector<T> *out) {
   }
 }
 template void
-scalarMinusJetVectorCUDA<double>(double f, const MegBA::JetVector<double> &g,
+scalarSubJetVectorCUDA<double>(double f, const MegBA::JetVector<double> &g,
                                  MegBA::JetVector<double> *out);
 
-template void scalarMinusJetVectorCUDA<float>(float f,
+template void scalarSubJetVectorCUDA<float>(float f,
                                               const MegBA::JetVector<float> &g,
                                               MegBA::JetVector<float> *out);
 
@@ -1211,7 +1211,7 @@ Scalar_divides_JetVector_Kernel(const unsigned int N, const unsigned int nElm,
   out_res[grid_thread_rank] = g_res_inv_times_f_local;
 }
 template <typename T>
-void scalarDividesJetVectorCUDA(T f, const JetVector<T> &g, JetVector<T> *out) {
+void scalarDivJetVectorCUDA(T f, const JetVector<T> &g, JetVector<T> *out) {
   for (int i = 0; i < MemoryPool::getWorldSize(); ++i) {
     cudaSetDevice(i);
     unsigned int nElm = out->getElmNum(i);
@@ -1224,11 +1224,11 @@ void scalarDividesJetVectorCUDA(T f, const JetVector<T> &g, JetVector<T> *out) {
   }
 }
 template void
-scalarDividesJetVectorCUDA<double>(double f, const MegBA::JetVector<double> &g,
+scalarDivJetVectorCUDA<double>(double f, const MegBA::JetVector<double> &g,
                                    MegBA::JetVector<double> *out);
 
 template void
-scalarDividesJetVectorCUDA<float>(float f, const MegBA::JetVector<float> &g,
+scalarDivJetVectorCUDA<float>(float f, const MegBA::JetVector<float> &g,
                                   MegBA::JetVector<float> *out);
 
 template <typename T>

@@ -16,32 +16,32 @@ void vectorAddVectorCUDA(const JetVector<T> &f, const JetVector<T> &g,
                          JetVector<T> *out);
 
 template <typename T>
-void vectorMinusVectorCUDA(const JetVector<T> &f, const JetVector<T> &g,
+void vectorSubVectorCUDA(const JetVector<T> &f, const JetVector<T> &g,
                            JetVector<T> *out);
 
 template <typename T>
-void vectorMultipliesVectorCUDA(const JetVector<T> &f, const JetVector<T> &g,
+void vectorMulVectorCUDA(const JetVector<T> &f, const JetVector<T> &g,
                                 JetVector<T> *out);
 
 template <typename T>
-void vectorDividesVectorCUDA(const JetVector<T> &f, const JetVector<T> &g,
+void vectorDivVectorCUDA(const JetVector<T> &f, const JetVector<T> &g,
                              JetVector<T> *out);
 
 template <typename T>
 void jetVectorAddScalarCUDA(const JetVector<T> &f, T g, JetVector<T> *out);
 
 template <typename T>
-void jetVectorMinusScalarCUDA(const JetVector<T> &f, T g, JetVector<T> *out);
+void jetVectorSubScalarCUDA(const JetVector<T> &f, T g, JetVector<T> *out);
 
 template <typename T>
-void jetVectorMultipliesScalarCUDA(const JetVector<T> &f, T g,
+void jetVectorMulScalarCUDA(const JetVector<T> &f, T g,
                                    JetVector<T> *out);
 
 template <typename T>
-void scalarMinusJetVectorCUDA(T f, const JetVector<T> &g, JetVector<T> *out);
+void scalarSubJetVectorCUDA(T f, const JetVector<T> &g, JetVector<T> *out);
 
 template <typename T>
-void scalarDividesJetVectorCUDA(T f, const JetVector<T> &g, JetVector<T> *out);
+void scalarDivJetVectorCUDA(T f, const JetVector<T> &g, JetVector<T> *out);
 
 template <typename T>
 void absJetVectorCUDA(const MegBA::JetVector<T> &f, MegBA::JetVector<T> *out);

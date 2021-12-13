@@ -18,7 +18,7 @@ inline JetVector<T> operator+(T g, const JetVector<T> &f) {
 
 template <typename T>
 inline JetVector<T> operator-(T g, const JetVector<T> &f) {
-  return f.scalarMinusThis(g);
+  return f.scalarSubThis(g);
 }
 
 template <typename T>
@@ -28,7 +28,7 @@ inline JetVector<T> operator*(T g, const JetVector<T> &f) {
 
 template <typename T>
 inline JetVector<T> operator/(T g, const JetVector<T> &f) {
-  return f.scalarDividesThis(g);
+  return f.scalarDivThis(g);
 }
 
 namespace math {

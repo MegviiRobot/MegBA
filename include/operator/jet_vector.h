@@ -158,8 +158,8 @@ template <typename T> class JetVector {
 
   JetVector<T> &operator/=(T g);
 
-  JetVector<T> scalarMinusThis(T g) const;
-  JetVector<T> scalarDividesThis(T g) const;
+  JetVector<T> scalarSubThis(T g) const;
+  JetVector<T> scalarDivThis(T g) const;
 };
 
 template <typename T>
