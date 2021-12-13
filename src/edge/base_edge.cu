@@ -14,7 +14,7 @@ template <typename T> void EdgeVector<T>::backupDaPtrs() {
     for (int i = 0; i < MemoryPool::getWorldSize(); ++i) {
       cudaSetDevice(i);
       cudaMemcpyAsync(schurDaPtrsOld[0][i], schurDaPtrs[0][i],
-                      MemoryPool::getElmNum(i) * gradShape * sizeof(T),
+                      MemoryPool::getItemNum(i) * gradShape * sizeof(T),
                       cudaMemcpyDeviceToDevice, schurStreamLmMemcpy[i]);
     }
   } else {
@@ -25,9 +25,9 @@ template <typename T> void EdgeVector<T>::backupDaPtrs() {
 namespace {
 template <typename T>
 __global__ void broadCastCsrColInd(const int *input, const int other_dim,
-                                   const int nElm, int *output) {
+                                   const int nItem, int *output) {
   unsigned int tid = threadIdx.x + blockIdx.x * blockDim.x;
-  if (tid >= nElm)
+  if (tid >= nItem)
     return;
   for (int i = 0; i < other_dim; ++i) {
     output[i + tid * other_dim] = i + input[tid] * other_dim;
@@ -41,7 +41,7 @@ template <typename T> void EdgeVector<T>::preparePositionAndRelationDataCUDA() {
     compressedCsrColInd.resize(_option.deviceUsed.size());
     for (int i = 0; i < _option.deviceUsed.size(); ++i) {
       cudaSetDevice(i);
-      const auto edgeNum = MemoryPool::getElmNum(i);
+      const auto edgeNum = MemoryPool::getItemNum(i);
 
       cudaMalloc(&schurEquationContainer[i].csrRowPtr[0],
                  (num[0] * schurEquationContainer[i].dim[0] + 1) * sizeof(int));
@@ -155,9 +155,9 @@ template <typename T> void EdgeVector<T>::PrepareUpdateDataCUDA() {
       cudaStreamCreateWithFlags(&schurStreamLmMemcpy[i],
                                 CU_STREAM_NON_BLOCKING);
       T *daPtr, *daPtrOld;
-      const auto nElm = MemoryPool::getElmNum(i);
-      cudaMalloc(&daPtr, nElm * gradShape * sizeof(T));
-      cudaMalloc(&daPtrOld, nElm * gradShape * sizeof(T));
+      const auto nItem = MemoryPool::getItemNum(i);
+      cudaMalloc(&daPtr, nItem * gradShape * sizeof(T));
+      cudaMalloc(&daPtrOld, nItem * gradShape * sizeof(T));
       daPtrs[i] = daPtr;
       daPtrsOld[i] = daPtrOld;
     }
@@ -171,9 +171,9 @@ template <typename T> void EdgeVector<T>::PrepareUpdateDataCUDA() {
       if (edges[i][0]->fixed)
         continue;
       for (int j = 0; j < worldSize; ++j) {
-        const auto nElm = MemoryPool::getElmNum(j);
-        schurDaPtrs[iUnfixed][j] = &daPtrs[j][offset * nElm];
-        schurDaPtrsOld[iUnfixed][j] = &daPtrsOld[j][offset * nElm];
+        const auto nItem = MemoryPool::getItemNum(j);
+        schurDaPtrs[iUnfixed][j] = &daPtrs[j][offset * nItem];
+        schurDaPtrsOld[iUnfixed][j] = &daPtrsOld[j][offset * nItem];
       }
       iUnfixed++;
       const auto &estimation = edges[i][0]->getEstimation();

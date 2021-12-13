@@ -14,13 +14,13 @@ namespace geo {
 namespace {
 template <typename T>
 __global__ void AngleAxisToRotationKernel(
-    const int nElm, const int N, const T *da_ptr0, const T *da_ptr1,
+    const int nItem, const int N, const T *da_ptr0, const T *da_ptr1,
     const T *da_ptr2, const T *dv_ptr0, const T *dv_ptr1, const T *dv_ptr2,
     T *R0, T *R1, T *R2, T *R3, T *R4, T *R5, T *R6, T *R7, T *R8, T *dvptr_R0,
     T *dvptr_R1, T *dvptr_R2, T *dvptr_R3, T *dvptr_R4, T *dvptr_R5,
     T *dvptr_R6, T *dvptr_R7, T *dvptr_R8) {
   unsigned int idx = threadIdx.x + blockDim.x * blockIdx.x;
-  if (idx >= nElm)
+  if (idx >= nItem)
     return;
   const T angle_axis_x = da_ptr0[idx];
   const T angle_axis_y = da_ptr1[idx];
@@ -56,7 +56,7 @@ __global__ void AngleAxisToRotationKernel(
     const T tmpwz = tmp1 * (wz * wz - T(1.0));
 
     for (int i = 0; i < N; ++i) {
-      unsigned int index = idx + i * nElm;
+      unsigned int index = idx + i * nItem;
       const T dv_angle_axis_x = dv_ptr0[index];
       const T dv_angle_axis_y = dv_ptr1[index];
       const T dv_angle_axis_z = dv_ptr2[index];
@@ -119,7 +119,7 @@ __global__ void AngleAxisToRotationKernel(
   } else {
     // Near zero, we switch to using the first order Taylor expansion.
     for (int i = 0; i < N; ++i) {
-      unsigned int index = idx + i * nElm;
+      unsigned int index = idx + i * nItem;
       const T dv_angle_axis_x = dv_ptr0[index];
       const T dv_angle_axis_y = dv_ptr1[index];
       const T dv_angle_axis_z = dv_ptr2[index];
@@ -149,13 +149,13 @@ __global__ void AngleAxisToRotationKernel(
 
 template <typename T>
 __global__ void AngleAxisToRotationKernelFastGradKernel(
-    const int nElm, const int N, const T *da_ptr0, const T *da_ptr1,
+    const int nItem, const int N, const T *da_ptr0, const T *da_ptr1,
     const T *da_ptr2, const int grad_position0, const int grad_position1,
     const int grad_position2, T *R0, T *R1, T *R2, T *R3, T *R4, T *R5, T *R6,
     T *R7, T *R8, T *dvptr_R0, T *dvptr_R1, T *dvptr_R2, T *dvptr_R3,
     T *dvptr_R4, T *dvptr_R5, T *dvptr_R6, T *dvptr_R7, T *dvptr_R8) {
   unsigned int idx = threadIdx.x + blockDim.x * blockIdx.x;
-  if (idx >= nElm)
+  if (idx >= nItem)
     return;
   const T angle_axis_x = da_ptr0[idx];
   const T angle_axis_y = da_ptr1[idx];
@@ -190,7 +190,7 @@ __global__ void AngleAxisToRotationKernelFastGradKernel(
     const T tmpwz = tmp1 * (wz * wz - T(1.0));
 
     for (int i = 0; i < N; ++i) {
-      unsigned int index = idx + i * nElm;
+      unsigned int index = idx + i * nItem;
       const T dv_angle_axis_x = i == grad_position0 ? 1 : 0;
       const T dv_angle_axis_y = i == grad_position1 ? 1 : 0;
       const T dv_angle_axis_z = i == grad_position2 ? 1 : 0;
@@ -253,7 +253,7 @@ __global__ void AngleAxisToRotationKernelFastGradKernel(
   } else {
     // Near zero, we switch to using the first order Taylor expansion.
     for (int i = 0; i < N; ++i) {
-      unsigned int index = idx + i * nElm;
+      unsigned int index = idx + i * nItem;
       const T dv_angle_axis_x = i == grad_position0 ? 1 : 0;
       const T dv_angle_axis_y = i == grad_position1 ? 1 : 0;
       const T dv_angle_axis_z = i == grad_position2 ? 1 : 0;
@@ -299,15 +299,15 @@ JM33<T> AngleAxisToRotationKernelMatrix(const JV3<T> &AxisAngle) {
   const auto N = JV_Template.getGradShape();
   for (int i = 0; i < MemoryPool::getWorldSize(); ++i) {
     cudaSetDevice(i);
-    const auto nElm = JV_Template.getElmNum(i);
+    const auto nItem = JV_Template.getItemNum(i);
     // 512 instead of 1024 for the limitation of registers
-    dim3 block_dim(std::min(decltype(nElm)(512), nElm));
-    dim3 grid_dim((nElm - 1) / block_dim.x + 1);
+    dim3 block_dim(std::min(decltype(nItem)(512), nItem));
+    dim3 grid_dim((nItem - 1) / block_dim.x + 1);
     ASSERT_CUDA_NO_ERROR();
 
     if (use_fast_grad)
       AngleAxisToRotationKernelFastGradKernel<T><<<grid_dim, block_dim>>>(
-          nElm, N, AxisAngle(0).getCUDAResPtr()[i],
+          nItem, N, AxisAngle(0).getCUDAResPtr()[i],
           AxisAngle(1).getCUDAResPtr()[i],
           AxisAngle(2).getCUDAResPtr()[i], AxisAngle(0).getGradPosition(),
           AxisAngle(1).getGradPosition(), AxisAngle(2).getGradPosition(),
@@ -322,7 +322,7 @@ JM33<T> AngleAxisToRotationKernelMatrix(const JV3<T> &AxisAngle) {
           R(1, 2).getCUDAGradPtr()[i], R(2, 2).getCUDAGradPtr()[i]);
     else
       AngleAxisToRotationKernel<T><<<grid_dim, block_dim>>>(
-          nElm, N, AxisAngle(0, 0).getCUDAResPtr()[i],
+          nItem, N, AxisAngle(0, 0).getCUDAResPtr()[i],
           AxisAngle(1, 0).getCUDAResPtr()[i],
           AxisAngle(2, 0).getCUDAResPtr()[i],
           AxisAngle(0, 0).getCUDAGradPtr()[i],
@@ -361,15 +361,15 @@ AngleAxisToRotationKernelMatrix(const Eigen::Map<const JVD<T>> &AxisAngle) {
   const auto N = JV_Template.getGradShape();
   for (int i = 0; i < MemoryPool::getWorldSize(); ++i) {
     cudaSetDevice(i);
-    const auto nElm = JV_Template.getElmNum(i);
+    const auto nItem = JV_Template.getItemNum(i);
     // 512 instead of 1024 for the limitation of registers
-    dim3 block_dim(std::min(decltype(nElm)(512), nElm));
-    dim3 grid_dim((nElm - 1) / block_dim.x + 1);
+    dim3 block_dim(std::min(decltype(nItem)(512), nItem));
+    dim3 grid_dim((nItem - 1) / block_dim.x + 1);
     ASSERT_CUDA_NO_ERROR();
 
     if (use_fast_grad)
       AngleAxisToRotationKernelFastGradKernel<T><<<grid_dim, block_dim>>>(
-          nElm, N, AxisAngle(0).getCUDAResPtr()[i],
+          nItem, N, AxisAngle(0).getCUDAResPtr()[i],
           AxisAngle(1).getCUDAResPtr()[i],
           AxisAngle(2).getCUDAResPtr()[i], AxisAngle(0).getGradPosition(),
           AxisAngle(1).getGradPosition(), AxisAngle(2).getGradPosition(),
@@ -384,7 +384,7 @@ AngleAxisToRotationKernelMatrix(const Eigen::Map<const JVD<T>> &AxisAngle) {
           R(1, 2).getCUDAGradPtr()[i], R(2, 2).getCUDAGradPtr()[i]);
     else
       AngleAxisToRotationKernel<T><<<grid_dim, block_dim>>>(
-          nElm, N, AxisAngle(0, 0).getCUDAResPtr()[i],
+          nItem, N, AxisAngle(0, 0).getCUDAResPtr()[i],
           AxisAngle(1, 0).getCUDAResPtr()[i],
           AxisAngle(2, 0).getCUDAResPtr()[i],
           AxisAngle(0, 0).getCUDAGradPtr()[i],

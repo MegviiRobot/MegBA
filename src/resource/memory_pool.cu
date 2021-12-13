@@ -35,12 +35,12 @@ std::vector<std::size_t> memOverflowedPeak{};
 
 }  // namespace
 
-void MemoryPool::resetPool(int N, std::size_t nElm, std::int8_t sizeofType,
+void MemoryPool::resetPool(int N, std::size_t nItem, std::int8_t sizeofType,
                            int worldSize) {
   // TODO(Jie Ren): maybe destroy only once
   std::unique_lock<std::mutex> lock{_mutex};
   _N = N;
-  _nElm = nElm;
+  _nItem = nItem;
   _sizeofType = sizeofType;
   _worldSize = worldSize;
   HandleManager::destroyNCCLComm();
@@ -53,35 +53,35 @@ void MemoryPool::resetPool(int N, std::size_t nElm, std::int8_t sizeofType,
 
 void MemoryPool::allocateJetVector(std::vector<void *> *daPtr,
                                    std::vector<void *> *dvPtr, std::size_t N,
-                                   std::size_t nElm, std::int8_t sizeofType) {
+                                   std::size_t nItem, std::int8_t sizeofType) {
   std::unique_lock<std::mutex> lock{_mutex};
   daPtr->clear();
   daPtr->resize(_worldSize);
   dvPtr->clear();
   dvPtr->resize(_worldSize);
-  assert((N == _N || N == 0) && nElm == _nElm && sizeofType == _sizeofType);
+  assert((N == _N || N == 0) && nItem == _nItem && sizeofType == _sizeofType);
   for (auto offset : memOffsetCounter)
     if (offset != 0)
       throw std::runtime_error("memory leak");
   if (_ptr.empty()) {
     for (int i = 0; i < _worldSize; ++i) {
-      const auto nElm = getElmNum(i);
+      const auto nItem = getItemNum(i);
       cudaSetDevice(i);
       Ptr ptr{nullptr};
-      cudaMalloc(&ptr.address, (_N + 1) * nElm * _sizeofType);
+      cudaMalloc(&ptr.address, (_N + 1) * nItem * _sizeofType);
       dvPtr->operator[](i) = ptr.address;
-      ptr.number += _N * nElm * _sizeofType;
+      ptr.number += _N * nItem * _sizeofType;
       daPtr->operator[](i) = ptr.address;
     }
   } else {
     std::vector<void *> back = std::move(_ptr.back());
     _ptr.pop_back();
     for (int i = 0; i < _worldSize; ++i) {
-      const auto nElm = getElmNum(i);
+      const auto nItem = getItemNum(i);
       cudaSetDevice(i);
       Ptr ptr{back[i]};
       dvPtr->operator[](i) = ptr.address;
-      ptr.number += _N * nElm * _sizeofType;
+      ptr.number += _N * nItem * _sizeofType;
       daPtr->operator[](i) = ptr.address;
     }
   }
@@ -160,17 +160,17 @@ void MemoryPool::redistribute() {
     _headPtr.resize(_worldSize);
     for (int i = 0; i < _worldSize; ++i) {
       cudaSetDevice(i);
-      const auto nElm = getElmNum(i);
+      const auto nItem = getItemNum(i);
       for (const auto &v : _ptr) {
         cudaFree(v[i]);
       }
-      _poolSize[i] = (_N + 1) * nElm * _sizeofType * _ptr.size();
+      _poolSize[i] = (_N + 1) * nItem * _sizeofType * _ptr.size();
       cudaMalloc(&_headPtr[i], _poolSize[i]);
       int64_t offset{0};
       for (auto &item : _ptr) {
         Ptr ptr{_headPtr[i]};
         ptr.number += offset;
-        offset += (_N + 1) * nElm * _sizeofType;
+        offset += (_N + 1) * nItem * _sizeofType;
         item[i] = ptr.address;
       }
     }
@@ -181,7 +181,7 @@ void MemoryPool::redistribute() {
     if (overflowed) {
       for (int i = 0; i < _worldSize; ++i) {
         cudaSetDevice(i);
-        const auto nElm = getElmNum(i);
+        const auto nItem = getItemNum(i);
         cudaFree(_headPtr[i]);
         _poolSize[i] += memOverflowedPeak[i];
         cudaMalloc(&_headPtr[i], _poolSize[i]);
@@ -189,7 +189,7 @@ void MemoryPool::redistribute() {
         for (auto &item : _ptr) {
           Ptr ptr{_headPtr[i]};
           ptr.number += offset;
-          offset += (_N + 1) * nElm * _sizeofType;
+          offset += (_N + 1) * nItem * _sizeofType;
           item[i] = ptr.address;
         }
       }
@@ -202,7 +202,7 @@ std::mutex MemoryPool::_mutex{};
 std::vector<std::size_t> MemoryPool::_poolSize{};
 std::vector<void *> MemoryPool::_headPtr{};
 int MemoryPool::_N{0};
-std::size_t MemoryPool::_nElm{0};
+std::size_t MemoryPool::_nItem{0};
 std::uint8_t MemoryPool::_sizeofType{0};
 int MemoryPool::_worldSize{1};
 std::size_t MemoryPool::_ptrInUseCounter{0};
