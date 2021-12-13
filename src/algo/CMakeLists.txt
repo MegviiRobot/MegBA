@@ -1,0 +1,1 @@
+add_library(base_algo SHARED base_algo.cpp)

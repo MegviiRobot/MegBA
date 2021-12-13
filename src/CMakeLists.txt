@@ -1,3 +1,4 @@
+add_subdirectory(algo)
 add_subdirectory(resource)
 add_subdirectory(operator)
 add_subdirectory(problem)
