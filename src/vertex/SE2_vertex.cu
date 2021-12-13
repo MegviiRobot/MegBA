@@ -23,17 +23,17 @@ namespace MegBA {
         }
 
         template<typename T>
-        __global__ void normalize_rotation2D_Kernel(const int nElm, const int N,
+        __global__ void normalize_rotation2D_Kernel(const int nEle, const int N,
                                            const T* R, const T* dR,
                                            T* R_out, T* dR_out) {
             unsigned int idx = threadIdx.x + blockDim.x * blockIdx.x;
-            if (idx >= nElm) return;
+            if (idx >= nEle) return;
 
             T r = -R[idx];
             R_out[idx] = r = normalize_rotation2D_dfn(r);
             int flip_r = -M_PI_2 < r && r < M_PI_2 ? -1 : 1;
             for (int i = 0; i < N; ++i) {
-                unsigned int index = idx + i * nElm;
+                unsigned int index = idx + i * nEle;
                 dR_out[index] = dR[index] * flip_r;
             }
         }
@@ -51,12 +51,12 @@ namespace MegBA {
 
         for (int i = 0; i < MemoryPool::getWorldSize(); ++i) {
             cudaSetDevice(i);
-            const auto nElm = init_template.getElmNum(i);
-            dim3 block_dim(std::min(decltype(nElm)(512), nElm));
-            dim3 grid_dim((nElm - 1) / block_dim.x + 1);
+            const auto nEle = init_template.getEleNum(i);
+            dim3 block_dim(std::min(decltype(nEle)(512), nEle));
+            dim3 grid_dim((nEle - 1) / block_dim.x + 1);
 
             normalize_rotation2D_Kernel<T><<<grid_dim, block_dim>>>(
-                    nElm, N,
+                    nEle, N,
                     se2.rotation().angle().getCUDAResPtr()[i], se2.rotation().angle().getCUDAGradPtr()[i],
                     se2_inv.rotation().angle().getCUDAResPtr()[i], se2_inv.rotation().angle().getCUDAGradPtr()[i]);
         }

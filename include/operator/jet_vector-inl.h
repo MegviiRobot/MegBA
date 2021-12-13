@@ -28,7 +28,7 @@ inline bool Shape_Same(const JetVector<T> &f, const JetVector<T> &g) {
   const auto fGradShape = f.getGradShape();
   const auto gGradShape = g.getGradShape();
   return (fGradShape == 0 || gGradShape == 0 || fGradShape == gGradShape) &&
-         f.getElmNum() == g.getElmNum();
+         f.getEleNum() == g.getEleNum();
 }
 
 template <typename T>
@@ -38,8 +38,8 @@ inline void shapeThrow(const JetVector<T> &f, const JetVector<T> &g) {
                              std::to_string(f.getGradShape()) + " item #2 is " +
                              std::to_string(g.getGradShape()) +
                              ", element number of item #1 is " +
-                             std::to_string(f.getElmNum()) + " item #2 is " +
-                             std::to_string(g.getElmNum()));
+                             std::to_string(f.getEleNum()) + " item #2 is " +
+                             std::to_string(g.getEleNum()));
 }
 }
 }

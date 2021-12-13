@@ -24,10 +24,10 @@ template <typename T>
 JetVector<T> &JetVector<T>::operator=(const JetVector<T> &f) {
   if (this == &f)
     return *this;
-  if (_device != f._device || _N != f._N || _nElm != f._nElm) {
+  if (_device != f._device || _N != f._N || _nEle != f._nEle) {
     clear();
     _N = f._N;
-    _nElm = f._nElm;
+    _nEle = f._nEle;
     _device = f._device;
     _gradPosition = f._gradPosition;
     _pureScalarFlag = f._pureScalarFlag;
@@ -49,7 +49,7 @@ template <typename T>
 JetVector<T> &JetVector<T>::operator=(JetVector<T> &&f) noexcept {
   clear();
   _N = f._N;
-  _nElm = f._nElm;
+  _nEle = f._nEle;
   _device = f._device;
   _gradPosition = f._gradPosition;
   _pureScalarFlag = f._pureScalarFlag;
@@ -74,7 +74,7 @@ void JetVector<T>::initAs(const JetVector<T> &initTemplate) {
 
   if (IsEmpty()) {
     _device = initTemplate._device;
-    _nElm = initTemplate._nElm;
+    _nEle = initTemplate._nEle;
     _N = initTemplate._N;
     switch (_device) {
     case Device::CPU:
@@ -114,12 +114,12 @@ template <typename T> JetVector<T> &JetVector<T>::CPU() {
     case Device::CUDA:
       // save counter
       auto N = _N;
-      auto nElm = _nElm;
+      auto nEle = _nEle;
       CUDA2CPU(*this);
       clear();
       // reserve counter
       _N = N;
-      _nElm = nElm;
+      _nEle = nEle;
       break;
     }  // switch _device
   }  // !empty
@@ -163,7 +163,7 @@ template <typename T> void JetVector<T>::clear() {
     }
   }
   _N = 0;
-  _nElm = 0;
+  _nEle = 0;
 }
 
 template <typename T> void JetVector<T>::appendJet(T a, int n) {
@@ -179,13 +179,13 @@ template <typename T> void JetVector<T>::appendJet(T a, int n) {
   _haData.push_back(a);
   for (int i = 0; i < _N; ++i)
     _hvData[i].push_back(i == n ? 1 : 0);
-  _nElm++;
+  _nEle++;
 }
 
 template <typename T> void JetVector<T>::appendJet(T a) {
   assert(_gradPosition >= 0 || _N == 0);
   _haData.push_back(a);
-  _nElm++;
+  _nEle++;
 }
 
 template <typename T>

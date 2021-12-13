@@ -12,7 +12,7 @@ namespace MegAutoBA{
     namespace geo {
         namespace {
             template<typename T>
-            __global__ void QuaternionToRotation(const int nElm, const int N,
+            __global__ void QuaternionToRotation(const int nEle, const int N,
                                                  const T *Qx, const T *Qy, const T *Qz, const T *Qw,
                                                  const T *dQx, const T *dQy, const T *dQz, const T *dQw,
                                                  T *R00, T *R01, T *R02,
@@ -22,7 +22,7 @@ namespace MegAutoBA{
                                                  T *dR10, T *dR11, T *dR12,
                                                  T *dR20, T *dR21, T *dR22) {
                 unsigned int idx = threadIdx.x + blockDim.x * blockIdx.x;
-                if (idx >= nElm) return;
+                if (idx >= nEle) return;
 
                 const T qw = Qw[idx];
                 const T qx = Qx[idx];
@@ -39,7 +39,7 @@ namespace MegAutoBA{
                 R22[idx] = 1 - 2 * (qx * qx + qy * qy);
 
                 for (int i = 0; i < N; ++i) {
-                    unsigned int index = idx + i * nElm;
+                    unsigned int index = idx + i * nEle;
                     const T dqw = dQw[index];
                     const T dqx = dQx[index];
                     const T dqy = dQy[index];
@@ -98,7 +98,7 @@ namespace MegAutoBA{
             };
 
             template<typename T>
-            __global__ void RotationToQuaternion(const int nElm, const int N) {
+            __global__ void RotationToQuaternion(const int nEle, const int N) {
                 /*
                  * 00: 0    01: 1   02: 2
                  * 10: 3    11: 4   12: 5
@@ -106,7 +106,7 @@ namespace MegAutoBA{
                  */
                 using W = R2Q_Address_Wrapper<T>;
                 unsigned int idx = threadIdx.x + blockDim.x * blockIdx.x;
-                if (idx >= nElm) return;
+                if (idx >= nEle) return;
 
                 const T r[3][3]{{W::get_R()[0][0][idx], W::get_R()[0][1][idx], W::get_R()[0][2][idx]},
                                 {W::get_R()[1][0][idx], W::get_R()[1][1][idx], W::get_R()[1][2][idx]},
@@ -129,7 +129,7 @@ namespace MegAutoBA{
 
                     const T inv_4q0_pow2 = inv_qw * inv_qw * 0.0625;
                     for (int i = 0; i < N; ++i) {
-                        unsigned int index = idx + i * nElm;
+                        unsigned int index = idx + i * nEle;
                         const T dqw = 0.125 * inv_qw * (W::get_dR()[0][0][index] + W::get_dR()[1][1][index] + W::get_dR()[2][2][index]);
 
                         // w
@@ -162,7 +162,7 @@ namespace MegAutoBA{
 
                     const T inv_4q0_pow2 = inv_qw * inv_qw * 0.0625;
                     for (int n = 0; n < N; ++n) {
-                        unsigned int index = idx + n * nElm;
+                        unsigned int index = idx + n * nEle;
                         const T dq0 = 0.125 * inv_qw * (W::get_dR()[i][i][index] - W::get_dR()[j][j][index] - W::get_dR()[k][k][index]);
 
                         W::get_dQ()[i][index] = dq0;
@@ -175,11 +175,11 @@ namespace MegAutoBA{
             }
 
             template<typename T>
-            __global__ void Normalize_(const int nElm, const int N,
+            __global__ void Normalize_(const int nEle, const int N,
                                        T *Qx, T *Qy, T *Qz, T *Qw,
                                        T *dQx, T *dQy, T *dQz, T *dQw) {
                 unsigned int idx = threadIdx.x + blockDim.x * blockIdx.x;
-                if (idx >= nElm) return;
+                if (idx >= nEle) return;
 
                 const T qw = Qw[idx];
                 const T qx = Qx[idx];
@@ -195,7 +195,7 @@ namespace MegAutoBA{
                 Qz[idx] = qz * inv_l2;
 
                 for (int i = 0; i < N; ++i) {
-                    unsigned int index = idx + i * nElm;
+                    unsigned int index = idx + i * nEle;
                     const T dqw = dQw[index];
                     const T dqx = dQx[index];
                     const T dqy = dQy[index];
@@ -219,13 +219,13 @@ namespace MegAutoBA{
                 }
             }
 
-            const auto nElm = JV_Template.getElmNum();
+            const auto nEle = JV_Template.getEleNum();
             const auto N = JV_Template.getGradShape();
             // 512 instead of 1024 for the limitation of registers
-            dim3 block_dim(std::min(decltype(nElm)(512), nElm));
-            dim3 grid_dim((nElm - 1) / block_dim.x + 1);
+            dim3 block_dim(std::min(decltype(nEle)(512), nEle));
+            dim3 grid_dim((nEle - 1) / block_dim.x + 1);
             QuaternionToRotation<T> <<< grid_dim, block_dim >>> (
-                    nElm, N,
+                    nEle, N,
                     Q.x().getCUDAResPtr(), Q.y().getCUDAResPtr(), Q.z().getCUDAResPtr(), Q.w().getCUDAResPtr(),
                     Q.x().getCUDAGradPtr(), Q.y().getCUDAGradPtr(), Q.z().getCUDAGradPtr(), Q.w().getCUDAGradPtr(),
                     R(0, 0).getCUDAResPtr(), R(0, 1).getCUDAResPtr(), R(0, 2).getCUDAResPtr(),
@@ -274,13 +274,13 @@ namespace MegAutoBA{
             cudaMemcpyToSymbolAsync(W::get_Q(), address_Q, 4 * sizeof(T *), 0, cudaMemcpyHostToDevice, stream);
             cudaMemcpyToSymbolAsync(W::get_dQ(), address_dQ, 4 * sizeof(T *), 0, cudaMemcpyHostToDevice, stream);
 
-            const auto nElm = JV_Template.getElmNum();
+            const auto nEle = JV_Template.getEleNum();
             const auto N = JV_Template.getGradShape();
             // 512 instead of 1024 for the limitation of registers
-            dim3 block_dim(std::min(decltype(nElm)(512), nElm));
-            dim3 grid_dim((nElm - 1) / block_dim.x + 1);
+            dim3 block_dim(std::min(decltype(nEle)(512), nEle));
+            dim3 grid_dim((nEle - 1) / block_dim.x + 1);
 
-            RotationToQuaternion<T> <<< grid_dim, block_dim, 0, stream >>> (nElm, N);
+            RotationToQuaternion<T> <<< grid_dim, block_dim, 0, stream >>> (nEle, N);
 
             cudaStreamSynchronize(stream);
             cudaStreamDestroy(stream);
@@ -292,13 +292,13 @@ namespace MegAutoBA{
             cudaStream_t stream;
             cudaStreamCreateWithFlags(&stream, CU_STREAM_NON_BLOCKING);
 
-            const auto nElm = Q(0).getElmNum();
+            const auto nEle = Q(0).getEleNum();
             const auto N = Q(0).getGradShape();
             // 512 instead of 1024 for the limitation of registers
-            dim3 block_dim(std::min(decltype(nElm)(768), nElm));
-            dim3 grid_dim((nElm - 1) / block_dim.x + 1);
+            dim3 block_dim(std::min(decltype(nEle)(768), nEle));
+            dim3 grid_dim((nEle - 1) / block_dim.x + 1);
             Normalize_<T> <<< grid_dim, block_dim, 0, stream >>> (
-                    nElm, N,
+                    nEle, N,
                     Q.x().getCUDAResPtr(), Q.y().getCUDAResPtr(), Q.z().getCUDAResPtr(), Q.w().getCUDAResPtr(),
                     Q.x().getCUDAGradPtr(), Q.y().getCUDAGradPtr(), Q.z().getCUDAGradPtr(), Q.w().getCUDAGradPtr()
             );

@@ -104,7 +104,7 @@ int main(int argc, char *arcv[]) {
     fin >> num_observations;
 
     MegBA::ProblemOption option{};
-    option.nElm = num_observations;
+    option.nEle = num_observations;
     option.N = 12;
     for (int i = 0; i < world_size; ++i) {
       option.deviceUsed.insert(i);
