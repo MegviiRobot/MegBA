@@ -191,8 +191,8 @@ template <typename T> void JetVector<T>::appendJet(T a) {
 template <typename T>
 JetVector<T> JetVector<T>::operator+(const JetVector<T> &g) const {
   PURE_SCALAR_OP(*this, +, g);
-  CHK::shapeThrow(*this, g);
-  CHK::deviceThrow(*this, g);
+  Check::shapeThrow(*this, g);
+  Check::deviceThrow(*this, g);
   switch (_device) {
   case Device::CPU:
     return JetVector<T>{getInitTemplate(*this, g), [&](JetVector<T> *out) {
@@ -210,8 +210,8 @@ JetVector<T> JetVector<T>::operator+(const JetVector<T> &g) const {
 template <typename T>
 JetVector<T> JetVector<T>::operator-(const JetVector<T> &g) const {
   PURE_SCALAR_OP(*this, -, g);
-  CHK::shapeThrow(*this, g);
-  CHK::deviceThrow(*this, g);
+  Check::shapeThrow(*this, g);
+  Check::deviceThrow(*this, g);
   switch (_device) {
   case Device::CPU:
     return JetVector<T>{getInitTemplate(*this, g), [&](JetVector<T> *out) {
@@ -229,8 +229,8 @@ JetVector<T> JetVector<T>::operator-(const JetVector<T> &g) const {
 template <typename T>
 JetVector<T> JetVector<T>::operator*(const JetVector<T> &g) const {
   PURE_SCALAR_OP(*this, *, g);
-  CHK::shapeThrow(*this, g);
-  CHK::deviceThrow(*this, g);
+  Check::shapeThrow(*this, g);
+  Check::deviceThrow(*this, g);
   switch (_device) {
   case Device::CPU:
     return JetVector<T>{getInitTemplate(*this, g), [&](JetVector<T> *out) {
@@ -248,8 +248,8 @@ JetVector<T> JetVector<T>::operator*(const JetVector<T> &g) const {
 template <typename T>
 JetVector<T> JetVector<T>::operator/(const JetVector<T> &g) const {
   PURE_SCALAR_OP(*this, /, g);
-  CHK::shapeThrow(*this, g);
-  CHK::deviceThrow(*this, g);
+  Check::shapeThrow(*this, g);
+  Check::deviceThrow(*this, g);
   switch (_device) {
   case Device::CPU:
     return JetVector<T>{getInitTemplate(*this, g), [&](JetVector<T> *out) {
@@ -266,8 +266,8 @@ JetVector<T> JetVector<T>::operator/(const JetVector<T> &g) const {
 
 template <typename T>
 JetVector<T> &JetVector<T>::operator+=(const JetVector<T> &g) {
-  CHK::shapeThrow(*this, g);
-  CHK::deviceThrow(*this, g);
+  Check::shapeThrow(*this, g);
+  Check::deviceThrow(*this, g);
   switch (_device) {
   case Device::CPU:
     math::impl::vectorAddVectorCPU(*this, g, this);
@@ -281,8 +281,8 @@ JetVector<T> &JetVector<T>::operator+=(const JetVector<T> &g) {
 
 template <typename T>
 JetVector<T> &JetVector<T>::operator-=(const JetVector<T> &g) {
-  CHK::shapeThrow(*this, g);
-  CHK::deviceThrow(*this, g);
+  Check::shapeThrow(*this, g);
+  Check::deviceThrow(*this, g);
   switch (_device) {
   case Device::CPU:
     math::impl::vectorSubVectorCPU(*this, g, this);
@@ -296,8 +296,8 @@ JetVector<T> &JetVector<T>::operator-=(const JetVector<T> &g) {
 
 template <typename T>
 JetVector<T> &JetVector<T>::operator*=(const JetVector<T> &g) {
-  CHK::shapeThrow(*this, g);
-  CHK::deviceThrow(*this, g);
+  Check::shapeThrow(*this, g);
+  Check::deviceThrow(*this, g);
   switch (_device) {
   case Device::CPU:
     math::impl::vectorMulVectorCPU(*this, g, this);
@@ -311,8 +311,8 @@ JetVector<T> &JetVector<T>::operator*=(const JetVector<T> &g) {
 
 template <typename T>
 JetVector<T> &JetVector<T>::operator/=(const JetVector<T> &g) {
-  CHK::shapeThrow(*this, g);
-  CHK::deviceThrow(*this, g);
+  Check::shapeThrow(*this, g);
+  Check::deviceThrow(*this, g);
   switch (_device) {
   case Device::CPU:
     math::impl::vectorDivVectorCPU(*this, g, this);

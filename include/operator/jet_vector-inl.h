@@ -8,7 +8,7 @@
 #pragma once
 
 namespace MegBA {
-namespace CHK {
+namespace Check {
 template <typename T>
 inline bool deviceSame(const JetVector<T> &f, const JetVector<T> &g) {
   return f.getDevice() == g.getDevice();
