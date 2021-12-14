@@ -33,11 +33,11 @@ template <typename T> void BaseProblem<T>::deallocateResourceCUDA() {
 
 template <typename T> void BaseProblem<T>::prepareUpdateDataCUDA() {
   if (option.useSchur) {
-    const auto world_size = MemoryPool::getWorldSize();
-    xPtr.resize(world_size);
-    deltaXPtr.resize(world_size);
-    deltaXPtrBackup.resize(world_size);
-    for (int i = 0; i < world_size; ++i) {
+    const auto worldSize = MemoryPool::getWorldSize();
+    xPtr.resize(worldSize);
+    deltaXPtr.resize(worldSize);
+    deltaXPtrBackup.resize(worldSize);
+    for (int i = 0; i < worldSize; ++i) {
       cudaSetDevice(i);
       cudaMalloc(&xPtr[i], hessianShape * sizeof(T));
       cudaMalloc(&deltaXPtr[i], hessianShape * sizeof(T));
@@ -132,20 +132,20 @@ void RecoverDiag(const T *diag, const T a, const int batchSize, const int dim,
 template <typename T>
 __global__ void JdxpF(const T *grad, const T *deltaX, const T *res,
                       const int *absCameraPosition, const int *absPointPosition,
-                      const int nElm, const int cameraDim, const int cameraNum,
+                      const int nItem, const int cameraDim, const int cameraNum,
                       const int pointDim, T *out) {
   unsigned int tid = threadIdx.x + blockIdx.x * blockDim.x;
-  if (tid >= nElm)
+  if (tid >= nItem)
     return;
   T sum{0};
   const int absCameraPositionLocal = absCameraPosition[tid];
   const int absPointPositionLocal = absPointPosition[tid];
   for (int i = 0; i < cameraDim; ++i) {
     sum +=
-        grad[tid + i * nElm] * deltaX[i + absCameraPositionLocal * cameraDim];
+        grad[tid + i * nItem] * deltaX[i + absCameraPositionLocal * cameraDim];
   }
   for (int i = 0; i < pointDim; ++i) {
-    sum += grad[tid + (i + cameraDim) * nElm] *
+    sum += grad[tid + (i + cameraDim) * nItem] *
            deltaX[i + cameraDim * cameraNum + absPointPositionLocal * pointDim];
   }
   out[tid] = (sum + res[tid]) * (sum + res[tid]);
@@ -167,7 +167,7 @@ double computeRhoDenominator(JVD<T> &JV, std::vector<T *> &schurDeltaXPtr, EdgeV
 
   for (int i = 0; i < MemoryPool::getWorldSize(); ++i) {
     cudaSetDevice(i);
-    const auto nElm = MemoryPool::getElmNum(i);
+    const auto nItem = MemoryPool::getItemNum(i);
     const auto &positionContainer =
         edges.schurPositionAndRelationContainer[i];
     futures[i].resize(JV.size());
@@ -175,17 +175,17 @@ double computeRhoDenominator(JVD<T> &JV, std::vector<T *> &schurDeltaXPtr, EdgeV
       auto &J = JV(j);
       T *ptr;
       MemoryPool::allocateNormal(reinterpret_cast<void **>(&ptr),
-                                 nElm * sizeof(T), i);
-      dim3 block(std::min((std::size_t)256, nElm));
-      dim3 grid((nElm - 1) / block.x + 1);
+                                 nItem * sizeof(T), i);
+      dim3 block(std::min((std::size_t)256, nItem));
+      dim3 grid((nItem - 1) / block.x + 1);
       JdxpF<<<grid, block>>>(J.getCUDAGradPtr()[i], schurDeltaXPtr[i],
                              J.getCUDAResPtr()[i],
                              positionContainer.absolutePositionCamera,
                              positionContainer.absolutePositionPoint,
-                             nElm, cameraDim, cameraNum, pointDim, ptr);
+                             nItem, cameraDim, cameraNum, pointDim, ptr);
       futures[i][j] = thrust::async::reduce(
           thrust::cuda::par.on(nullptr), thrust::device_ptr<T>{ptr},
-          thrust::device_ptr<T>{ptr} + nElm, T(0.), thrust::plus<T>{});
+          thrust::device_ptr<T>{ptr} + nItem, T(0.), thrust::plus<T>{});
       Jdx[i].push_back(ptr);
     }
   }
@@ -208,7 +208,7 @@ void BaseProblem<T>::solveLM() {
   T residualNormNew = 0;
   T residualNorm = 0;
 
-  edges.backupDaPtrs();
+  edges.backupValueDevicePtrs();
   edges.bindCUDAGradPtrs();
   JV_backup = edges.forward();
   if (option.useSchur) {
@@ -225,7 +225,7 @@ void BaseProblem<T>::solveLM() {
     for (int j = 0; j < MemoryPool::getWorldSize(); ++j) {
       cudaSetDevice(j);
       const T *resPtr = JV_backup(i).getCUDAResPtr()[j];
-      Wrapper::cublasGdot::call(cublasHandle[j], MemoryPool::getElmNum(j),
+      Wrapper::cublasGdot::call(cublasHandle[j], MemoryPool::getItemNum(j),
                                 resPtr, 1, resPtr, 1,
                                 &residualNormNewInFlight[j][i]);
     }
@@ -335,7 +335,7 @@ void BaseProblem<T>::solveLM() {
         for (int j = 0; j < MemoryPool::getWorldSize(); ++j) {
           cudaSetDevice(j);
           const T *resPtr = JV(i).getCUDAResPtr()[j];
-          Wrapper::cublasGdot::call(cublasHandle[j], MemoryPool::getElmNum(j),
+          Wrapper::cublasGdot::call(cublasHandle[j], MemoryPool::getItemNum(j),
                                     resPtr, 1, resPtr, 1,
                                     &residualNormNewInFlight[j][i]);
         }
@@ -412,7 +412,7 @@ template <typename T> void BaseProblem<T>::backupLM() {
   } else {
     // TODO(Jie Ren): implement this
   }
-  edges.backupDaPtrs();
+  edges.backupValueDevicePtrs();
 }
 
 template <typename T> void BaseProblem<T>::rollbackLM() {

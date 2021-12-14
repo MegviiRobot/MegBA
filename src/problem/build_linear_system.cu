@@ -218,7 +218,7 @@ void EdgeVector<T>::buildLinearSystemSchurCUDA(const JVD<T> &jetEstimation) {
   } else {
     for (int i = 0; i < _option.deviceUsed.size(); ++i) {
       cudaSetDevice(i);
-      const auto edgeNum = MemoryPool::getElmNum(i);
+      const auto edgeNum = MemoryPool::getItemNum(i);
       dim3 block(std::min((decltype(edgeNum))32, edgeNum),
                  cameraDim + pointDim);
       dim3 grid((edgeNum - 1) / block.x + 1);

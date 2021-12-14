@@ -70,10 +70,10 @@ template <typename T> void SchurHessianEntrance<T>::buildRandomAccess() {
 
 template <typename T>
 BaseProblem<T>::BaseProblem(const ProblemOption& option) : option(option), solver(dispatchSolver(*this)) {
-  if (option.N != -1 && option.nElm != -1)
-    MemoryPool::resetPool(option.N, option.nElm, sizeof(T), option.deviceUsed.size());
+  if (option.N != -1 && option.nItem != -1)
+    MemoryPool::resetPool(option.N, option.nItem, sizeof(T), option.deviceUsed.size());
   if (option.useSchur) {
-    schurWS.splitSize = option.nElm / option.deviceUsed.size() + 1;
+    schurWS.splitSize = option.nItem / option.deviceUsed.size() + 1;
     schurWS.workingDevice = 0;
     schurWS.schurHessianEntrance.resize(option.deviceUsed.size());
     schurWS.schurHessianEntrance.shrink_to_fit();

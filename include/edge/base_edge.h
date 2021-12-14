@@ -67,7 +67,7 @@ template <typename T> class EdgeVector {
   // total number for each vertex kind
   std::unique_ptr<int[]> num{nullptr};
   std::vector<std::vector<int>> absolutePosition;
-  // kind -> world_size
+  // kind -> worldSize
   std::vector<std::vector<std::vector<int>>> schurRelativePosition;
   std::vector<std::vector<std::vector<int>>> schurAbsolutePosition;
   std::vector<BaseEdge<T> *> edgesPtr;
@@ -75,9 +75,9 @@ template <typename T> class EdgeVector {
   std::vector<VertexVector<T>> edges;
   std::unique_ptr<int[]> csrRowPtr{nullptr};
   std::vector<std::array<std::unique_ptr<int[]>, 2>> schurCsrRowPtr;
-  // kind -> world_size -> ptr
-  std::vector<std::vector<T *>> schurDaPtrs;
-  std::vector<std::vector<T *>> schurDaPtrsOld;
+  // kind -> worldSize -> ptr
+  std::vector<std::vector<T *>> schurValueDevicePtrs;
+  std::vector<std::vector<T *>> schurValueDevicePtrsOld;
   unsigned int cameraVertexNum{0};
   unsigned int pointVertexNum{0};
   JVD<T> jetMeasurement;
@@ -131,7 +131,7 @@ template <typename T> class EdgeVector {
     int *connectionNumPoint{nullptr};
   };
 
-  void backupDaPtrs();
+  void backupValueDevicePtrs();
 
   void rollback();
 

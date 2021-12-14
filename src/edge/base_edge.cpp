@@ -97,12 +97,12 @@ EdgeVector<T>::EdgeVector(const ProblemOption &option,
 
 template <typename T> void EdgeVector<T>::rollback() {
   if (_option.useSchur) {
-    schurDaPtrs.swap(schurDaPtrsOld);
+    schurValueDevicePtrs.swap(schurValueDevicePtrsOld);
   } else {
     // TODO(Jie Ren): implement this
   }
   bindCUDAGradPtrs();
-  backupDaPtrs();
+  backupValueDevicePtrs();
 }
 
 template <typename T> bool EdgeVector<T>::tryPushBack(BaseEdge<T> *edge) {
@@ -209,7 +209,7 @@ template <typename T> void EdgeVector<T>::allocateResourcePre() {
     for (auto &vs : schurAbsolutePosition) {
       vs.resize(MemoryPool::getWorldSize());
       for (int i = 0; i < MemoryPool::getWorldSize(); ++i) {
-        vs[i].resize(MemoryPool::getElmNum(i));
+        vs[i].resize(MemoryPool::getItemNum(i));
       }
     }
 
@@ -217,7 +217,7 @@ template <typename T> void EdgeVector<T>::allocateResourcePre() {
     for (auto &vs : schurRelativePosition) {
       vs.resize(MemoryPool::getWorldSize());
       for (int i = 0; i < MemoryPool::getWorldSize(); ++i) {
-        vs[i].resize(MemoryPool::getElmNum(i));
+        vs[i].resize(MemoryPool::getItemNum(i));
       }
     }
   } else {

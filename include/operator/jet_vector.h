@@ -25,12 +25,12 @@ template <typename T> class JetVector {
   void CUDA2CPU(const JetVector<T> &f);
 
   unsigned int _N = 0;
-  unsigned int _nElm = 0;
+  unsigned int _nItem = 0;
   Device _device = Device::CPU;
-  std::vector<std::vector<T>> _hvData{};
-  std::vector<T *> _dvPtr{};
-  std::vector<T> _haData{};
-  std::vector<T *> _daPtr{};
+  std::vector<std::vector<T>> _gradHostVec{};
+  std::vector<T *> _gradDevicePtr{};
+  std::vector<T> _valueHostVec{};
+  std::vector<T *> _valueDevicePtr{};
   int _gradPosition = -1;
   bool _pureScalarFlag = false;
   T _pureScalar = 0;
@@ -41,8 +41,9 @@ template <typename T> class JetVector {
   explicit JetVector(T scalar) : _pureScalarFlag(true), _pureScalar(scalar) {}
 
   JetVector(const JetVector<T> &f)
-      : _N(f._N), _nElm(f._nElm), _device(f._device), _haData(f._haData),
-        _hvData(f._hvData) {
+      : _N(f._N), _nItem(f._nItem), _device(f._device),
+        _valueHostVec(f._valueHostVec),
+        _gradHostVec(f._gradHostVec) {
     switch (_device) {
     case Device::CPU: {
       break;
@@ -55,14 +56,15 @@ template <typename T> class JetVector {
   }
 
   JetVector(JetVector<T> &&f) noexcept
-      : _N(std::move(f._N)), _nElm(std::move(f._nElm)),
-        _device(std::move(f._device)), _hvData(std::move(f._hvData)),
-        _dvPtr(std::move(f._dvPtr)), _haData(std::move(f._haData)),
-        _daPtr(std::move(f._daPtr)), _gradPosition(std::move(f._gradPosition)),
+      : _N(std::move(f._N)), _nItem(std::move(f._nItem)),
+        _device(std::move(f._device)), _gradHostVec(std::move(f._gradHostVec)),
+        _gradDevicePtr(std::move(f._gradDevicePtr)),
+        _valueHostVec(std::move(f._valueHostVec)),
+        _valueDevicePtr(std::move(f._valueDevicePtr)), _gradPosition(std::move(f._gradPosition)),
         _pureScalarFlag(std::move(f._pureScalarFlag)),
         _pureScalar(std::move((f._pureScalar))) {
     f._N = 0;
-    f._nElm = 0;
+    f._nItem = 0;
     f._gradPosition = -1;
   }
 
@@ -91,32 +93,33 @@ template <typename T> class JetVector {
   void set_Grad_Shape(unsigned int N);
   void erase(std::size_t idx) {
     assert(_device == Device::CPU || _gradPosition != -1 || _N == 0);
-    _haData.erase(_haData.begin() + idx);
-    _nElm--;
+    _valueHostVec.erase(_valueHostVec.begin() + idx);
+    _nItem--;
   }
   const unsigned int &getGradShape() const { return _N; }
-  const unsigned int &getElmNum() const { return _nElm; }
-  std::size_t getElmNum(int rank) const { return MemoryPool::getElmNum(rank); }
+  const unsigned int &getItemNum() const { return _nItem; }
+  std::size_t getItemNum(int rank) const { return MemoryPool::getItemNum(rank); }
   int getGradPosition() const { return _gradPosition; }
   const Device &getDevice() const { return _device; }
 
-  const std::vector<std::vector<T>> &getCPUGrad() const { return _hvData; }
-  std::vector<std::vector<T>> &getCPUGrad() { return _hvData; }
+  const std::vector<std::vector<T>> &getCPUGrad() const { return _gradHostVec; }
+  std::vector<std::vector<T>> &getCPUGrad() { return _gradHostVec; }
 
-  const std::vector<T> &getCPURes() const { return _haData; }
-  std::vector<T> &getCPURes() { return _haData; }
+  const std::vector<T> &getCPURes() const { return _valueHostVec; }
+  std::vector<T> &getCPURes() { return _valueHostVec; }
 
   // TODO(Jie Ren): change to vector
-  const std::vector<T *> &getCUDAGradPtr() const { return _dvPtr; }
-  const std::vector<T *> &getCUDAResPtr() const { return _daPtr; }
+  const std::vector<T *> &getCUDAGradPtr() const { return _gradDevicePtr; }
+  const std::vector<T *> &getCUDAResPtr() const { return _valueDevicePtr; }
 
   // TODO(Jie Ren): input a array vector
-  void bindDaPtr(T *da_ptr) {
-    _daPtr.resize(MemoryPool::getWorldSize());
-    _daPtr[0] = da_ptr;
+  void bindValueDevicePtr(T *valueDevicePtr) {
+    _valueDevicePtr.resize(MemoryPool::getWorldSize());
+    _valueDevicePtr[0] = valueDevicePtr;
   }
 
-  void bindDaPtr(std::vector<T *> &&da_ptr) { _daPtr = std::move(da_ptr); }
+  void bindValueDevicePtr(std::vector<T *> &&valueDevicePtr) {
+    _valueDevicePtr = std::move(valueDevicePtr); }
 
   void setGradPosition(int gradPosition);
 
