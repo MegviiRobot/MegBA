@@ -43,9 +43,9 @@ Demo with BAL dataset:
 * Run the demo (Venice-1778)
   ```bash
   cd examples
-  ./BAL_Double --name=Venice --world_size=2 --iter=100 --solver_tol=1e-1 --solver_refuse_ratio=1 --solver_max_iter=100 --tau=1e4 --epsilon1=1 --epsilon2=1e-10
+  ./BAL_Double --name=Venice --worldSize=2 --iter=100 --solver_tol=1e-1 --solver_refuse_ratio=1 --solver_max_iter=100 --tau=1e4 --epsilon1=1 --epsilon2=1e-10
   ```
-  - world_size: number of GPUs available
+  - worldSize: number of GPUs available
   - iter: the maximal number of LM iteration
   - epsilon: threshold in LM
   - solver_tol: tolerance of solver (distributed PCG solver)

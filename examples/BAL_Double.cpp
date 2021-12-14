@@ -1,11 +1,11 @@
 #include <iostream>
-#include "problem/BaseProblem.h"
-#include "edge/BaseEdge.h"
-#include "vertex/BaseVertex.h"
+#include "problem/base_problem.h"
+#include "edge/base_edge.h"
+#include "vertex/base_vertex.h"
 #include <unordered_map>
 #include <random>
 #include <cusparse_v2.h>
-#include "geo/Geo.cuh"
+#include "geo/geo.cuh"
 #include <fstream>
 
 template<typename T>
@@ -13,13 +13,13 @@ class BAL_Edge : public MegBA::BaseEdge<T> {
 public:
   MegBA::JVD<T> forward() override {
         using MappedJVD = Eigen::Map<const MegBA::geo::JVD<T>>;
-        const auto &Vertices = this->get_Vertices();
-        MappedJVD angle_axisd{&Vertices[0].get_Estimation()(0, 0), 3, 1};
-        MappedJVD t{&Vertices[0].get_Estimation()(3, 0), 3, 1};
-        MappedJVD intrinsics{&Vertices[0].get_Estimation()(6, 0), 3, 1};
+        const auto &Vertices = this->getVertices();
+        MappedJVD angle_axisd{&Vertices[0].getEstimation()(0, 0), 3, 1};
+        MappedJVD t{&Vertices[0].getEstimation()(3, 0), 3, 1};
+        MappedJVD intrinsics{&Vertices[0].getEstimation()(6, 0), 3, 1};
 
-        const auto &point_xyz = Vertices[1].get_Estimation();
-        const auto &obs_uv = this->get_Measurement();
+        const auto &point_xyz = Vertices[1].getEstimation();
+        const auto &obs_uv = this->getMeasurement();
         auto &&R = MegBA::geo::AngleAxisToRotationKernelMatrix(angle_axisd);
         Eigen::Matrix<MegBA::JetVector<T>, 3, 1> re_projection = R * point_xyz + t;
         re_projection = -re_projection / re_projection(2);
@@ -48,7 +48,7 @@ namespace {
 
 int main(int argc, char *arcv[]) {
     std::string name;
-    int iter, solver_max_iter, world_size;
+    int iter, solver_max_iter, worldSize;
     double solver_tol, solver_refuse_ratio, tau, epsilon1, epsilon2;
     std::string out_path;
 
@@ -63,7 +63,7 @@ int main(int argc, char *arcv[]) {
             idx++;
             char *p{&arcv[i][idx]};
             if (key == "--world_size")
-                world_size = atoi(p);
+                worldSize = atoi(p);
             if (key == "--name")
                 name = p;
             if (key == "--iter")
@@ -84,7 +84,7 @@ int main(int argc, char *arcv[]) {
     }
     std::cout
     << "solving " << name
-    << ", world_size: " << world_size
+    << ", world_size: " << worldSize
     << ", solver iter: " << iter
     << ", solver_tol: " << solver_tol
     << ", solver_refuse_ratio: " << solver_refuse_ratio
@@ -103,10 +103,19 @@ int main(int argc, char *arcv[]) {
     fin >> num_points;
     fin >> num_observations;
 
-    MegBA::ProblemOption_t option{};
-    option.nElm = num_observations;
+    MegBA::ProblemOption option{};
+    option.nItem = num_observations;
     option.N = 12;
-    option.world_size = world_size;
+    for (int i = 0; i < worldSize; ++i) {
+      option.deviceUsed.insert(i);
+    }
+    option.solverOptionPCG.maxIter = solver_max_iter;
+    option.solverOptionPCG.tol = solver_tol;
+    option.solverOptionPCG.refuseRatio = solver_refuse_ratio;
+    option.algoOptionLM.maxIter = iter;
+    option.algoOptionLM.initialRegion = tau;
+    option.algoOptionLM.epsilon1 = epsilon1;
+    option.algoOptionLM.epsilon2 = epsilon2;
     MegBA::BaseProblem<T> problem{option};
 
     std::vector<std::tuple<int, int, Eigen::Matrix<T, 2, 1>>> edge;
@@ -147,26 +156,26 @@ int main(int argc, char *arcv[]) {
 
 
     for (int n = 0; n < num_cameras; ++n) {
-        problem.append_Vertex(std::get<0>(camera_vertices[n]), new MegBA::CameraVertex<T>());
+        problem.appendVertex(std::get<0>(camera_vertices[n]), new MegBA::CameraVertex<T>());
 
         //        Eigen::Matrix<T, 6, 1> camera;
         //        camera.head(3) = std::get<1>(camera_vertices[n]).head(3);
         //        camera.tail(3) = std::get<1>(camera_vertices[n]).segment(3, 3);
-        problem.get_Vertex(std::get<0>(camera_vertices[n])).set_Estimation(std::get<1>(std::move(camera_vertices[n])));
-        //        problem.get_Vertex(std::get<0>(camera_vertices[n])).set_Observation(std::get<1>(camera_vertices[n]).tail(3));
-        //        problem.get_Vertex(std::get<0>(camera_vertices[n])).set_Fixed(true);
+        problem.getVertex(std::get<0>(camera_vertices[n])).setEstimation(std::get<1>(std::move(camera_vertices[n])));
+        //        problem.getVertex(std::get<0>(camera_vertices[n])).set_Observation(std::get<1>(camera_vertices[n]).tail(3));
+        //        problem.getVertex(std::get<0>(camera_vertices[n])).set_Fixed(true);
     }
     for (int n = 0; n < num_points; ++n) {
-        problem.append_Vertex(std::get<0>(point_vertices[n]), new MegBA::PointVertex<T>());
-        problem.get_Vertex(std::get<0>(point_vertices[n])).set_Estimation(std::get<1>(std::move(point_vertices[n])));
+        problem.appendVertex(std::get<0>(point_vertices[n]), new MegBA::PointVertex<T>());
+        problem.getVertex(std::get<0>(point_vertices[n])).setEstimation(std::get<1>(std::move(point_vertices[n])));
     }
 
     for (int j = 0; j < num_observations; ++j) {
         auto edge_ptr = new BAL_Edge<T>;
-        edge_ptr->append_Vertex(problem.get_Vertex(std::get<0>(edge[j])));
-        edge_ptr->append_Vertex(problem.get_Vertex(std::get<1>(edge[j])));
-        edge_ptr->set_Measurement(std::get<2>(std::move(edge[j])));
-        problem.append_Edge(edge_ptr);
+        edge_ptr->appendVertex(&problem.getVertex(std::get<0>(edge[j])));
+        edge_ptr->appendVertex(&problem.getVertex(std::get<1>(edge[j])));
+        edge_ptr->setMeasurement(std::get<2>(std::move(edge[j])));
+        problem.appendEdge(edge_ptr);
     }
-    problem.SolveLM(iter, solver_tol, solver_refuse_ratio, solver_max_iter, tau, epsilon1, epsilon2);
+    problem.solve();
 }
