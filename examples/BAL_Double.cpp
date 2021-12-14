@@ -48,7 +48,7 @@ namespace {
 
 int main(int argc, char *arcv[]) {
     std::string name;
-    int iter, solver_max_iter, world_size;
+    int iter, solver_max_iter, worldSize;
     double solver_tol, solver_refuse_ratio, tau, epsilon1, epsilon2;
     std::string out_path;
 
@@ -63,7 +63,7 @@ int main(int argc, char *arcv[]) {
             idx++;
             char *p{&arcv[i][idx]};
             if (key == "--world_size")
-                world_size = atoi(p);
+                worldSize = atoi(p);
             if (key == "--name")
                 name = p;
             if (key == "--iter")
@@ -84,7 +84,7 @@ int main(int argc, char *arcv[]) {
     }
     std::cout
     << "solving " << name
-    << ", world_size: " << world_size
+    << ", world_size: " << worldSize
     << ", solver iter: " << iter
     << ", solver_tol: " << solver_tol
     << ", solver_refuse_ratio: " << solver_refuse_ratio
@@ -106,7 +106,7 @@ int main(int argc, char *arcv[]) {
     MegBA::ProblemOption option{};
     option.nItem = num_observations;
     option.N = 12;
-    for (int i = 0; i < world_size; ++i) {
+    for (int i = 0; i < worldSize; ++i) {
       option.deviceUsed.insert(i);
     }
     option.solverOptionPCG.maxIter = solver_max_iter;

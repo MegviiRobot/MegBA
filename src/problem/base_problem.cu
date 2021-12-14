@@ -32,11 +32,11 @@ template <typename T> void BaseProblem<T>::deallocateResourceCUDA() {
 
 template <typename T> void BaseProblem<T>::prepareUpdateDataCUDA() {
   if (option.useSchur) {
-    const auto world_size = MemoryPool::getWorldSize();
-    xPtr.resize(world_size);
-    deltaXPtr.resize(world_size);
-    deltaXPtrBackup.resize(world_size);
-    for (int i = 0; i < world_size; ++i) {
+    const auto worldSize = MemoryPool::getWorldSize();
+    xPtr.resize(worldSize);
+    deltaXPtr.resize(worldSize);
+    deltaXPtrBackup.resize(worldSize);
+    for (int i = 0; i < worldSize; ++i) {
       cudaSetDevice(i);
       cudaMalloc(&xPtr[i], hessianShape * sizeof(T));
       cudaMalloc(&deltaXPtr[i], hessianShape * sizeof(T));
@@ -207,7 +207,7 @@ void BaseProblem<T>::solveLM() {
   T residualNormNew = 0;
   T residualNorm = 0;
 
-  edges.backupDaPtrs();
+  edges.backupValueDevicePtrs();
   edges.bindCUDAGradPtrs();
   JV_backup = edges.forward();
   if (option.useSchur) {
@@ -411,7 +411,7 @@ template <typename T> void BaseProblem<T>::backupLM() {
   } else {
     // TODO(Jie Ren): implement this
   }
-  edges.backupDaPtrs();
+  edges.backupValueDevicePtrs();
 }
 
 template <typename T> void BaseProblem<T>::rollbackLM() {

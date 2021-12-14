@@ -8,12 +8,12 @@
 #include "edge/base_edge.h"
 
 namespace MegBA {
-template <typename T> void EdgeVector<T>::backupDaPtrs() {
+template <typename T> void EdgeVector<T>::backupValueDevicePtrs() {
   if (_option.useSchur) {
     const auto gradShape = getGradShape();
     for (int i = 0; i < MemoryPool::getWorldSize(); ++i) {
       cudaSetDevice(i);
-      cudaMemcpyAsync(schurDaPtrsOld[0][i], schurDaPtrs[0][i],
+      cudaMemcpyAsync(schurValueDevicePtrsOld[0][i], schurValueDevicePtrs[0][i],
                       MemoryPool::getItemNum(i) * gradShape * sizeof(T),
                       cudaMemcpyDeviceToDevice, schurStreamLmMemcpy[i]);
     }
@@ -147,33 +147,33 @@ template <typename T> void EdgeVector<T>::PrepareUpdateDataCUDA() {
     const auto worldSize = MemoryPool::getWorldSize();
     const auto gradShape = getGradShape();
     schurStreamLmMemcpy.resize(worldSize);
-    std::vector<T *> daPtrs, daPtrsOld;
-    daPtrs.resize(worldSize);
-    daPtrsOld.resize(worldSize);
+    std::vector<T *> valueDevicePtrs, valueDevicePtrsOld;
+    valueDevicePtrs.resize(worldSize);
+    valueDevicePtrsOld.resize(worldSize);
     for (int i = 0; i < worldSize; ++i) {
       cudaSetDevice(i);
       cudaStreamCreateWithFlags(&schurStreamLmMemcpy[i],
                                 CU_STREAM_NON_BLOCKING);
-      T *daPtr, *daPtrOld;
+      T *valueDevicePtr, *valueDevicePtrOld;
       const auto nItem = MemoryPool::getItemNum(i);
-      cudaMalloc(&daPtr, nItem * gradShape * sizeof(T));
-      cudaMalloc(&daPtrOld, nItem * gradShape * sizeof(T));
-      daPtrs[i] = daPtr;
-      daPtrsOld[i] = daPtrOld;
+      cudaMalloc(&valueDevicePtr, nItem * gradShape * sizeof(T));
+      cudaMalloc(&valueDevicePtrOld, nItem * gradShape * sizeof(T));
+      valueDevicePtrs[i] = valueDevicePtr;
+      valueDevicePtrsOld[i] = valueDevicePtrOld;
     }
-    schurDaPtrs.resize(cameraVertexNum + pointVertexNum);
-    schurDaPtrsOld.resize(cameraVertexNum + pointVertexNum);
+    schurValueDevicePtrs.resize(cameraVertexNum + pointVertexNum);
+    schurValueDevicePtrsOld.resize(cameraVertexNum + pointVertexNum);
     for (int i = 0; i < cameraVertexNum + pointVertexNum; ++i) {
-      schurDaPtrs[i].resize(worldSize);
-      schurDaPtrsOld[i].resize(worldSize);
+      schurValueDevicePtrs[i].resize(worldSize);
+      schurValueDevicePtrsOld[i].resize(worldSize);
     }
     for (int i = 0, iUnfixed = 0, offset = 0; i < edges.size(); ++i) {
       if (edges[i][0]->fixed)
         continue;
       for (int j = 0; j < worldSize; ++j) {
         const auto nItem = MemoryPool::getItemNum(j);
-        schurDaPtrs[iUnfixed][j] = &daPtrs[j][offset * nItem];
-        schurDaPtrsOld[iUnfixed][j] = &daPtrsOld[j][offset * nItem];
+        schurValueDevicePtrs[iUnfixed][j] = &valueDevicePtrs[j][offset * nItem];
+        schurValueDevicePtrsOld[iUnfixed][j] = &valueDevicePtrsOld[j][offset * nItem];
       }
       iUnfixed++;
       const auto &estimation = edges[i][0]->getEstimation();
@@ -189,10 +189,10 @@ template <typename T> void EdgeVector<T>::deallocateResourceCUDA() {
     for (int i = 0; i < MemoryPool::getWorldSize(); ++i) {
       cudaSetDevice(i);
       schurPositionAndRelationContainer[i].clearCUDA();
-      cudaFree(schurDaPtrs[0][i]);
-      cudaFree(schurDaPtrs[1][i]);
-      cudaFree(schurDaPtrsOld[0][i]);
-      cudaFree(schurDaPtrsOld[1][i]);
+      cudaFree(schurValueDevicePtrs[0][i]);
+      cudaFree(schurValueDevicePtrs[1][i]);
+      cudaFree(schurValueDevicePtrsOld[0][i]);
+      cudaFree(schurValueDevicePtrsOld[1][i]);
       cudaStreamDestroy(schurStreamLmMemcpy[i]);
     }
 

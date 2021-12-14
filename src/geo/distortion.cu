@@ -12,89 +12,89 @@ namespace geo {
 namespace {
 template <typename T>
 __global__ void RadialDistortionNoGradKernel(
-    const int nItem, const int N, const T *px_da_ptr, const T *py_da_ptr,
-    const T *px_dv_ptr, const T *py_dv_ptr, const T *f_ptr, const T *k1_ptr,
-    const T *k2_ptr, T *da_ptr, T *dv_ptr) {
+    const int nItem, const int N, const T *px_valueDevicePtr, const T *py_valueDevicePtr,
+    const T *px_gradDevicePtr, const T *py_gradDevicePtr, const T *f_ptr, const T *k1_ptr,
+    const T *k2_ptr, T *valueDevicePtr, T *gradDevicePtr) {
   unsigned int tid = threadIdx.x + blockDim.x * blockIdx.x;
   if (tid >= nItem)
     return;
   T f = f_ptr[tid], k1 = k1_ptr[tid], k2 = k2_ptr[tid];
 
-  T px = px_da_ptr[tid];
+  T px = px_valueDevicePtr[tid];
 
-  T py = py_da_ptr[tid];
+  T py = py_valueDevicePtr[tid];
 
   T l2_pow2 = px * px + py * py;
 
   T partial = 2 * f * (k1 + 2 * k2 * l2_pow2);
   for (unsigned int i = 0; i < N; ++i)
-    dv_ptr[tid + nItem * i] = partial * (px_dv_ptr[tid + nItem * i] * px +
-                                        py_dv_ptr[tid + nItem * i] * py);
+    gradDevicePtr[tid + nItem * i] = partial * (px_gradDevicePtr[tid + nItem * i] * px +
+                                        py_gradDevicePtr[tid + nItem * i] * py);
 
-  da_ptr[tid] = f * (T(1.) + k1 * l2_pow2 + k2 * l2_pow2 * l2_pow2);
+  valueDevicePtr[tid] = f * (T(1.) + k1 * l2_pow2 + k2 * l2_pow2 * l2_pow2);
 }
 
 template <typename T>
 __global__ void
-RadialDistortionKernel(const int nItem, const int N, const T *px_da_ptr,
-                       const T *py_da_ptr, const T *px_dv_ptr,
-                       const T *py_dv_ptr, const T *f_ptr, const T *k1_ptr,
-                       const T *k2_ptr, const T *f_dv_ptr, const T *k1_dv_ptr,
-                       const T *k2_dv_ptr, T *da_ptr, T *dv_ptr) {
+RadialDistortionKernel(const int nItem, const int N, const T *px_valueDevicePtr,
+                       const T *py_valueDevicePtr, const T *px_gradDevicePtr,
+                       const T *py_gradDevicePtr, const T *f_ptr, const T *k1_ptr,
+                       const T *k2_ptr, const T *f_gradDevicePtr, const T *k1_gradDevicePtr,
+                       const T *k2_gradDevicePtr, T *valueDevicePtr, T *gradDevicePtr) {
   unsigned int tid = threadIdx.x + blockDim.x * blockIdx.x;
   if (tid >= nItem)
     return;
   T f = f_ptr[tid], k1 = k1_ptr[tid], k2 = k2_ptr[tid];
 
-  T px = px_da_ptr[tid];
+  T px = px_valueDevicePtr[tid];
 
-  T py = py_da_ptr[tid];
+  T py = py_valueDevicePtr[tid];
 
   T l2_pow2 = px * px + py * py;
 
   T partial = 2 * f * (k1 + 2 * k2 * l2_pow2);
   for (unsigned int i = 0; i < N; ++i) {
     unsigned int index = tid + nItem * i;
-    dv_ptr[index] =
+    gradDevicePtr[index] =
         partial *
-            (px_dv_ptr[tid + nItem * i] * px + py_dv_ptr[tid + nItem * i] * py) +
-        f_dv_ptr[index] * (T(1.) + k1 * l2_pow2 + k2 * l2_pow2 * l2_pow2) +
-        k1_dv_ptr[index] * f * l2_pow2 +
-        k2_dv_ptr[index] * f * l2_pow2 * l2_pow2;
+            (px_gradDevicePtr[tid + nItem * i] * px + py_gradDevicePtr[tid + nItem * i] * py) +
+        f_gradDevicePtr[index] * (T(1.) + k1 * l2_pow2 + k2 * l2_pow2 * l2_pow2) +
+        k1_gradDevicePtr[index] * f * l2_pow2 +
+        k2_gradDevicePtr[index] * f * l2_pow2 * l2_pow2;
   }
 
-  da_ptr[tid] = f * (T(1.) + k1 * l2_pow2 + k2 * l2_pow2 * l2_pow2);
+  valueDevicePtr[tid] = f * (T(1.) + k1 * l2_pow2 + k2 * l2_pow2 * l2_pow2);
 }
 
 template <typename T>
 __global__ void RadialDistortionFastGradKernel(
-    const int nItem, const int N, const T *px_da_ptr, const T *py_da_ptr,
-    const T *px_dv_ptr, const T *py_dv_ptr, const T *f_ptr, const T *k1_ptr,
+    const int nItem, const int N, const T *px_valueDevicePtr, const T *py_valueDevicePtr,
+    const T *px_gradDevicePtr, const T *py_gradDevicePtr, const T *f_ptr, const T *k1_ptr,
     const T *k2_ptr, const int f_grad_position, const int k1_grad_position,
-    const int k2_grad_position, T *da_ptr, T *dv_ptr) {
+    const int k2_grad_position, T *valueDevicePtr, T *gradDevicePtr) {
   unsigned int tid = threadIdx.x + blockDim.x * blockIdx.x;
   if (tid >= nItem)
     return;
   T f = f_ptr[tid], k1 = k1_ptr[tid], k2 = k2_ptr[tid];
 
-  T px = px_da_ptr[tid];
+  T px = px_valueDevicePtr[tid];
 
-  T py = py_da_ptr[tid];
+  T py = py_valueDevicePtr[tid];
 
   T l2_pow2 = px * px + py * py;
 
   T partial = 2 * f * (k1 + 2 * k2 * l2_pow2);
   for (unsigned int i = 0; i < N; ++i) {
     unsigned int index = tid + nItem * i;
-    dv_ptr[index] = partial * (px_dv_ptr[tid + nItem * i] * px +
-                               py_dv_ptr[tid + nItem * i] * py) +
+    gradDevicePtr[index] = partial * (px_gradDevicePtr[tid + nItem * i] * px +
+                               py_gradDevicePtr[tid + nItem * i] * py) +
                     (i == f_grad_position ? 1 : 0) *
                         (T(1.) + k1 * l2_pow2 + k2 * l2_pow2 * l2_pow2) +
                     (i == k1_grad_position ? 1 : 0) * f * l2_pow2 +
                     (i == k2_grad_position ? 1 : 0) * f * l2_pow2 * l2_pow2;
   }
 
-  da_ptr[tid] = f * (T(1.) + k1 * l2_pow2 + k2 * l2_pow2 * l2_pow2);
+  valueDevicePtr[tid] = f * (T(1.) + k1 * l2_pow2 + k2 * l2_pow2 * l2_pow2);
 }
 
 template <typename T>

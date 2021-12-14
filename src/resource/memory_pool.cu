@@ -51,14 +51,14 @@ void MemoryPool::resetPool(int N, std::size_t nItem, std::int8_t sizeofType,
   HandleManager::createCUSPARSEHandle();
 }
 
-void MemoryPool::allocateJetVector(std::vector<void *> *daPtr,
-                                   std::vector<void *> *dvPtr, std::size_t N,
+void MemoryPool::allocateJetVector(std::vector<void *> *valueDevicePtr,
+                                   std::vector<void *> *gradDevicePtr, std::size_t N,
                                    std::size_t nItem, std::int8_t sizeofType) {
   std::unique_lock<std::mutex> lock{_mutex};
-  daPtr->clear();
-  daPtr->resize(_worldSize);
-  dvPtr->clear();
-  dvPtr->resize(_worldSize);
+  valueDevicePtr->clear();
+  valueDevicePtr->resize(_worldSize);
+  gradDevicePtr->clear();
+  gradDevicePtr->resize(_worldSize);
   assert((N == _N || N == 0) && nItem == _nItem && sizeofType == _sizeofType);
   for (auto offset : memOffsetCounter)
     if (offset != 0)
@@ -69,9 +69,9 @@ void MemoryPool::allocateJetVector(std::vector<void *> *daPtr,
       cudaSetDevice(i);
       Ptr ptr{nullptr};
       cudaMalloc(&ptr.address, (_N + 1) * nItem * _sizeofType);
-      dvPtr->operator[](i) = ptr.address;
+      gradDevicePtr->operator[](i) = ptr.address;
       ptr.number += _N * nItem * _sizeofType;
-      daPtr->operator[](i) = ptr.address;
+      valueDevicePtr->operator[](i) = ptr.address;
     }
   } else {
     std::vector<void *> back = std::move(_ptr.back());
@@ -80,9 +80,9 @@ void MemoryPool::allocateJetVector(std::vector<void *> *daPtr,
       const auto nItem = getItemNum(i);
       cudaSetDevice(i);
       Ptr ptr{back[i]};
-      dvPtr->operator[](i) = ptr.address;
+      gradDevicePtr->operator[](i) = ptr.address;
       ptr.number += _N * nItem * _sizeofType;
-      daPtr->operator[](i) = ptr.address;
+      valueDevicePtr->operator[](i) = ptr.address;
     }
   }
   _ptrInUseCounter++;

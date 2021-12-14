@@ -62,7 +62,7 @@ void EdgeVector<T>::updateSchur(const std::vector<T *> &deltaXPtr) {
         deltaXPtr[i],
         schurPositionAndRelationContainer[i].absolutePositionCamera,
         schurPositionAndRelationContainer[i].absolutePositionPoint, cameraDim,
-        pointDim, cameraNum, nItem, schurDaPtrs[0][i], schurDaPtrs[1][i]);
+        pointDim, cameraNum, nItem, schurValueDevicePtrs[0][i], schurValueDevicePtrs[1][i]);
   }
 }
 
@@ -76,15 +76,15 @@ template <typename T> void EdgeVector<T>::bindCUDAGradPtrs() {
 
     const auto worldSize = MemoryPool::getWorldSize();
     for (int i = 0; i < vertexVector[0]->getEstimation().size(); ++i) {
-      // bind _daPtr for CUDA
+      // bind _valueDevicePtr for CUDA
       if (_option.useSchur) {
-        std::vector<T *> daPtrs;
-        daPtrs.resize(worldSize);
+        std::vector<T *> valueDevicePtrs;
+        valueDevicePtrs.resize(worldSize);
         for (int k = 0; k < worldSize; ++k) {
-          daPtrs[k] = &schurDaPtrs[vertexKindIdxUnfixed][k]
+          valueDevicePtrs[k] = &schurValueDevicePtrs[vertexKindIdxUnfixed][k]
                                   [i * MemoryPool::getItemNum(k)];
         }
-        jetEstimation(i).bindDaPtr(std::move(daPtrs));
+        jetEstimation(i).bindValueDevicePtr(std::move(valueDevicePtrs));
       } else {
         // TODO(Jie Ren): implement this
       }

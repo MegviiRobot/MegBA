@@ -14,17 +14,17 @@ namespace geo {
 namespace {
 template <typename T>
 __global__ void AngleAxisToRotationKernel(
-    const int nItem, const int N, const T *da_ptr0, const T *da_ptr1,
-    const T *da_ptr2, const T *dv_ptr0, const T *dv_ptr1, const T *dv_ptr2,
-    T *R0, T *R1, T *R2, T *R3, T *R4, T *R5, T *R6, T *R7, T *R8, T *dvptr_R0,
-    T *dvptr_R1, T *dvptr_R2, T *dvptr_R3, T *dvptr_R4, T *dvptr_R5,
-    T *dvptr_R6, T *dvptr_R7, T *dvptr_R8) {
+    const int nItem, const int N, const T *valueDevicePtr0, const T *valueDevicePtr1,
+    const T *valueDevicePtr2, const T *gradDevicePtr0, const T *gradDevicePtr1, const T *gradDevicePtr2,
+    T *R0, T *R1, T *R2, T *R3, T *R4, T *R5, T *R6, T *R7, T *R8, T *gradDevicePtrR0,
+    T *gradDevicePtrR1, T *gradDevicePtrR2, T *gradDevicePtrR3, T *gradDevicePtrR4, T *gradDevicePtrR5,
+    T *gradDevicePtrR6, T *gradDevicePtrR7, T *gradDevicePtrR8) {
   unsigned int idx = threadIdx.x + blockDim.x * blockIdx.x;
   if (idx >= nItem)
     return;
-  const T angle_axis_x = da_ptr0[idx];
-  const T angle_axis_y = da_ptr1[idx];
-  const T angle_axis_z = da_ptr2[idx];
+  const T angle_axis_x = valueDevicePtr0[idx];
+  const T angle_axis_y = valueDevicePtr1[idx];
+  const T angle_axis_z = valueDevicePtr2[idx];
 
   const T theta2 = angle_axis_x * angle_axis_x + angle_axis_y * angle_axis_y +
                    angle_axis_z * angle_axis_z;
@@ -57,9 +57,9 @@ __global__ void AngleAxisToRotationKernel(
 
     for (int i = 0; i < N; ++i) {
       unsigned int index = idx + i * nItem;
-      const T dv_angle_axis_x = dv_ptr0[index];
-      const T dv_angle_axis_y = dv_ptr1[index];
-      const T dv_angle_axis_z = dv_ptr2[index];
+      const T dv_angle_axis_x = gradDevicePtr0[index];
+      const T dv_angle_axis_y = gradDevicePtr1[index];
+      const T dv_angle_axis_z = gradDevicePtr2[index];
 
       const T dv_tmp1 =
           (angle_axis_x * dv_angle_axis_x + angle_axis_y * dv_angle_axis_y +
@@ -76,31 +76,31 @@ __global__ void AngleAxisToRotationKernel(
           reciprocal_theta *
           (dv_angle_axis_z - angle_axis_z * reciprocal_theta * dv_theta);
 
-      dvptr_R0[index] = tmpwx * dv_tmp1 + 2 * wx_mul_one_minor_costheta * dv_wx;
-      dvptr_R4[index] = tmpwy * dv_tmp1 + 2 * wy_mul_one_minor_costheta * dv_wy;
-      dvptr_R8[index] = tmpwz * dv_tmp1 + 2 * wz_mul_one_minor_costheta * dv_wz;
+      gradDevicePtrR0[index] = tmpwx * dv_tmp1 + 2 * wx_mul_one_minor_costheta * dv_wx;
+      gradDevicePtrR4[index] = tmpwy * dv_tmp1 + 2 * wy_mul_one_minor_costheta * dv_wy;
+      gradDevicePtrR8[index] = tmpwz * dv_tmp1 + 2 * wz_mul_one_minor_costheta * dv_wz;
 
-      dvptr_R1[index] = (wz * costheta + wx * wy_mul_sintheta) * dv_theta +
+      gradDevicePtrR1[index] = (wz * costheta + wx * wy_mul_sintheta) * dv_theta +
                         sintheta * dv_wz + wy_mul_one_minor_costheta * dv_wx +
                         wx_mul_one_minor_costheta * dv_wy;
 
-      dvptr_R5[index] = (wx * costheta + wy * wz_mul_sintheta) * dv_theta +
+      gradDevicePtrR5[index] = (wx * costheta + wy * wz_mul_sintheta) * dv_theta +
                         sintheta * dv_wx + wz_mul_one_minor_costheta * dv_wy +
                         wy_mul_one_minor_costheta * dv_wz;
 
-      dvptr_R6[index] = (wy * costheta + wx * wz_mul_sintheta) * dv_theta +
+      gradDevicePtrR6[index] = (wy * costheta + wx * wz_mul_sintheta) * dv_theta +
                         sintheta * dv_wy + wz_mul_one_minor_costheta * dv_wx +
                         wx_mul_one_minor_costheta * dv_wz;
 
-      dvptr_R2[index] = (-wy * costheta + wx * wz_mul_sintheta) * dv_theta -
+      gradDevicePtrR2[index] = (-wy * costheta + wx * wz_mul_sintheta) * dv_theta -
                         sintheta * dv_wy + wz_mul_one_minor_costheta * dv_wx +
                         wx_mul_one_minor_costheta * dv_wz;
 
-      dvptr_R3[index] = (-wz * costheta + wx * wy_mul_sintheta) * dv_theta -
+      gradDevicePtrR3[index] = (-wz * costheta + wx * wy_mul_sintheta) * dv_theta -
                         sintheta * dv_wz + wy_mul_one_minor_costheta * dv_wx +
                         wx_mul_one_minor_costheta * dv_wy;
 
-      dvptr_R7[index] = (-wx * costheta + wy * wz_mul_sintheta) * dv_theta -
+      gradDevicePtrR7[index] = (-wx * costheta + wy * wz_mul_sintheta) * dv_theta -
                         sintheta * dv_wx + wz_mul_one_minor_costheta * dv_wy +
                         wy_mul_one_minor_costheta * dv_wz;
     }
@@ -120,18 +120,18 @@ __global__ void AngleAxisToRotationKernel(
     // Near zero, we switch to using the first order Taylor expansion.
     for (int i = 0; i < N; ++i) {
       unsigned int index = idx + i * nItem;
-      const T dv_angle_axis_x = dv_ptr0[index];
-      const T dv_angle_axis_y = dv_ptr1[index];
-      const T dv_angle_axis_z = dv_ptr2[index];
-      dvptr_R0[index] = 0;
-      dvptr_R1[index] = dv_angle_axis_z;
-      dvptr_R2[index] = -dv_angle_axis_y;
-      dvptr_R3[index] = -dv_angle_axis_z;
-      dvptr_R4[index] = 0;
-      dvptr_R5[index] = dv_angle_axis_x;
-      dvptr_R6[index] = dv_angle_axis_y;
-      dvptr_R7[index] = -dv_angle_axis_x;
-      dvptr_R8[index] = 0;
+      const T dv_angle_axis_x = gradDevicePtr0[index];
+      const T dv_angle_axis_y = gradDevicePtr1[index];
+      const T dv_angle_axis_z = gradDevicePtr2[index];
+      gradDevicePtrR0[index] = 0;
+      gradDevicePtrR1[index] = dv_angle_axis_z;
+      gradDevicePtrR2[index] = -dv_angle_axis_y;
+      gradDevicePtrR3[index] = -dv_angle_axis_z;
+      gradDevicePtrR4[index] = 0;
+      gradDevicePtrR5[index] = dv_angle_axis_x;
+      gradDevicePtrR6[index] = dv_angle_axis_y;
+      gradDevicePtrR7[index] = -dv_angle_axis_x;
+      gradDevicePtrR8[index] = 0;
     }
     R0[idx] = T(1.0);
     R1[idx] = angle_axis_z;
@@ -149,17 +149,17 @@ __global__ void AngleAxisToRotationKernel(
 
 template <typename T>
 __global__ void AngleAxisToRotationKernelFastGradKernel(
-    const int nItem, const int N, const T *da_ptr0, const T *da_ptr1,
-    const T *da_ptr2, const int grad_position0, const int grad_position1,
+    const int nItem, const int N, const T *valueDevicePtr0, const T *valueDevicePtr1,
+    const T *valueDevicePtr2, const int grad_position0, const int grad_position1,
     const int grad_position2, T *R0, T *R1, T *R2, T *R3, T *R4, T *R5, T *R6,
-    T *R7, T *R8, T *dvptr_R0, T *dvptr_R1, T *dvptr_R2, T *dvptr_R3,
-    T *dvptr_R4, T *dvptr_R5, T *dvptr_R6, T *dvptr_R7, T *dvptr_R8) {
+    T *R7, T *R8, T *gradDevicePtrR0, T *gradDevicePtrR1, T *gradDevicePtrR2, T *gradDevicePtrR3,
+    T *gradDevicePtrR4, T *gradDevicePtrR5, T *gradDevicePtrR6, T *gradDevicePtrR7, T *gradDevicePtrR8) {
   unsigned int idx = threadIdx.x + blockDim.x * blockIdx.x;
   if (idx >= nItem)
     return;
-  const T angle_axis_x = da_ptr0[idx];
-  const T angle_axis_y = da_ptr1[idx];
-  const T angle_axis_z = da_ptr2[idx];
+  const T angle_axis_x = valueDevicePtr0[idx];
+  const T angle_axis_y = valueDevicePtr1[idx];
+  const T angle_axis_z = valueDevicePtr2[idx];
 
   const T theta2 = angle_axis_x * angle_axis_x + angle_axis_y * angle_axis_y +
                    angle_axis_z * angle_axis_z;
@@ -210,31 +210,31 @@ __global__ void AngleAxisToRotationKernelFastGradKernel(
           reciprocal_theta *
           (dv_angle_axis_z - angle_axis_z * reciprocal_theta * dv_theta);
 
-      dvptr_R0[index] = tmpwx * dv_tmp1 + 2 * wx_mul_one_minor_costheta * dv_wx;
-      dvptr_R4[index] = tmpwy * dv_tmp1 + 2 * wy_mul_one_minor_costheta * dv_wy;
-      dvptr_R8[index] = tmpwz * dv_tmp1 + 2 * wz_mul_one_minor_costheta * dv_wz;
+      gradDevicePtrR0[index] = tmpwx * dv_tmp1 + 2 * wx_mul_one_minor_costheta * dv_wx;
+      gradDevicePtrR4[index] = tmpwy * dv_tmp1 + 2 * wy_mul_one_minor_costheta * dv_wy;
+      gradDevicePtrR8[index] = tmpwz * dv_tmp1 + 2 * wz_mul_one_minor_costheta * dv_wz;
 
-      dvptr_R1[index] = (wz * costheta + wx * wy_mul_sintheta) * dv_theta +
+      gradDevicePtrR1[index] = (wz * costheta + wx * wy_mul_sintheta) * dv_theta +
                         sintheta * dv_wz + wy_mul_one_minor_costheta * dv_wx +
                         wx_mul_one_minor_costheta * dv_wy;
 
-      dvptr_R5[index] = (wx * costheta + wy * wz_mul_sintheta) * dv_theta +
+      gradDevicePtrR5[index] = (wx * costheta + wy * wz_mul_sintheta) * dv_theta +
                         sintheta * dv_wx + wz_mul_one_minor_costheta * dv_wy +
                         wy_mul_one_minor_costheta * dv_wz;
 
-      dvptr_R6[index] = (wy * costheta + wx * wz_mul_sintheta) * dv_theta +
+      gradDevicePtrR6[index] = (wy * costheta + wx * wz_mul_sintheta) * dv_theta +
                         sintheta * dv_wy + wz_mul_one_minor_costheta * dv_wx +
                         wx_mul_one_minor_costheta * dv_wz;
 
-      dvptr_R2[index] = (-wy * costheta + wx * wz_mul_sintheta) * dv_theta -
+      gradDevicePtrR2[index] = (-wy * costheta + wx * wz_mul_sintheta) * dv_theta -
                         sintheta * dv_wy + wz_mul_one_minor_costheta * dv_wx +
                         wx_mul_one_minor_costheta * dv_wz;
 
-      dvptr_R3[index] = (-wz * costheta + wx * wy_mul_sintheta) * dv_theta -
+      gradDevicePtrR3[index] = (-wz * costheta + wx * wy_mul_sintheta) * dv_theta -
                         sintheta * dv_wz + wy_mul_one_minor_costheta * dv_wx +
                         wx_mul_one_minor_costheta * dv_wy;
 
-      dvptr_R7[index] = (-wx * costheta + wy * wz_mul_sintheta) * dv_theta -
+      gradDevicePtrR7[index] = (-wx * costheta + wy * wz_mul_sintheta) * dv_theta -
                         sintheta * dv_wx + wz_mul_one_minor_costheta * dv_wy +
                         wy_mul_one_minor_costheta * dv_wz;
     }
@@ -257,15 +257,15 @@ __global__ void AngleAxisToRotationKernelFastGradKernel(
       const T dv_angle_axis_x = i == grad_position0 ? 1 : 0;
       const T dv_angle_axis_y = i == grad_position1 ? 1 : 0;
       const T dv_angle_axis_z = i == grad_position2 ? 1 : 0;
-      dvptr_R0[index] = 0;
-      dvptr_R1[index] = dv_angle_axis_z;
-      dvptr_R2[index] = -dv_angle_axis_y;
-      dvptr_R3[index] = -dv_angle_axis_z;
-      dvptr_R4[index] = 0;
-      dvptr_R5[index] = dv_angle_axis_x;
-      dvptr_R6[index] = dv_angle_axis_y;
-      dvptr_R7[index] = -dv_angle_axis_x;
-      dvptr_R8[index] = 0;
+      gradDevicePtrR0[index] = 0;
+      gradDevicePtrR1[index] = dv_angle_axis_z;
+      gradDevicePtrR2[index] = -dv_angle_axis_y;
+      gradDevicePtrR3[index] = -dv_angle_axis_z;
+      gradDevicePtrR4[index] = 0;
+      gradDevicePtrR5[index] = dv_angle_axis_x;
+      gradDevicePtrR6[index] = dv_angle_axis_y;
+      gradDevicePtrR7[index] = -dv_angle_axis_x;
+      gradDevicePtrR8[index] = 0;
     }
     R0[idx] = T(1.0);
     R1[idx] = angle_axis_z;

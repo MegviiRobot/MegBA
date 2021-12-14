@@ -12,16 +12,16 @@
 
 namespace MegBA {
 template <typename T> void JetVector<T>::initAsCUDA(const JetVector<T> &f) {
-  const auto world_size = MemoryPool::getWorldSize();
-  std::vector<void *> da_ptr, dv_ptr;
-  MemoryPool::allocateJetVector(&da_ptr, &dv_ptr, _N, _nItem, sizeof(T));
-  _dvPtr.clear();
-  _daPtr.clear();
-  _dvPtr.resize(world_size);
-  _daPtr.resize(world_size);
-  for (int i = 0; i < world_size; ++i) {
-    _dvPtr[i] = reinterpret_cast<T *>(dv_ptr[i]);
-    _daPtr[i] = reinterpret_cast<T *>(da_ptr[i]);
+  const auto worldSize = MemoryPool::getWorldSize();
+  std::vector<void *> valueDevicePtr, gradDeviceptr;
+  MemoryPool::allocateJetVector(&valueDevicePtr, &gradDeviceptr, _N, _nItem, sizeof(T));
+  _gradDevicePtr.clear();
+  _valueDevicePtr.clear();
+  _gradDevicePtr.resize(worldSize);
+  _valueDevicePtr.resize(worldSize);
+  for (int i = 0; i < worldSize; ++i) {
+    _gradDevicePtr[i] = reinterpret_cast<T *>(gradDeviceptr[i]);
+    _valueDevicePtr[i] = reinterpret_cast<T *>(valueDevicePtr[i]);
   }
 }
 
@@ -48,100 +48,100 @@ template <typename T> JetVector<T> &JetVector<T>::CUDA() {
 }
 
 template <typename T> void JetVector<T>::CUDA2CPU(const JetVector<T> &f) {
-  const auto world_size = MemoryPool::getWorldSize();
-  _haData.resize(_nItem);
-  _hvData.resize(_N);
-  for (auto &v : _hvData)
+  const auto worldSize = MemoryPool::getWorldSize();
+  _valueHostVec.resize(_nItem);
+  _gradHostVec.resize(_N);
+  for (auto &v : _gradHostVec)
     v.resize(_nItem);
 
-  std::size_t start_idx{0};
-  for (int i = 0; i < world_size; ++i) {
+  std::size_t startIdx{0};
+  for (int i = 0; i < worldSize; ++i) {
     cudaSetDevice(i);
     std::size_t nItem{getItemNum(i)};
-    cudaMemcpyAsync(&_haData[start_idx], f._daPtr[i], nItem * sizeof(T),
+    cudaMemcpyAsync(&_valueHostVec[startIdx], f._valueDevicePtr[i], nItem * sizeof(T),
                     cudaMemcpyDeviceToHost);
     if (_gradPosition == -1) {
       for (unsigned int j = 0; j < _N; ++j)
-        cudaMemcpyAsync(&_hvData[j][start_idx], &f._dvPtr[i][j * nItem],
+        cudaMemcpyAsync(&_gradHostVec[j][startIdx], &f._gradDevicePtr[i][j * nItem],
                         nItem * sizeof(T), cudaMemcpyDeviceToHost);
     }
-    start_idx += nItem;
+    startIdx += nItem;
   }
 }
 
 template <typename T> void JetVector<T>::CPU2CUDA(const JetVector<T> &f) {
-  const auto world_size = MemoryPool::getWorldSize();
-  // if _daPtr != nullptr if binded
-  if (_daPtr.empty()) {
+  const auto worldSize = MemoryPool::getWorldSize();
+  // if _valueDevicePtr != nullptr if binded
+  if (_valueDevicePtr.empty()) {
     if (_pureScalarFlag) {
-      _daPtr.resize(world_size);
-      std::size_t start_idx{0};
-      for (int i = 0; i < world_size; ++i) {
+      _valueDevicePtr.resize(worldSize);
+      std::size_t startIdx{0};
+      for (int i = 0; i < worldSize; ++i) {
         cudaSetDevice(i);
-        cudaMalloc(&_daPtr[i], _nItem * sizeof(T));
+        cudaMalloc(&_valueDevicePtr[i], _nItem * sizeof(T));
         std::size_t nItem{getItemNum(i)};
-        cudaMemcpyAsync(_daPtr[i], &f._haData[start_idx], nItem * sizeof(T),
+        cudaMemcpyAsync(_valueDevicePtr[i], &f._valueHostVec[startIdx], nItem * sizeof(T),
                         cudaMemcpyHostToDevice);
-        start_idx += nItem;
+        startIdx += nItem;
       }
       return;
     }
-    std::vector<void *> da_ptr{}, dv_ptr{};
-    MemoryPool::allocateJetVector(&da_ptr, &dv_ptr, _N, _nItem, sizeof(T));
-    // _dvPtr must be nullptr
-    _dvPtr.clear();
-    _dvPtr.reserve(world_size);
-    for (int i = 0; i < world_size; ++i)
-      _dvPtr.push_back(reinterpret_cast<T *>(dv_ptr[i]));
+    std::vector<void *> valueDevicePtr{}, gradDevicePtr{};
+    MemoryPool::allocateJetVector(&valueDevicePtr, &gradDevicePtr, _N, _nItem, sizeof(T));
+    // _gradDevicePtr must be nullptr
+    _gradDevicePtr.clear();
+    _gradDevicePtr.reserve(worldSize);
+    for (int i = 0; i < worldSize; ++i)
+      _gradDevicePtr.push_back(reinterpret_cast<T *>(gradDevicePtr[i]));
 
-    _daPtr.clear();
-    _daPtr.reserve(world_size);
-    for (int i = 0; i < world_size; ++i)
-      _daPtr.push_back(reinterpret_cast<T *>(da_ptr[i]));
+    _valueDevicePtr.clear();
+    _valueDevicePtr.reserve(worldSize);
+    for (int i = 0; i < worldSize; ++i)
+      _valueDevicePtr.push_back(reinterpret_cast<T *>(valueDevicePtr[i]));
 
-    std::size_t start_idx{0};
-    for (int i = 0; i < world_size; ++i) {
+    std::size_t startIdx{0};
+    for (int i = 0; i < worldSize; ++i) {
       cudaSetDevice(i);
       std::size_t nItem{getItemNum(i)};
-      cudaMemcpyAsync(_daPtr[i], &f._haData[start_idx], nItem * sizeof(T),
+      cudaMemcpyAsync(_valueDevicePtr[i], &f._valueHostVec[startIdx], nItem * sizeof(T),
                       cudaMemcpyHostToDevice);
       for (unsigned int j = 0; j < _N; ++j)
-        cudaMemcpyAsync(&_dvPtr[i][j * nItem], &f._hvData[j][start_idx],
+        cudaMemcpyAsync(&_gradDevicePtr[i][j * nItem], &f._gradHostVec[j][startIdx],
                         nItem * sizeof(T), cudaMemcpyHostToDevice);
-      start_idx += nItem;
+      startIdx += nItem;
     }
   } else {
-    std::size_t start_idx{0};
-    for (int i = 0; i < world_size; ++i) {
+    std::size_t startIdx{0};
+    for (int i = 0; i < worldSize; ++i) {
       cudaSetDevice(i);
       std::size_t nItem{getItemNum(i)};
-      cudaMemcpyAsync(_daPtr[i], &f._haData[start_idx], nItem * sizeof(T),
+      cudaMemcpyAsync(_valueDevicePtr[i], &f._valueHostVec[startIdx], nItem * sizeof(T),
                       cudaMemcpyHostToDevice);
-      start_idx += nItem;
+      startIdx += nItem;
     }
   }
 }
 
 template <typename T> void JetVector<T>::CUDA2CUDA(const JetVector<T> &f) {
-  const auto world_size = MemoryPool::getWorldSize();
-  if (_daPtr.empty()) {
-    std::vector<void *> da_ptr{}, dv_ptr{};
-    MemoryPool::allocateJetVector(&da_ptr, &dv_ptr, _N, _nItem, sizeof(T));
-    _dvPtr.clear();
-    _daPtr.clear();
-    _dvPtr.reserve(world_size);
-    _daPtr.reserve(world_size);
-    for (int i = 0; i < world_size; ++i) {
-      _dvPtr.push_back(reinterpret_cast<T *>(dv_ptr[i]));
-      _daPtr.push_back(reinterpret_cast<T *>(da_ptr[i]));
+  const auto worldSize = MemoryPool::getWorldSize();
+  if (_valueDevicePtr.empty()) {
+    std::vector<void *> valueDevicePtr{}, gradDevicePtr{};
+    MemoryPool::allocateJetVector(&valueDevicePtr, &gradDevicePtr, _N, _nItem, sizeof(T));
+    _gradDevicePtr.clear();
+    _valueDevicePtr.clear();
+    _gradDevicePtr.reserve(worldSize);
+    _valueDevicePtr.reserve(worldSize);
+    for (int i = 0; i < worldSize; ++i) {
+      _gradDevicePtr.push_back(reinterpret_cast<T *>(gradDevicePtr[i]));
+      _valueDevicePtr.push_back(reinterpret_cast<T *>(valueDevicePtr[i]));
     }
   }
-  for (int i = 0; i < world_size; ++i) {
+  for (int i = 0; i < worldSize; ++i) {
     cudaSetDevice(i);
     std::size_t nItem{getItemNum(i)};
-    cudaMemcpyAsync(_daPtr[i], f._daPtr[i], nItem * sizeof(T),
+    cudaMemcpyAsync(_valueDevicePtr[i], f._valueDevicePtr[i], nItem * sizeof(T),
                     cudaMemcpyDeviceToDevice);
-    cudaMemcpyAsync(_dvPtr[i], f._dvPtr[i], _N * nItem * sizeof(T),
+    cudaMemcpyAsync(_gradDevicePtr[i], f._gradDevicePtr[i], _N * nItem * sizeof(T),
                     cudaMemcpyDeviceToDevice);
   }
 }
@@ -155,16 +155,16 @@ std::ostream &ostreamCUDA(std::ostream &s, const JetVector<T> &z) {
   Grad.reserve(N);
   for (int i = 0; i < N; ++i)
     Grad.emplace_back(new T[nItem]);
-  std::size_t start_idx{0};
+  std::size_t startIdx{0};
   for (int i = 0; i < MemoryPool::getWorldSize(); ++i) {
     cudaSetDevice(i);
     std::size_t nItem = z.getItemNum(i);
-    cudaMemcpyAsync(&Res[start_idx], z.getCUDAResPtr()[i], nItem * sizeof(T),
+    cudaMemcpyAsync(&Res[startIdx], z.getCUDAResPtr()[i], nItem * sizeof(T),
                     cudaMemcpyDeviceToHost);
     for (unsigned int j = 0; j < N; ++j)
-      cudaMemcpyAsync(&Grad[j][start_idx], &z.getCUDAGradPtr()[i][j * nItem],
+      cudaMemcpyAsync(&Grad[j][startIdx], &z.getCUDAGradPtr()[i][j * nItem],
                       nItem * sizeof(T), cudaMemcpyDeviceToHost);
-    start_idx += nItem;
+    startIdx += nItem;
   }
   s << "[Res: "
     << "[ ";

@@ -35,8 +35,8 @@ JetVector<T> &JetVector<T>::operator=(const JetVector<T> &f) {
   }
   switch (_device) {
   case Device::CPU:
-    _haData = f._haData;
-    _hvData = f._hvData;
+    _valueHostVec = f._valueHostVec;
+    _gradHostVec = f._gradHostVec;
     break;
   case Device::CUDA:
     CUDA2CUDA(f);
@@ -56,12 +56,12 @@ JetVector<T> &JetVector<T>::operator=(JetVector<T> &&f) noexcept {
   _pureScalar = f._pureScalar;
   switch (_device) {
   case Device::CPU:
-    _haData = std::move(f._haData);
-    _hvData = std::move(f._hvData);
+    _valueHostVec = std::move(f._valueHostVec);
+    _gradHostVec = std::move(f._gradHostVec);
     break;
   case Device::CUDA:
-    _daPtr = std::move(f._daPtr);
-    _dvPtr = std::move(f._dvPtr);
+    _valueDevicePtr = std::move(f._valueDevicePtr);
+    _gradDevicePtr = std::move(f._gradDevicePtr);
     break;
   }
   return *this;
@@ -78,10 +78,10 @@ void JetVector<T>::initAs(const JetVector<T> &initTemplate) {
     _N = initTemplate._N;
     switch (_device) {
     case Device::CPU:
-      _haData.resize(initTemplate._haData.size());
-      _hvData.resize(initTemplate._hvData.size());
+      _valueHostVec.resize(initTemplate._valueHostVec.size());
+      _gradHostVec.resize(initTemplate._gradHostVec.size());
       for (unsigned int i = 0; i < _N; ++i)
-        _hvData[i].resize(initTemplate._hvData[i].size());
+        _gradHostVec[i].resize(initTemplate._gradHostVec[i].size());
       break;
     case Device::CUDA:
       initAsCUDA(initTemplate);
@@ -128,7 +128,7 @@ template <typename T> JetVector<T> &JetVector<T>::CPU() {
 }
 
 template <typename T> bool JetVector<T>::IsEmpty() {
-  return _haData.empty() && _daPtr.empty();
+  return _valueHostVec.empty() && _valueDevicePtr.empty();
 }
 
 template <typename T> void JetVector<T>::set_Grad_Shape(unsigned int N) {
@@ -136,7 +136,7 @@ template <typename T> void JetVector<T>::set_Grad_Shape(unsigned int N) {
     throw std::runtime_error("Can not set Grad Shape on a working JetVector, "
                              "use 'Clear()' method first.");
   _N = N;
-  _hvData.resize(N);
+  _gradHostVec.resize(N);
 }
 
 template <typename T> void JetVector<T>::setGradPosition(int gradPosition) {
@@ -150,15 +150,15 @@ template <typename T> void JetVector<T>::clear() {
   if (!IsEmpty()) {
     switch (_device) {
     case Device::CPU:
-      _haData.clear();
-      _hvData.clear();
+      _valueHostVec.clear();
+      _gradHostVec.clear();
       break;
     case Device::CUDA:
       cudaStreamSynchronize(nullptr);
-      std::vector<void *> ptrs{_dvPtr.begin(), _dvPtr.end()};
+      std::vector<void *> ptrs{_gradDevicePtr.begin(), _gradDevicePtr.end()};
       MemoryPool::deallocateJetVector(&ptrs);
-      _daPtr.clear();
-      _dvPtr.clear();
+      _valueDevicePtr.clear();
+      _gradDevicePtr.clear();
       break;
     }
   }
@@ -176,15 +176,15 @@ template <typename T> void JetVector<T>::appendJet(T a, int n) {
          "You can not insert Jet into a JetVector in using on CUDA, "
          "if you want, use 'clear()' first.");
 
-  _haData.push_back(a);
+  _valueHostVec.push_back(a);
   for (int i = 0; i < _N; ++i)
-    _hvData[i].push_back(i == n ? 1 : 0);
+    _gradHostVec[i].push_back(i == n ? 1 : 0);
   _nItem++;
 }
 
 template <typename T> void JetVector<T>::appendJet(T a) {
   assert(_gradPosition >= 0 || _N == 0);
-  _haData.push_back(a);
+  _valueHostVec.push_back(a);
   _nItem++;
 }
 

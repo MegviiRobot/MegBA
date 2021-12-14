@@ -26,8 +26,8 @@ class MemoryPool {
   static void resetPool(int N, std::size_t nItem, std::int8_t sizeofType,
                         int worldSize);
 
-  static void allocateJetVector(std::vector<void *> *daPtr,
-                                std::vector<void *> *dvPtr, std::size_t N,
+  static void allocateJetVector(std::vector<void *> *valueDevicePtr,
+                                std::vector<void *> *gradDevicePtr, std::size_t N,
                                 std::size_t nItem, std::int8_t sizeofType);
 
   static void deallocateJetVector(std::vector<void *> *ptr);
