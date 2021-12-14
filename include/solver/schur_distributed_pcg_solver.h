@@ -12,15 +12,9 @@
 namespace MegBA {
 template <typename T>
 class SchurDistributedPCGSolver : public BaseSolver<T> {
-  using SchurEquationContainer = typename EdgeVector<T>::SchurEquationContainer;
-  const std::vector<SchurEquationContainer> &schurEquationContainers;
-
  public:
-  explicit SchurDistributedPCGSolver(
-      const ProblemOption &option, const std::vector<T *> &deltaXPtr,
-      const std::vector<SchurEquationContainer> &schurEquationContainers)
-      : BaseSolver<T>(option, deltaXPtr),
-        schurEquationContainers(schurEquationContainers){};
+  explicit SchurDistributedPCGSolver(const BaseProblem<T> &problem)
+      : BaseSolver<T>(problem) {};
 
   void solveCUDA() final;
 };

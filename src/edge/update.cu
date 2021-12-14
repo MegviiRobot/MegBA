@@ -13,10 +13,10 @@ template <typename T>
 __global__ void
 updateDeltaXTwoVertices(const T *deltaX, const int *absolutePositionCamera,
                         const int *absolutePositionPoint, const int cameraDim,
-                        const int pointDim, const int cameraNum, const int nElm,
+                        const int pointDim, const int cameraNum, const int nItem,
                         T *cameraX, T *pointX) {
   const unsigned int tid = blockDim.x * blockIdx.x + threadIdx.x;
-  if (tid >= nElm)
+  if (tid >= nItem)
     return;
   // ix : index in edges
   // absolute_position_camera[ix] :
@@ -28,14 +28,14 @@ updateDeltaXTwoVertices(const T *deltaX, const int *absolutePositionCamera,
   unsigned int idx = tid;
   for (int i = 0; i < cameraDim; ++i) {
     cameraX[idx] += deltaX[absolutePositionCamera[tid] * cameraDim + i];
-    idx += nElm;
+    idx += nItem;
   }
 
   for (int i = 0; i < pointDim; ++i) {
-    pointX[idx - nElm * cameraDim] +=
+    pointX[idx - nItem * cameraDim] +=
         deltaX[absolutePositionPoint[tid] * pointDim + i +
                cameraNum * cameraDim];
-    idx += nElm;
+    idx += nItem;
   }
 }
 }  // namespace
@@ -55,14 +55,14 @@ void EdgeVector<T>::updateSchur(const std::vector<T *> &deltaXPtr) {
   // TODO(Jie Ren): merge into method 'solve_Linear'
   for (int i = 0; i < MemoryPool::getWorldSize(); ++i) {
     cudaSetDevice(i);
-    const auto nElm = MemoryPool::getElmNum(i);
-    dim3 block(std::min((decltype(nElm))256, nElm));
-    dim3 grid((nElm - 1) / block.x + 1);
+    const auto nItem = MemoryPool::getItemNum(i);
+    dim3 block(std::min((decltype(nItem))256, nItem));
+    dim3 grid((nItem - 1) / block.x + 1);
     updateDeltaXTwoVertices<T><<<grid, block>>>(
         deltaXPtr[i],
         schurPositionAndRelationContainer[i].absolutePositionCamera,
         schurPositionAndRelationContainer[i].absolutePositionPoint, cameraDim,
-        pointDim, cameraNum, nElm, schurDaPtrs[0][i], schurDaPtrs[1][i]);
+        pointDim, cameraNum, nItem, schurValueDevicePtrs[0][i], schurValueDevicePtrs[1][i]);
   }
 }
 
@@ -76,15 +76,15 @@ template <typename T> void EdgeVector<T>::bindCUDAGradPtrs() {
 
     const auto worldSize = MemoryPool::getWorldSize();
     for (int i = 0; i < vertexVector[0]->getEstimation().size(); ++i) {
-      // bind _daPtr for CUDA
+      // bind _valueDevicePtr for CUDA
       if (_option.useSchur) {
-        std::vector<T *> daPtrs;
-        daPtrs.resize(worldSize);
+        std::vector<T *> valueDevicePtrs;
+        valueDevicePtrs.resize(worldSize);
         for (int k = 0; k < worldSize; ++k) {
-          daPtrs[k] = &schurDaPtrs[vertexKindIdxUnfixed][k]
-                                  [i * MemoryPool::getElmNum(k)];
+          valueDevicePtrs[k] = &schurValueDevicePtrs[vertexKindIdxUnfixed][k]
+                                  [i * MemoryPool::getItemNum(k)];
         }
-        jetEstimation(i).bindDaPtr(std::move(daPtrs));
+        jetEstimation(i).bindValueDevicePtr(std::move(valueDevicePtrs));
       } else {
         // TODO(Jie Ren): implement this
       }

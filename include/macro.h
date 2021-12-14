@@ -10,12 +10,12 @@
 #include <Eigen/Sparse>
 
 #if DEBUG
-#define PRINT_DMEMORY(d_ptr, nElm, T)                                     \
+#define PRINT_DMEMORY(d_ptr, nItem, T)                                     \
 do {                                                                      \
-    T *__ptr = new T[nElm];                                               \
-    cudaMemcpy(__ptr, d_ptr, (nElm) * sizeof(T), cudaMemcpyDeviceToHost); \
+    T *__ptr = new T[nItem];                                               \
+    cudaMemcpy(__ptr, d_ptr, (nItem) * sizeof(T), cudaMemcpyDeviceToHost); \
     std::cout << #d_ptr << ": ";                                          \
-    for (std::size_t __i = 0; __i < (nElm); ++__i)                        \
+    for (std::size_t __i = 0; __i < (nItem); ++__i)                        \
         std::cout << __ptr[__i] << " ";                                   \
     std::cout << std::endl;                                               \
     delete[] __ptr;                                                       \
@@ -29,14 +29,14 @@ do {                                                                            
     std::cout << #idx <<"-th element in " << #d_ptr << ": " << element << std::endl;\
 } while(false)
 
-#define PRINT_DMEMORY_SEGMENT(d_ptr, start, nElm, T)                                 \
+#define PRINT_DMEMORY_SEGMENT(d_ptr, start, nItem, T)                                 \
 do {                                                                                \
-    assert((nElm) > 0);\
+    assert((nItem) > 0);\
     cudaDeviceSynchronize();                                                        \
-    T *__ptr = new T[nElm];                                                        \
-    cudaMemcpy(__ptr, &(d_ptr)[start], nElm * sizeof(T), cudaMemcpyDeviceToHost);         \
-    std::cout << (nElm) << " elements from " << (start) <<"-th in " << #d_ptr << ": " << std::endl;   \
-    for (std::size_t __i = 0; __i < (nElm); ++__i)                            \
+    T *__ptr = new T[nItem];                                                        \
+    cudaMemcpy(__ptr, &(d_ptr)[start], nItem * sizeof(T), cudaMemcpyDeviceToHost);         \
+    std::cout << (nItem) << " elements from " << (start) <<"-th in " << #d_ptr << ": " << std::endl;   \
+    for (std::size_t __i = 0; __i < (nItem); ++__i)                            \
         std::cout << __ptr[__i] << " ";                                     \
     std::cout << std::endl;                                             \
     delete[] __ptr;\
@@ -84,11 +84,11 @@ do {                               \
 #else
 #define ASSERT_CUDA_NO_ERROR()
 
-#define PRINT_DMEMORY(d_ptr, nElm, T)
+#define PRINT_DMEMORY(d_ptr, nItem, T)
 
 #define PRINT_DMEMORY_ONE_ELEMENT(d_ptr, idx, T)
 
-#define PRINT_DMEMORY_SEGMENT(d_ptr, start, nElm, T)
+#define PRINT_DMEMORY_SEGMENT(d_ptr, start, nItem, T)
 
 #define PRINT_DCSR(csrVal_, csrColInd_, csrRowPtr_, rows_num, T)
 

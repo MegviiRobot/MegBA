@@ -10,21 +10,19 @@
 #include <vector>
 
 #include "common.h"
+#include "problem/base_problem.h"
 
 namespace MegBA {
 template <typename T>
-class BaseSolver {
+struct BaseSolver {
  protected:
-  const ProblemOption option;
-  const std::vector<T *> &deltaXPtr;
+  const BaseProblem<T> &problem;
 
  public:
-  explicit BaseSolver(const ProblemOption &option,
-                      const std::vector<T *> &deltaXPtr)
-      : option(option), deltaXPtr(deltaXPtr){};
+  explicit BaseSolver(const BaseProblem<T> &problem) : problem(problem) {};
 
   void solve() {
-    switch (option.device) {
+    switch (problem.getProblemOption().device) {
       case CUDA:
         solveCUDA();
         break;

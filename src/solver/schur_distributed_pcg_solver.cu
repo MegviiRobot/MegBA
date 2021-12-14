@@ -11,10 +11,10 @@
 namespace MegBA {
 namespace {
 template <typename T>
-__global__ void weightedPlusKernel(int nElm, const T *x, const T *y, T weight,
+__global__ void weightedPlusKernel(int nItem, const T *x, const T *y, T weight,
                                    T *z) {
   unsigned int tid = threadIdx.x + blockIdx.x * blockDim.x;
-  if (tid >= nElm) return;
+  if (tid >= nItem) return;
   z[tid] = x[tid] + weight * y[tid];
 }
 
@@ -264,10 +264,10 @@ bool schurPCGSolverDistributedCUDA(
                                             axN[i]);
 
       // rhoN = rTr
-      const auto nElm = MemoryPool::getElmNum(i, hppRows);
-      Wrapper::cublasGdot::call(cublasHandle[i], nElm, &rN[i][offset], 1,
+      const auto nItem = MemoryPool::getItemNum(i, hppRows);
+      Wrapper::cublasGdot::call(cublasHandle[i], nItem, &rN[i][offset], 1,
                                 &axN[i][offset], 1, &rho_n_item[i]);
-      offset += nElm;
+      offset += nItem;
     }
     for (int i = 0; i < worldSize; ++i) {
       cudaSetDevice(i);
@@ -355,10 +355,10 @@ bool schurPCGSolverDistributedCUDA(
       cudaSetDevice(i);
       cudaStreamSynchronize(cusparseStream[i]);
       // dot :dTq
-      const auto nElm = MemoryPool::getElmNum(i, hppRows);
-      Wrapper::cublasGdot::call(cublasHandle[i], nElm, &pN[i][offset], 1,
+      const auto nItem = MemoryPool::getItemNum(i, hppRows);
+      Wrapper::cublasGdot::call(cublasHandle[i], nItem, &pN[i][offset], 1,
                                 &axN[i][offset], 1, &dot[i]);
-      offset += nElm;
+      offset += nItem;
     }
     // beta_n: one = rhoN / dTq
     double dot_sum{0};
@@ -586,7 +586,7 @@ void schurSolveWDistributed(
 
 template <typename T>
 bool SchurPCGSolverDistributed(
-    SolverOptionPCG option, const std::vector<T *> &hppCsrVal,
+    const SolverOptionPCG &option, const std::vector<T *> &hppCsrVal,
     const std::vector<T *> &hllCsrVal, const std::vector<T *> &hplCsrVal,
     const std::vector<int *> &hplCsrColInd,
     const std::vector<int *> &hplCsrRowPtr, const std::vector<T *> &hlpCsrVal,
@@ -632,7 +632,7 @@ bool SchurPCGSolverDistributed(
 
 template <typename T>
 void SchurDistributedPCGSolver<T>::solveCUDA() {
-  const auto worldSize = this->option.deviceUsed.size();
+  const auto worldSize = this->problem.getProblemOption().deviceUsed.size();
   std::vector<T *> hppCsrVal{worldSize};
   std::vector<T *> hllCsrVal{worldSize};
   std::vector<T *> hplCsrVal{worldSize};
@@ -653,7 +653,7 @@ void SchurDistributedPCGSolver<T>::solveCUDA() {
   std::vector<T *> delta_x{worldSize};
 
   for (int i = 0; i < worldSize; ++i) {
-    const auto &schurEquationContainer = schurEquationContainers[i];
+    const auto &schurEquationContainer = this->problem.getEdges().schurEquationContainer[i];
     hppCsrVal[i] = schurEquationContainer.csrVal[2];
     hllCsrVal[i] = schurEquationContainer.csrVal[3];
     hplCsrVal[i] = schurEquationContainer.csrVal[0];
@@ -672,10 +672,10 @@ void SchurDistributedPCGSolver<T>::solveCUDA() {
     hplNnz[i] = schurEquationContainer.nnz[0];
     hppRows = schurEquationContainer.nnz[2] / schurEquationContainer.dim[0];
     hllRows = schurEquationContainer.nnz[3] / schurEquationContainer.dim[1];
-    delta_x[i] = this->deltaXPtr[i];
+    delta_x[i] = this->problem.getDeltaXPtr()[i];
   }
 
-  SchurPCGSolverDistributed(this->option.solverOptionPCG, hppCsrVal, hllCsrVal,
+  SchurPCGSolverDistributed(this->problem.getProblemOption().solverOptionPCG, hppCsrVal, hllCsrVal,
                             hplCsrVal, hplCsrColInd, hplCsrRowPtr, hlpCsrVal,
                             hlpCsrColInd, hlpCsrRowPtr, g, cameraDim, cameraNum,
                             pointDim, pointNum, hplNnz, hppRows, hllRows,
