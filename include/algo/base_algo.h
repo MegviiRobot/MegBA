@@ -11,9 +11,14 @@
 namespace MegBA {
 template <typename T>
 class BaseAlgo {
-    BaseProblem<T> *problem;
+    const BaseProblem<T> &problem;
    public:
-    explicit BaseAlgo(BaseProblem<T> *problem) : problem(problem) {};
+    explicit BaseAlgo(const BaseProblem<T> &problem) : problem(problem) {}
 
+    virtual void solve() {
+
+    }
+
+    virtual void solveCUDA() = 0;
   };
 }

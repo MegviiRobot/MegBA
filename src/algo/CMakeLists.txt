@@ -1,1 +1,1 @@
-add_library(base_algo SHARED base_algo.cpp)
+add_library(LM_algo SHARED LM_algo.cpp)

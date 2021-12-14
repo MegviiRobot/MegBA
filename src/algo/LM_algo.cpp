@@ -5,8 +5,9 @@
 *
 **/
 
-#include "algo/base_algo.h"
+#include "algo/LM_algo.h"
 
 namespace MegBA {
-
+template <typename T>
+LMAlgo<T>::LMAlgo(const BaseProblem<T> &problem) : BaseAlgo<T>(problem) {}
 }
