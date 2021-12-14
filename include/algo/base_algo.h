@@ -15,9 +15,15 @@ class BaseAlgo {
    public:
     explicit BaseAlgo(const BaseProblem<T> &problem) : problem(problem) {}
 
-    virtual void solve() {
-
-    }
+    void solve() {
+      switch (problem.getProblemOption().device) {
+        case CUDA:
+          solveCUDA();
+          break;
+        default:
+          throw std::runtime_error("Not implemented");
+      }
+    };
 
     virtual void solveCUDA() = 0;
   };
