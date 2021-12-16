@@ -248,7 +248,6 @@ template <typename T> void EdgeVector<T>::allocateResourcePost() {
 }
 
 template <typename T> void EdgeVector<T>::deallocateResource() {
-  csrRowPtr.reset();
   for (auto &ptrs : schurCsrRowPtr)
     for (auto &ptr : ptrs)
       ptr.reset();
