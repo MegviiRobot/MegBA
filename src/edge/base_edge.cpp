@@ -86,7 +86,7 @@ void EdgeVector<T>::PositionAndRelationContainer::clear() {
 template <typename T>
 EdgeVector<T>::EdgeVector(const ProblemOption &option,
                           const std::vector<SchurHessianEntrance<T>> &schurHessianEntrance)
-    : _option{option}, schurHessianEntrance{schurHessianEntrance},
+    : option{option}, schurHessianEntrance{schurHessianEntrance},
       schurCsrRowPtr(option.deviceUsed.size()) {
   schurEquationContainer.reserve(option.deviceUsed.size());
   for (int i = 0; i < option.deviceUsed.size(); ++i) {
@@ -96,7 +96,7 @@ EdgeVector<T>::EdgeVector(const ProblemOption &option,
 }
 
 template <typename T> void EdgeVector<T>::rollback() {
-  if (_option.useSchur) {
+  if (option.useSchur) {
     schurValueDevicePtrs.swap(schurValueDevicePtrsOld);
   } else {
     // TODO(Jie Ren): implement this
@@ -204,7 +204,7 @@ template <typename T> void EdgeVector<T>::allocateResourcePre() {
   // TODO(Jie Ren): num is a global variable
   num.reset(new int[cameraVertexNum + pointVertexNum]);
 
-  if (_option.useSchur) {
+  if (option.useSchur) {
     schurAbsolutePosition.resize(2);
     for (auto &vs : schurAbsolutePosition) {
       vs.resize(MemoryPool::getWorldSize());
@@ -223,7 +223,7 @@ template <typename T> void EdgeVector<T>::allocateResourcePre() {
   } else {
     // TODO(Jie Ren): implement this
   }
-  switch (_option.device) {
+  switch (option.device) {
   case Device::CUDA: {
     PrepareUpdateDataCUDA();
     break;
@@ -235,7 +235,7 @@ template <typename T> void EdgeVector<T>::allocateResourcePre() {
 }
 
 template <typename T> void EdgeVector<T>::allocateResourcePost() {
-  switch (_option.device) {
+  switch (option.device) {
   case Device::CUDA: {
     preparePositionAndRelationDataCUDA();
     break;
@@ -252,7 +252,7 @@ template <typename T> void EdgeVector<T>::deallocateResource() {
     for (auto &ptr : ptrs)
       ptr.reset();
 
-  switch (_option.device) {
+  switch (option.device) {
   case Device::CUDA: {
     deallocateResourceCUDA();
     break;
@@ -265,7 +265,7 @@ template <typename T> void EdgeVector<T>::deallocateResource() {
 }
 
 template <typename T> void EdgeVector<T>::makeVertices() {
-  if (_option.useSchur) {
+  if (option.useSchur) {
     makeSchurVertices();
   } else {
     // TODO(Jie Ren): implement this
@@ -290,7 +290,7 @@ template <typename T> void EdgeVector<T>::makeSchurVertices() {
     // make_H_and_g_without_Info_two_Vertices
 
     std::size_t total_vertex_idx{0};
-    for (int i = 0; i < _option.deviceUsed.size(); ++i) {
+    for (int i = 0; i < option.deviceUsed.size(); ++i) {
       const auto &schur_H_entrance_other = schurHessianEntrance[i].ra[other_kind];
       omp_set_num_threads(16);
 #pragma omp parallel for
@@ -329,7 +329,7 @@ template <typename T> JVD<T> EdgeVector<T>::forward() {
 }
 
 template <typename T> void EdgeVector<T>::fitDevice() {
-  if (_option.device == Device::CUDA)
+  if (option.device == Device::CUDA)
     bindCUDAGradPtrs();
 
   for (int vertex_kind_idx = 0; vertex_kind_idx < edges.size();
@@ -343,7 +343,7 @@ template <typename T> void EdgeVector<T>::fitDevice() {
     auto cols = vertex_vector[0]->getEstimation().cols();
     for (int i = 0; i < rows; ++i) {
       for (int j = 0; j < cols; ++j) {
-        Jet_estimation(i, j).to(_option.device);
+        Jet_estimation(i, j).to(option.device);
       }
     }
 
@@ -351,28 +351,28 @@ template <typename T> void EdgeVector<T>::fitDevice() {
     cols = Jet_observation.cols();
     for (int i = 0; i < rows; ++i) {
       for (int j = 0; j < cols; ++j) {
-        Jet_observation(i, j).to(_option.device);
+        Jet_observation(i, j).to(option.device);
       }
     }
   }
   auto rows = jetMeasurement.rows(), cols = jetMeasurement.cols();
   for (int i = 0; i < rows; ++i) {
     for (int j = 0; j < cols; ++j) {
-      jetMeasurement(i, j).to(_option.device);
+      jetMeasurement(i, j).to(option.device);
     }
   }
 
   rows = jetInformation.rows(), cols = jetInformation.cols();
   for (int i = 0; i < rows; ++i) {
     for (int j = 0; j < cols; ++j) {
-      jetInformation(i, j).to(_option.device);
+      jetInformation(i, j).to(option.device);
     }
   }
 }
 
 template <typename T>
 void EdgeVector<T>::buildLinearSystemSchur(const JVD<T> &jetEstimation) {
-  switch (_option.device) {
+  switch (option.device) {
   case Device::CUDA: {
     buildLinearSystemSchurCUDA(jetEstimation);
     break;

@@ -77,7 +77,7 @@ template <typename T> void EdgeVector<T>::bindCUDAGradPtrs() {
     const auto worldSize = MemoryPool::getWorldSize();
     for (int i = 0; i < vertexVector[0]->getEstimation().size(); ++i) {
       // bind _valueDevicePtr for CUDA
-      if (_option.useSchur) {
+      if (option.useSchur) {
         std::vector<T *> valueDevicePtrs;
         valueDevicePtrs.resize(worldSize);
         for (int k = 0; k < worldSize; ++k) {

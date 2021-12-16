@@ -9,7 +9,7 @@
 
 namespace MegBA {
 template <typename T> void EdgeVector<T>::backupValueDevicePtrs() {
-  if (_option.useSchur) {
+  if (option.useSchur) {
     const auto gradShape = getGradShape();
     for (int i = 0; i < MemoryPool::getWorldSize(); ++i) {
       cudaSetDevice(i);
@@ -36,10 +36,10 @@ __global__ void broadCastCsrColInd(const int *input, const int other_dim,
 }  // namespace
 
 template <typename T> void EdgeVector<T>::preparePositionAndRelationDataCUDA() {
-  if (_option.useSchur) {
+  if (option.useSchur) {
     std::vector<std::array<int *, 2>> compressedCsrColInd;
-    compressedCsrColInd.resize(_option.deviceUsed.size());
-    for (int i = 0; i < _option.deviceUsed.size(); ++i) {
+    compressedCsrColInd.resize(option.deviceUsed.size());
+    for (int i = 0; i < option.deviceUsed.size(); ++i) {
       cudaSetDevice(i);
       const auto edgeNum = MemoryPool::getItemNum(i);
 
@@ -131,7 +131,7 @@ template <typename T> void EdgeVector<T>::preparePositionAndRelationDataCUDA() {
           schurAbsolutePosition[1][i].data(), edgeNum * sizeof(int),
           cudaMemcpyHostToDevice);
     }
-    for (int i = 0; i < _option.deviceUsed.size(); ++i) {
+    for (int i = 0; i < option.deviceUsed.size(); ++i) {
       cudaSetDevice(i);
       cudaDeviceSynchronize();
       cudaFree(compressedCsrColInd[i][0]);
@@ -143,7 +143,7 @@ template <typename T> void EdgeVector<T>::preparePositionAndRelationDataCUDA() {
 }
 
 template <typename T> void EdgeVector<T>::PrepareUpdateDataCUDA() {
-  if (_option.useSchur) {
+  if (option.useSchur) {
     const auto worldSize = MemoryPool::getWorldSize();
     const auto gradShape = getGradShape();
     schurStreamLmMemcpy.resize(worldSize);
@@ -185,7 +185,7 @@ template <typename T> void EdgeVector<T>::PrepareUpdateDataCUDA() {
 }
 
 template <typename T> void EdgeVector<T>::deallocateResourceCUDA() {
-  if (_option.useSchur) {
+  if (option.useSchur) {
     for (int i = 0; i < MemoryPool::getWorldSize(); ++i) {
       cudaSetDevice(i);
       schurPositionAndRelationContainer[i].clearCUDA();

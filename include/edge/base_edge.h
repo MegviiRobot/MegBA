@@ -62,7 +62,7 @@ template <typename T> class BaseEdge : public std::vector<BaseVertex<T> *> {
 template <typename T> class EdgeVector {
   friend BaseProblem<T>;
 
-  const ProblemOption &_option;
+  const ProblemOption &option;
   const std::vector<SchurHessianEntrance<T>> &schurHessianEntrance;
   // total number for each vertex kind
   std::unique_ptr<int[]> num{nullptr};
