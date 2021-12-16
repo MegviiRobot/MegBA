@@ -9,6 +9,13 @@
 #include "problem/base_problem.h"
 
 namespace MegBA {
+struct AlgoStatus {
+  struct {
+    double region{1e4};
+    bool recoverDiag{false};
+  } lmAlgoStatus{};
+};
+
 template <typename T>
 class BaseAlgo {
     const BaseProblem<T> &problem;
