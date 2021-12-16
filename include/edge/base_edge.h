@@ -66,7 +66,6 @@ template <typename T> class EdgeVector {
   const std::vector<SchurHessianEntrance<T>> &schurHessianEntrance;
   // total number for each vertex kind
   std::unique_ptr<int[]> num{nullptr};
-  std::vector<std::vector<int>> absolutePosition;
   // kind -> worldSize
   std::vector<std::vector<std::vector<int>>> schurRelativePosition;
   std::vector<std::vector<std::vector<int>>> schurAbsolutePosition;
