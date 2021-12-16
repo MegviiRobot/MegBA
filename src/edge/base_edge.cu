@@ -219,7 +219,6 @@ void EdgeVector<T>::PositionAndRelationContainer::clearCUDA() {
   cudaFree(relativePositionPoint);
   cudaFree(absolutePositionCamera);
   cudaFree(absolutePositionPoint);
-  cudaFree(connectionNumPoint);
 }
 
 template class EdgeVector<float>;

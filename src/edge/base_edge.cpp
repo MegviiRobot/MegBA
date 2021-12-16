@@ -70,7 +70,6 @@ void EdgeVector<T>::PositionAndRelationContainer::clear() {
     free(relativePositionPoint);
     free(absolutePositionCamera);
     free(absolutePositionPoint);
-    free(connectionNumPoint);
     break;
   case Device::CUDA:
     clearCUDA();
@@ -80,7 +79,6 @@ void EdgeVector<T>::PositionAndRelationContainer::clear() {
   relativePositionPoint = nullptr;
   absolutePositionCamera = nullptr;
   absolutePositionPoint = nullptr;
-  connectionNumPoint = nullptr;
 }
 
 template <typename T>

@@ -123,7 +123,6 @@ template <typename T> class EdgeVector {
     const Device &device;
     int *relativePositionCamera{nullptr}, *relativePositionPoint{nullptr};
     int *absolutePositionCamera{nullptr}, *absolutePositionPoint{nullptr};
-    int *connectionNumPoint{nullptr};
   };
 
   void backupValueDevicePtrs();
