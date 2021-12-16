@@ -73,7 +73,6 @@ template <typename T> class EdgeVector {
   std::vector<BaseEdge<T> *> edgesPtr;
   std::size_t nameHash{};
   std::vector<VertexVector<T>> edges;
-  std::unique_ptr<int[]> csrRowPtr{nullptr};
   std::vector<std::array<std::unique_ptr<int[]>, 2>> schurCsrRowPtr;
   // kind -> worldSize -> ptr
   std::vector<std::vector<T *>> schurValueDevicePtrs;
