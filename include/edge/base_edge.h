@@ -96,9 +96,6 @@ template <typename T> class EdgeVector {
   struct SchurEquationContainer {
     explicit SchurEquationContainer(const Device &device) : device(device) {}
 
-    SchurEquationContainer(const SchurEquationContainer &container)
-        : device(container.device) {}
-
     ~SchurEquationContainer() { clear(); }
 
     void clear();
