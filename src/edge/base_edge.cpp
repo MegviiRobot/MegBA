@@ -31,7 +31,7 @@ template <typename T> void EdgeVector<T>::decideEdgeKind() {
 }
 
 template <typename T> void EdgeVector<T>::SchurEquationContainer::clear() {
-  switch (_device) {
+  switch (device) {
   case Device::CPU: {
     for (int i = 0; i < 2; ++i)
       free(csrRowPtr[i]);
@@ -64,7 +64,7 @@ template <typename T> void EdgeVector<T>::SchurEquationContainer::clear() {
 
 template <typename T>
 void EdgeVector<T>::PositionAndRelationContainer::clear() {
-  switch (_device) {
+  switch (device) {
   case Device::CPU:
     free(relativePositionCamera);
     free(relativePositionPoint);
