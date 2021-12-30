@@ -11,13 +11,19 @@
 
 namespace MegBA {
 template <typename T>
-class BaseLinearSystemManager {
+struct BaseLinearSystemManager {
   std::vector<T *> deltaXPtr{};
 
-  virtual void buildLinearSystem(const JVD<T> &jetEstimation, const JVD<T> &jetInformation) = 0;
+  void buildLinearSystem(const JVD<T> &jetEstimation, const JVD<T> &jetInformation) {
+      buildLinearSystemCUDA(jetEstimation, jetInformation);
+  };
+
+  virtual void preSolve(const AlgoStatus &algoStatus) {}
 
   virtual void buildLinearSystemCUDA(const JVD<T> &jetEstimation, const JVD<T> &jetInformation) = 0;
 
-  virtual void preProcess(const AlgoStatus &algoStatus) {}
+  virtual void postSolve(const AlgoStatus &algoStatus) {}
+
+  virtual void applyUpdate(T *xPtr) const = 0;
 };
 }

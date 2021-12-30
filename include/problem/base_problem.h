@@ -39,6 +39,7 @@ class BaseProblem {
   std::vector<T *> deltaXPtrBackup{nullptr};
 
   const std::unique_ptr<BaseSolver<T>> solver;
+  const std::unique_ptr<BaseLinearSystemManager<T>> linearSystemManager;
 
   void deallocateResource();
 

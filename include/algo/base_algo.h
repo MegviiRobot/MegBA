@@ -6,6 +6,8 @@
 **/
 
 #pragma once
+#include <memory>
+#include "common.h"
 #include "problem/base_problem.h"
 
 namespace MegBA {
@@ -13,25 +15,28 @@ struct AlgoStatus {
   struct {
     double region{1e4};
     bool recoverDiag{false};
+    bool acceptStep{false};
   } lmAlgoStatus{};
 };
 
 template <typename T>
 class BaseAlgo {
-    const BaseProblem<T> &problem;
-   public:
-    explicit BaseAlgo(const BaseProblem<T> &problem) : problem(problem) {}
+  const std::unique_ptr<BaseLinearSystemManager<T>> linearSystemManager;
+  const BaseProblem<T> &problem;
 
-    void solve() {
-      switch (problem.getProblemOption().device) {
-        case CUDA:
-          solveCUDA();
-          break;
-        default:
-          throw std::runtime_error("Not implemented");
-      }
-    };
+ public:
+  explicit BaseAlgo(const BaseProblem<T> &problem) : problem(problem) {}
 
-    virtual void solveCUDA() = 0;
+  void solve() {
+    switch (problem.getProblemOption().device) {
+      case CUDA:
+        solveCUDA();
+        break;
+      default:
+        throw std::runtime_error("Not implemented");
+    }
   };
+
+  virtual void solveCUDA() = 0;
+};
 }

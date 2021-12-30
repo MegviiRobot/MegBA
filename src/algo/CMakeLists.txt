@@ -1,1 +1,1 @@
-add_library(LM_algo SHARED LM_algo.cpp)
+add_library(schurLM_algo SHARED schurLM_algo.cpp)

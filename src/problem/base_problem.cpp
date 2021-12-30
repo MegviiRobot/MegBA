@@ -9,6 +9,7 @@
 #include <thread>
 #include <condition_variable>
 #include "solver/solver_dispatcher.h"
+#include "linear_system_manager/linear_system_manager_dispatcher.h"
 
 namespace MegBA {
 namespace {
@@ -69,7 +70,10 @@ template <typename T> void SchurHessianEntrance<T>::buildRandomAccess() {
 }
 
 template <typename T>
-BaseProblem<T>::BaseProblem(const ProblemOption& option) : option(option), solver(dispatchSolver(*this)) {
+BaseProblem<T>::BaseProblem(const ProblemOption& option)
+    : option(option),
+      solver(dispatchSolver(*this)),
+      linearSystemManager(dispatchLinearSystemManager(*this)) {
   if (option.N != -1 && option.nItem != -1)
     MemoryPool::resetPool(option.N, option.nItem, sizeof(T), option.deviceUsed.size());
   if (option.useSchur) {
@@ -281,7 +285,7 @@ template <typename T> void BaseProblem<T>::solve() {
   }
 }
 template <typename T>
-BaseProblem<T>::~BaseProblem() {}
+BaseProblem<T>::~BaseProblem() = default;
 
 template class BaseProblem<double>;
 template class BaseProblem<float>;

@@ -62,6 +62,9 @@ template <typename T>
 class BaseSolver;
 
 template <typename T>
+class BaseLinearSystemManager;
+
+template <typename T>
 using JVD = Eigen::Matrix<JetVector<T>, Eigen::Dynamic, Eigen::Dynamic>;
 }  // namespace MegBA
 

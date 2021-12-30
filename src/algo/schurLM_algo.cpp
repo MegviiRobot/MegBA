@@ -5,9 +5,9 @@
 *
 **/
 
-#include "algo/LM_algo.h"
+#include "algo/schurLM_algo.h"
 
 namespace MegBA {
 template <typename T>
-LMAlgo<T>::LMAlgo(const BaseProblem<T> &problem) : BaseAlgo<T>(problem) {}
+SchurLMAlgo<T>::SchurLMAlgo(const BaseProblem<T> &problem) : BaseAlgo<T>(problem) {}
 }

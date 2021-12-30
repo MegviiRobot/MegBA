@@ -13,6 +13,7 @@
 #include "resource/handle_manager.h"
 #include "macro.h"
 #include "solver/base_solver.h"
+#include "linear_system_manager/schurLM_linear_system_manager.h"
 
 namespace MegBA {
 template <typename T> void BaseProblem<T>::deallocateResourceCUDA() {
@@ -56,13 +57,6 @@ template <typename T> struct compare_abs_value {
   }
 };
 
-template <typename T>
-struct compare_abs_value_ret_max : public thrust::binary_function<T, T, T> {
-  __host__ __device__ T operator()(T lhs, T rhs) {
-    return std::abs(lhs) < std::abs(rhs) ? std::abs(rhs) : std::abs(lhs);
-  }
-};
-
 template <typename T> inline T l2NormPow2(const T *vector, const int size) {
   return thrust::inner_product(thrust::device_ptr<const T>(vector),
                                thrust::device_ptr<const T>{vector + size},
@@ -73,13 +67,6 @@ template <typename T> inline T LinfNorm(const T *vector, const int size) {
   return std::abs(*thrust::max_element(
       thrust::device_ptr<const T>{vector},
       thrust::device_ptr<const T>{vector + size}, compare_abs_value<T>{}));
-}
-
-template <typename T>
-inline auto LinfNorm_async(const T *vector, const int size) {
-  return thrust::async::reduce(thrust::device_ptr<const T>{vector},
-                               thrust::device_ptr<const T>{vector + size},
-                               T(0.), compare_abs_value_ret_max<T>{});
 }
 
 template <typename T>
@@ -103,7 +90,7 @@ template <typename T>
 __global__ void RecoverDiagKernel(const T *in, const T a, const int batchSize,
                                   T *out) {
   /*
-                 * blockDim, x-dim: camera or point dim, y-dim: process how many cameras/points in this block
+   * blockDim, x-dim: camera or point dim, y-dim: process how many cameras/points in this block
    */
   unsigned int tid = threadIdx.y + blockIdx.x * blockDim.y;
   if (tid >= batchSize)
@@ -398,8 +385,7 @@ void BaseProblem<T>::solveLM() {
 }
 
 template <typename T> void BaseProblem<T>::backupLM() {
-  const std::vector<cublasHandle_t> &cublasHandle =
-      HandleManager::getCUBLASHandle();
+  const auto &cublasHandle = HandleManager::getCUBLASHandle();
   T one = 1.;
   if (option.useSchur) {
     for (int i = 0; i < MemoryPool::getWorldSize(); ++i) {

@@ -10,8 +10,8 @@
 
 namespace MegBA {
 template <typename T>
-class LMAlgo {
+class SchurLMAlgo {
  public:
-  explicit LMAlgo(const BaseProblem<T> &problem);
+  explicit SchurLMAlgo(const BaseProblem<T> &problem);
 };
 }

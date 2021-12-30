@@ -6,6 +6,8 @@
 **/
 
 #include "linear_system_manager/schurLM_linear_system_manager.h"
+#include <thrust/device_ptr.h>
+#include <thrust/async/reduce.h>
 #include "wrapper.hpp"
 
 #if __CUDA_ARCH__ < 600 && defined(__CUDA_ARCH__)
@@ -75,8 +77,7 @@ __device__ void makeHll(const T *valSmem, const T valI, const int pointDim,
 }
 
 template <typename T>
-__global__ void
-makeHSchur(
+__global__ void makeHSchur(
     const T *const *const valPtrs, const T *const *const errorPtrs,
     const int *absolutePositionCamera, const int *absolutePositionPoint,
     const int *relativePositionCamera, const int *relativePositionPoint,
@@ -87,8 +88,7 @@ makeHSchur(
                  * make sure that blockDim.x % 32 == 0, if so, there won't be any thread divergence within a wrap.
    */
   const unsigned int tid = threadIdx.x + blockDim.x * blockIdx.x;
-  if (tid >= errorNum)
-    return;
+  if (tid >= errorNum) return;
 
   T *valSmem = Wrapper::Shared_Memory<T>::get();
 
@@ -105,10 +105,10 @@ makeHSchur(
     __syncthreads();
 
     if (threadIdx.y < cameraDim) {
-      makeHpp(valSmem, valI, cameraDim,
-              (absolutePositionCameraLocal * cameraDim + threadIdx.y) *
-                  cameraDim,
-              hppCsrVal);
+      makeHpp(
+          valSmem, valI, cameraDim,
+          (absolutePositionCameraLocal * cameraDim + threadIdx.y) * cameraDim,
+          hppCsrVal);
       makeHpl(
           valSmem, valI, relativePositionPointLocal, pointDim, cameraDim,
           hplCsrRowPtr[absolutePositionCameraLocal * cameraDim + threadIdx.y],
@@ -138,16 +138,17 @@ makeHSchur(
 }  // namespace
 
 template <typename T>
-void SchurLMLinearSystemManager<T>::buildLinearSystemCUDA(const JVD<T> &jetEstimation, const JVD<T> &jetInformation) {
+void SchurLMLinearSystemManager<T>::buildLinearSystemCUDA(
+    const JVD<T> &jetEstimation, const JVD<T> &jetInformation) {
   const auto rows = jetEstimation.rows(), cols = jetEstimation.cols();
-  const auto cameraDim = edges[0].getGradShape();
-  const auto pointDim = edges[1].getGradShape();
+  const auto cameraDim = dim[0];
+  const auto pointDim = dim[1];
   const auto cameraNum = num[0];
   const auto pointNum = num[1];
   const auto hppRows = cameraDim * cameraNum;
   const auto hllRows = pointDim * pointNum;
   const std::size_t worldSize = MemoryPool::getWorldSize();
-  
+
   std::vector<T *> gCameraDevice{worldSize};
   std::vector<T *> gPointDevice{worldSize};
   for (int i = 0; i < worldSize; ++i) {
@@ -217,10 +218,8 @@ void SchurLMLinearSystemManager<T>::buildLinearSystemCUDA(const JVD<T> &jetEstim
           equationContainers[i].csrRowPtr[0],
           equationContainers[i].csrRowPtr[1], resDim, cameraDim, pointDim,
           edgeNum, gCameraDevice[i], gPointDevice[i],
-          equationContainers[i].csrVal[2],
-          equationContainers[i].csrVal[3],
-          equationContainers[i].csrVal[0],
-          equationContainers[i].csrVal[1]);
+          equationContainers[i].csrVal[2], equationContainers[i].csrVal[3],
+          equationContainers[i].csrVal[0], equationContainers[i].csrVal[1]);
     }
   }
   for (int i = 0; i < worldSize; ++i) {
@@ -233,13 +232,11 @@ void SchurLMLinearSystemManager<T>::buildLinearSystemCUDA(const JVD<T> &jetEstim
   ncclGroupStart();
   for (int i = 0; i < worldSize; ++i) {
     ncclAllReduce(equationContainers[i].csrVal[2],
-                  equationContainers[i].csrVal[2],
-                  equationContainers[i].nnz[2],
+                  equationContainers[i].csrVal[2], equationContainers[i].nnz[2],
                   Wrapper::declared_cudaDatatype<T>::nccl_dtype, ncclSum,
                   comms[i], nullptr);
     ncclAllReduce(equationContainers[i].csrVal[3],
-                  equationContainers[i].csrVal[3],
-                  equationContainers[i].nnz[3],
+                  equationContainers[i].csrVal[3], equationContainers[i].nnz[3],
                   Wrapper::declared_cudaDatatype<T>::nccl_dtype, ncclSum,
                   comms[i], nullptr);
     ncclAllReduce(gCameraDevice[i], gCameraDevice[i], hppRows + hllRows,
@@ -248,4 +245,178 @@ void SchurLMLinearSystemManager<T>::buildLinearSystemCUDA(const JVD<T> &jetEstim
   }
   ncclGroupEnd();
 }
+
+namespace {
+template <typename T>
+__global__ void RecoverDiagKernel(const T *in, const T a, const int batchSize,
+                                  T *out) {
+  /*
+   * blockDim, x-dim: camera or point dim, y-dim: process how many cameras/points in this block
+   */
+  unsigned int tid = threadIdx.y + blockIdx.x * blockDim.y;
+  if (tid >= batchSize) return;
+
+  out[threadIdx.x + threadIdx.x * blockDim.x + tid * blockDim.x * blockDim.x] =
+      (a + 1) * in[threadIdx.x + tid * blockDim.x];
+}
+
+template <typename T>
+void RecoverDiag(const T *diag, const T a, const int batchSize, const int dim,
+                 T *csrVal) {
+  dim3 block(dim, std::min(decltype(batchSize)(32), batchSize));
+  dim3 grid((batchSize - 1) / block.y + 1);
+  RecoverDiagKernel<T><<<grid, block>>>(diag, a, batchSize, csrVal);
+}
+
+template <typename T>
+__global__ void ExtractOldAndApplyNewDiagKernel(const T a, const int batchSize,
+                                                T *csrVal, T *diags) {
+  /*
+   * blockDim, x-dim: camera or point dim, y-dim: process how many cameras/points in this block
+   */
+  unsigned int tid = threadIdx.y + blockIdx.x * blockDim.y;
+  if (tid >= batchSize) return;
+
+  const T diag = csrVal[threadIdx.x + threadIdx.x * blockDim.x +
+                        tid * blockDim.x * blockDim.x];
+  diags[threadIdx.x + tid * blockDim.x] = diag;
+  csrVal[threadIdx.x + threadIdx.x * blockDim.x +
+         tid * blockDim.x * blockDim.x] = (a + 1) * diag;
+}
+
+template <typename T>
+void extractOldAndApplyNewDiag(const T a, const int batchSize, const int dim,
+                               T *csrVal, T *diag) {
+  dim3 block(dim, std::min(decltype(batchSize)(32), batchSize));
+  dim3 grid((batchSize - 1) / block.y + 1);
+  ExtractOldAndApplyNewDiagKernel<<<grid, block>>>(a, batchSize, csrVal, diag);
+}
+}
+
+template <typename T>
+void SchurLMLinearSystemManager<T>::preSolve(const AlgoStatus &algoStatus) {
+  if (algoStatus.lmAlgoStatus.recoverDiag) {
+    for (int i = 0; i < MemoryPool::getWorldSize(); ++i) {
+      cudaSetDevice(i);
+      auto &container = equationContainers[i];
+      RecoverDiag(extractedDiag[i][0], T(1. / algoStatus.lmAlgoStatus.region),
+                  num[0], dim[0], container.csrVal[2]);
+      RecoverDiag(extractedDiag[i][1], T(1. / algoStatus.lmAlgoStatus.region),
+                  num[1], dim[1], container.csrVal[3]);
+    }
+  } else {
+    for (int i = 0; i < MemoryPool::getWorldSize(); ++i) {
+      cudaSetDevice(i);
+      auto &container = equationContainers[i];
+      extractOldAndApplyNewDiag(T(1. / algoStatus.lmAlgoStatus.region), num[0],
+                                dim[0], container.csrVal[2],
+                                extractedDiag[i][0]);
+      extractOldAndApplyNewDiag(T(1. / algoStatus.lmAlgoStatus.region), num[1],
+                                dim[1], container.csrVal[3],
+                                extractedDiag[i][1]);
+    }
+  }
+}
+template <typename T>
+void SchurLMLinearSystemManager<T>::backup() {
+  const int hessianShape = getHessianShape();
+  for (int i = 0; i < MemoryPool::getWorldSize(); ++i) {
+    cudaSetDevice(i);
+    cudaMemcpyAsync(deltaXPtrBackup[i], this->deltaXPtr[i],
+                    hessianShape * sizeof(T), cudaMemcpyDeviceToDevice);
+  }
+}
+
+template <typename T>
+void SchurLMLinearSystemManager<T>::rollback() {
+  const int hessianShape = getHessianShape();
+  for (int i = 0; i < MemoryPool::getWorldSize(); ++i) {
+    cudaSetDevice(i);
+    cudaMemcpyAsync(this->deltaXPtr[i], deltaXPtrBackup[i],
+                    hessianShape * sizeof(T), cudaMemcpyDeviceToDevice);
+  }
+}
+
+template <typename T>
+void SchurLMLinearSystemManager<T>::applyUpdate(T *xPtr) const {
+  const auto &cublasHandle = HandleManager::getCUBLASHandle();
+  const int hessianShape = getHessianShape();
+  const T one = 1.;
+  cudaSetDevice(0);
+  Wrapper::cublasGaxpy::call(cublasHandle[0], hessianShape, &one,
+                             this->deltaXPtr[0], 1, xPtr, 1);
+}
+
+namespace {
+template <typename T>
+__global__ void JdxpF(const T *grad, const T *deltaX, const T *res,
+                      const int *absCameraPosition, const int *absPointPosition,
+                      const int nItem, const int cameraDim, const int cameraNum,
+                      const int pointDim, T *out) {
+  unsigned int tid = threadIdx.x + blockIdx.x * blockDim.x;
+  if (tid >= nItem)
+    return;
+  T sum{0};
+  const int absCameraPositionLocal = absCameraPosition[tid];
+  const int absPointPositionLocal = absPointPosition[tid];
+  for (int i = 0; i < cameraDim; ++i) {
+    sum +=
+        grad[tid + i * nItem] * deltaX[i + absCameraPositionLocal * cameraDim];
+  }
+  for (int i = 0; i < pointDim; ++i) {
+    sum += grad[tid + (i + cameraDim) * nItem] *
+           deltaX[i + cameraDim * cameraNum + absPointPositionLocal * pointDim];
+  }
+  out[tid] = (sum + res[tid]) * (sum + res[tid]);
+}
+}
+
+template <typename T>
+double SchurLMLinearSystemManager<T>::computeRhoDenominator(
+    JVD<T> &JV, std::vector<T *> &schurDeltaXPtr) {
+  T rhoDenominator{0};
+  std::vector<std::vector<T *>> Jdx;
+  Jdx.resize(MemoryPool::getWorldSize());
+  const int cameraDim = dim[0];
+  const int cameraNum = num[0];
+  const int pointDim = dim[1];
+
+  std::vector<std::vector<thrust::system::cuda::unique_eager_future<T>>>
+      futures;
+  futures.resize(MemoryPool::getWorldSize());
+
+  for (int i = 0; i < MemoryPool::getWorldSize(); ++i) {
+    cudaSetDevice(i);
+    const auto nItem = MemoryPool::getItemNum(i);
+    const auto &positionContainer = positionAndRelationContainers[i];
+    futures[i].resize(JV.size());
+    for (int j = 0; j < JV.size(); ++j) {
+      auto &J = JV(j);
+      T *ptr;
+      MemoryPool::allocateNormal(reinterpret_cast<void **>(&ptr),
+                                 nItem * sizeof(T), i);
+      dim3 block(std::min((std::size_t)256, nItem));
+      dim3 grid((nItem - 1) / block.x + 1);
+      JdxpF<<<grid, block>>>(J.getCUDAGradPtr()[i], schurDeltaXPtr[i],
+                             J.getCUDAResPtr()[i],
+                             positionContainer.absolutePositionCamera,
+                             positionContainer.absolutePositionPoint,
+                             nItem, cameraDim, cameraNum, pointDim, ptr);
+      futures[i][j] = thrust::async::reduce(
+          thrust::cuda::par.on(nullptr), thrust::device_ptr<T>{ptr},
+          thrust::device_ptr<T>{ptr} + nItem, T(0.), thrust::plus<T>{});
+      Jdx[i].push_back(ptr);
+    }
+  }
+  for (int i = 0; i < futures.size(); ++i) {
+    for (int j = futures[i].size() - 1; j >= 0; --j) {
+      rhoDenominator += futures[i][j].get();
+      MemoryPool::deallocateNormal(reinterpret_cast<void *>(Jdx[i][j]), i);
+    }
+  }
+  return rhoDenominator;
+}
+
+template struct SchurLMLinearSystemManager<double>;
+template struct SchurLMLinearSystemManager<float>;
 }
