@@ -18,6 +18,8 @@
 #include "problem/hessian_entrance.h"
 
 namespace MegBA {
+template <typename T>
+struct SchurLMLinearSystemManager;
 
 enum EdgeKind { ONE, ONE_CAMERA_ONE_POINT, TWO_CAMERA, MULTI };
 
@@ -125,7 +127,7 @@ template <typename T> class EdgeVector {
     int *absolutePositionCamera{nullptr}, *absolutePositionPoint{nullptr};
   };
 
-  void backupValueDevicePtrs();
+  void backupValueDevicePtrs() const;
 
   void rollback();
 
@@ -175,15 +177,15 @@ template <typename T> class EdgeVector {
 
   void PrepareUpdateDataCUDA();
 
-  JVD<T> forward();
+  JVD<T> forward() const;
 
   void fitDevice();
 
-  void buildLinearSystemSchur(const JVD<T> &jetEstimation);
+  void buildLinearSystemSchur(const JVD<T> &jetEstimation, const BaseLinearSystemManager<T> &linearSystemManager) const;
 
-  void buildLinearSystemSchurCUDA(const JVD<T> &jetEstimation);
+  void buildLinearSystemSchurCUDA(const JVD<T> &jetEstimation, const BaseLinearSystemManager<T> &linearSystemManager) const;
 
-  void updateSchur(const std::vector<T *> &deltaXPtr);
+  void updateSchur(const SchurLMLinearSystemManager<T> &linearSystemManager) const;
 
   void bindCUDAGradPtrs();
 

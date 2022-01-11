@@ -7,22 +7,25 @@
 
 #include "problem/base_problem.h"
 #include <thread>
-#include <condition_variable>
+#include "algo/algo_dispatcher.h"
 #include "solver/solver_dispatcher.h"
+#include "linear_system_manager/schurLM_linear_system_manager.h"
 #include "linear_system_manager/linear_system_manager_dispatcher.h"
 
 namespace MegBA {
 namespace {
-template <typename SchurHessianEntrance>
-void internalBuildRandomAccess(int i, SchurHessianEntrance *schurHessianEntrance) {
+template <typename T>
+void internalBuildRandomAccess(
+    int i,
+    std::array<int *, 2> &csrRowPtr,
+    std::array<int *, 2> &csrColInd,
+    SchurHessianEntrance<T> *schurHessianEntrance) {
   const auto &hEntranceBlockMatrix = schurHessianEntrance->nra[i];
   const auto dimOther = schurHessianEntrance->dim[1 ^ i];
-  auto &csrRowPtrKind = schurHessianEntrance->csrRowPtr[i];
-  auto &csrColIndKind = schurHessianEntrance->csrColInd[i];
-  csrRowPtrKind.reset(
-      new int[hEntranceBlockMatrix.size() * schurHessianEntrance->dim[i] + 1]);
-  csrColIndKind.reset(
-      new int[schurHessianEntrance->counter * schurHessianEntrance->dim[i]]);
+  auto &csrRowPtrKind = csrRowPtr[i];
+  auto &csrColIndKind = csrColInd[i];
+  csrRowPtrKind = (int *)malloc((hEntranceBlockMatrix.size() * schurHessianEntrance->dim[i] + 1) * sizeof(int));
+  csrColIndKind = (int *)malloc(schurHessianEntrance->counter * schurHessianEntrance->dim[i] * sizeof(int));
   csrRowPtrKind[0] = 0;
   std::size_t rowCounter{0};
   std::size_t nnzCounter{0};
@@ -58,13 +61,13 @@ void internalBuildRandomAccess(int i, SchurHessianEntrance *schurHessianEntrance
 }
 }  // namespace
 
-template <typename T> void SchurHessianEntrance<T>::buildRandomAccess() {
+template <typename T> void SchurHessianEntrance<T>::buildRandomAccess(
+    std::array<int *, 2> &csrRowPtr,
+    std::array<int *, 2> &csrColInd) {
   // camera and point
   std::vector<std::thread> threads;
-  threads.emplace_back(std::thread{internalBuildRandomAccess<SchurHessianEntrance<T>>,
-                                   0, this});
-  threads.emplace_back(std::thread{internalBuildRandomAccess<SchurHessianEntrance<T>>,
-                                   1, this});
+  threads.emplace_back(std::thread{internalBuildRandomAccess<T>, 0, std::ref(csrRowPtr), std::ref(csrColInd), this});
+  threads.emplace_back(std::thread{internalBuildRandomAccess<T>, 1, std::ref(csrRowPtr), std::ref(csrColInd), this});
   for (auto &thread : threads)
     thread.join();
 }
@@ -72,6 +75,7 @@ template <typename T> void SchurHessianEntrance<T>::buildRandomAccess() {
 template <typename T>
 BaseProblem<T>::BaseProblem(const ProblemOption& option)
     : option(option),
+      algo(dispatchAlgo(*this)),
       solver(dispatchSolver(*this)),
       linearSystemManager(dispatchLinearSystemManager(*this)) {
   if (option.N != -1 && option.nItem != -1)
@@ -82,10 +86,6 @@ BaseProblem<T>::BaseProblem(const ProblemOption& option)
     schurWS.schurHessianEntrance.resize(option.deviceUsed.size());
     schurWS.schurHessianEntrance.shrink_to_fit();
   }
-}
-
-template <typename T> const Device &BaseProblem<T>::getDevice() const {
-  return option.device;
 }
 
 template <typename T>
@@ -204,9 +204,14 @@ template <typename T> void BaseProblem<T>::makeVertices() {
   setAbsolutePosition();
   if (option.useSchur) {
     std::vector<std::thread> threads;
-    for (auto &schurHessianEntrance : schurWS.schurHessianEntrance) {
+    for (int i = 0; i < schurWS.schurHessianEntrance.size(); ++i) {
       threads.emplace_back(
-          std::thread{[&]() { schurHessianEntrance.buildRandomAccess(); }});
+          std::thread{[&]() {
+            schurWS.schurHessianEntrance[i].buildRandomAccess(
+                dynamic_cast<SchurLMLinearSystemManager<T> *>(linearSystemManager.get())->equationContainers[i].csrRowPtr,
+                dynamic_cast<SchurLMLinearSystemManager<T> *>(linearSystemManager.get())->equationContainers[i].csrColInd
+                );
+          }});
     }
     for (auto &thread : threads) {
       thread.join();
@@ -215,10 +220,11 @@ template <typename T> void BaseProblem<T>::makeVertices() {
     // TODO(Jie Ren): implement this
   }
 
+  linearSystemManager->buildIndex(*this);
   edges.verticesSetPtr = &verticesSets;
   edges.allocateResourcePre();
-  edges.makeVertices();
-  edges.allocateResourcePost();
+//  edges.makeVertices();
+//  edges.allocateResourcePost();
   edges.fitDevice();
 }
 
@@ -278,11 +284,13 @@ template <typename T> void BaseProblem<T>::writeBack() {
   delete[] hxPtr;
 }
 template <typename T> void BaseProblem<T>::solve() {
-  switch (option.algoKind) {
-  case LM:
-    solveLM();
-    break;
-  }
+  makeVertices();
+  algo->solve(*linearSystemManager, edges, xPtr[0]);
+//  switch (option.algoKind) {
+//  case LM:
+//    solveLM();
+//    break;
+//  }
 }
 template <typename T>
 BaseProblem<T>::~BaseProblem() = default;

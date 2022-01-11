@@ -12,31 +12,34 @@
 
 namespace MegBA {
 struct AlgoStatus {
-  struct {
-    double region{1e4};
+  struct AlgoStatusLM {
+    double region{1e3};
     bool recoverDiag{false};
-    bool acceptStep{false};
-  } lmAlgoStatus{};
+  } algoStatusLM;
 };
 
 template <typename T>
 class BaseAlgo {
-  const std::unique_ptr<BaseLinearSystemManager<T>> linearSystemManager;
-  const BaseProblem<T> &problem;
+ protected:
+  const AlgoOption &algoOption;
+  AlgoStatus algoStatus{};
 
  public:
-  explicit BaseAlgo(const BaseProblem<T> &problem) : problem(problem) {}
+  explicit BaseAlgo(const AlgoOption &algoOption) : algoOption{algoOption} {}
 
-  void solve() {
-    switch (problem.getProblemOption().device) {
+  void solve(const BaseLinearSystemManager<T> &baseLinearSystemManager,
+             const EdgeVector<T> &edges, T *xPtr) {
+    switch (algoOption.device) {
       case CUDA:
-        solveCUDA();
+        solveCUDA(baseLinearSystemManager, edges, xPtr);
         break;
       default:
         throw std::runtime_error("Not implemented");
     }
   };
 
-  virtual void solveCUDA() = 0;
+  virtual void solveCUDA(
+      const BaseLinearSystemManager<T> &baseLinearSystemManager,
+      const EdgeVector<T> &edges, T *xPtr) = 0;
 };
 }

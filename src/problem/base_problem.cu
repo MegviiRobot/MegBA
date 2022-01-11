@@ -36,14 +36,13 @@ template <typename T> void BaseProblem<T>::prepareUpdateDataCUDA() {
   if (option.useSchur) {
     const auto worldSize = MemoryPool::getWorldSize();
     xPtr.resize(worldSize);
-    deltaXPtr.resize(worldSize);
-    deltaXPtrBackup.resize(worldSize);
-    for (int i = 0; i < worldSize; ++i) {
-      cudaSetDevice(i);
+//    deltaXPtr.resize(worldSize);
+//    deltaXPtrBackup.resize(worldSize);
+    for (int i = 0; i < worldSize; ++i) {cudaSetDevice(i);
       cudaMalloc(&xPtr[i], hessianShape * sizeof(T));
-      cudaMalloc(&deltaXPtr[i], hessianShape * sizeof(T));
-      cudaMalloc(&deltaXPtrBackup[i], hessianShape * sizeof(T));
-      cudaMemsetAsync(deltaXPtr[i], 0, hessianShape * sizeof(T));
+//      cudaMalloc(&deltaXPtr[i], hessianShape * sizeof(T));
+//      cudaMalloc(&deltaXPtrBackup[i], hessianShape * sizeof(T));
+//      cudaMemsetAsync(deltaXPtr[i], 0, hessianShape * sizeof(T));
     }
   } else {
     // TODO(Jie Ren): implement this
@@ -51,7 +50,7 @@ template <typename T> void BaseProblem<T>::prepareUpdateDataCUDA() {
 }
 
 namespace {
-template <typename T> struct compare_abs_value {
+template <typename T> struct CompareAbsValue {
   __host__ __device__ bool operator()(T lhs, T rhs) {
     return std::abs(lhs) < std::abs(rhs);
   }
@@ -63,10 +62,10 @@ template <typename T> inline T l2NormPow2(const T *vector, const int size) {
                                thrust::device_ptr<const T>(vector), T(0.));
 }
 
-template <typename T> inline T LinfNorm(const T *vector, const int size) {
+template <typename T> inline T linfNorm(const T *vector, const int size) {
   return std::abs(*thrust::max_element(
       thrust::device_ptr<const T>{vector},
-      thrust::device_ptr<const T>{vector + size}, compare_abs_value<T>{}));
+      thrust::device_ptr<const T>{vector + size}, CompareAbsValue<T>{}));
 }
 
 template <typename T>
@@ -188,200 +187,199 @@ double computeRhoDenominator(JVD<T> &JV, std::vector<T *> &schurDeltaXPtr, EdgeV
 
 template <typename T>
 void BaseProblem<T>::solveLM() {
-  const auto &cublasHandle = HandleManager::getCUBLASHandle();
-  makeVertices();
-  Eigen::Matrix<JetVector<T>, Eigen::Dynamic, Eigen::Dynamic> JV_backup;
-  int k = 0;
-  T residualNormNew = 0;
-  T residualNorm = 0;
-
-  edges.backupValueDevicePtrs();
-  edges.bindCUDAGradPtrs();
-  JV_backup = edges.forward();
-  if (option.useSchur) {
-    edges.buildLinearSystemSchur(JV_backup);
-  } else {
-    // TODO(Jie Ren): implement this
-  }
-
-  std::vector<std::vector<T>> residualNormNewInFlight;
-  residualNormNewInFlight.resize(MemoryPool::getWorldSize());
-  for (auto &vec : residualNormNewInFlight)
-    vec.resize(JV_backup.size());
-  for (int i = 0; i < JV_backup.rows(); ++i) {
-    for (int j = 0; j < MemoryPool::getWorldSize(); ++j) {
-      cudaSetDevice(j);
-      const T *resPtr = JV_backup(i).getCUDAResPtr()[j];
-      Wrapper::cublasGdot::call(cublasHandle[j], MemoryPool::getItemNum(j),
-                                resPtr, 1, resPtr, 1,
-                                &residualNormNewInFlight[j][i]);
-    }
-  }
-  for (int i = 0; i < MemoryPool::getWorldSize(); ++i) {
-    cudaStream_t stream;
-    cudaSetDevice(i);
-    cublasGetStream_v2(cublasHandle[i], &stream);
-    cudaStreamSynchronize(stream);
-    for (const auto residualNormNewLanded : residualNormNewInFlight[i]) {
-      residualNormNew += residualNormNewLanded;
-    }
-  }
-
-  std::cout << "start with error: " << residualNormNew / 2
-            << ", log error: " << std::log10(residualNormNew / 2) << std::endl;
-
-  MemoryPool::redistribute();
-  bool stop{false};
-  T u = option.algoOptionLM.initialRegion;
-  T v = 2;
-  T rho = 0;
-
-  std::vector<std::array<T *, 2>> extractedDiag;
-  extractedDiag.resize(MemoryPool::getWorldSize());
-  for (int i = 0; i < MemoryPool::getWorldSize(); ++i) {
-    cudaSetDevice(i);
-    auto &container = edges.schurEquationContainer[i];
-    cudaMalloc(&extractedDiag[i][0],
-               container.nnz[2] / container.dim[0] * sizeof(T));
-    cudaMalloc(&extractedDiag[i][1],
-               container.nnz[3] / container.dim[1] * sizeof(T));
-  }
-  bool recoverDiagFlag{false};
-  while (!stop && k < option.algoOptionLM.maxIter) {
-    k++;
-    if (option.useSchur) {
-      if (recoverDiagFlag) {
-        for (int i = 0; i < MemoryPool::getWorldSize(); ++i) {
-          cudaSetDevice(i);
-          auto &container = edges.schurEquationContainer[i];
-          ASSERT_CUDA_NO_ERROR();
-          RecoverDiag(extractedDiag[i][0], T(1.) / u,
-                      container.nnz[2] / container.dim[0] / container.dim[0],
-                      container.dim[0], container.csrVal[2]);
-          ASSERT_CUDA_NO_ERROR();
-          RecoverDiag(extractedDiag[i][1], T(1.) / u,
-                      container.nnz[3] / container.dim[1] / container.dim[1],
-                      container.dim[1], container.csrVal[3]);
-          ASSERT_CUDA_NO_ERROR();
-        }
-        recoverDiagFlag = false;
-      } else {
-        for (int i = 0; i < MemoryPool::getWorldSize(); ++i) {
-          cudaSetDevice(i);
-          auto &container = edges.schurEquationContainer[i];
-          extractOldAndApplyNewDiag(
-              T(1.) / u, container.nnz[2] / container.dim[0] / container.dim[0],
-              container.dim[0], container.csrVal[2], extractedDiag[i][0]);
-          extractOldAndApplyNewDiag(
-              T(1.) / u, container.nnz[3] / container.dim[1] / container.dim[1],
-              container.dim[1], container.csrVal[3], extractedDiag[i][1]);
-        }
-      }
-    } else {
-      // TODO(Jie Ren): implement this
-    }
-//    bool solverSuccess = solveLinear();
-    solver->solve();
-    MemoryPool::redistribute();
-    ASSERT_CUDA_NO_ERROR();
-
-    T deltaXL2, xL2;
-    if (option.useSchur) {
-      cudaSetDevice(0);
-      deltaXL2 = l2NormPow2(deltaXPtr[0], hessianShape);
-      xL2 = l2NormPow2(xPtr[0], hessianShape);
-    } else {
-      // TODO(Jie Ren): implement this
-    }
-    ASSERT_CUDA_NO_ERROR();
-
-    deltaXL2 = std::sqrt(deltaXL2);
-    xL2 = std::sqrt(xL2);
-    if (deltaXL2 <= option.algoOptionLM.epsilon2 * (xL2 + option.algoOptionLM.epsilon1)) {
-      break;
-    } else {
-      if (option.useSchur) {
-        edges.updateSchur(deltaXPtr);
-      } else {
-        // TODO(Jie Ren): implement this
-      }
-
-      T rhoDenominator{0};
-      if (option.useSchur) {
-        rhoDenominator = computeRhoDenominator(JV_backup, deltaXPtr, edges);
-        rhoDenominator -= residualNormNew;
-      } else {
-        // TODO(Jie Ren): implement this
-      }
-      ASSERT_CUDA_NO_ERROR();
-
-      residualNorm = residualNormNew;
-      residualNormNew = 0.;
-      auto JV = edges.forward();
-      for (int i = 0; i < JV.size(); ++i) {
-        for (int j = 0; j < MemoryPool::getWorldSize(); ++j) {
-          cudaSetDevice(j);
-          const T *resPtr = JV(i).getCUDAResPtr()[j];
-          Wrapper::cublasGdot::call(cublasHandle[j], MemoryPool::getItemNum(j),
-                                    resPtr, 1, resPtr, 1,
-                                    &residualNormNewInFlight[j][i]);
-        }
-      }
-      for (int i = 0; i < MemoryPool::getWorldSize(); ++i) {
-        cudaStream_t stream;
-        cudaSetDevice(i);
-        cublasGetStream_v2(cublasHandle[i], &stream);
-        cudaStreamSynchronize(stream);
-        for (const auto residualNormNewLanded : residualNormNewInFlight[i]) {
-          residualNormNew += residualNormNewLanded;
-        }
-      }
-      ASSERT_CUDA_NO_ERROR();
-
-      rho = -(residualNorm - residualNormNew) / rhoDenominator;
-
-      if (residualNorm > residualNormNew) {
-        for (int i = 0; i < JV.size(); ++i)
-          JV_backup(i) = JV(i);
-        if (option.useSchur) {
-          edges.buildLinearSystemSchur(JV);
-        } else {
-          // TODO(Jie Ren): implement this
-        }
-        std::cout << k << "-th iter error: " << residualNormNew / 2
-                  << ", log error: " << std::log10(residualNormNew / 2)
-                  << std::endl;
-
-        backupLM();
-        residualNorm = residualNormNew;
-        if (option.useSchur) {
-          cudaSetDevice(0);
-          auto &container = edges.schurEquationContainer[0];
-          const auto norm = LinfNorm(container.g, hessianShape);
-          stop = norm <= option.algoOptionLM.epsilon1;
-        } else {
-          // TODO(Jie Ren): implement this
-        }
-        u /= std::max(1. / 3., 1 - std::pow(2 * rho - 1, 3));
-        v = 2;
-      } else {
-        residualNormNew = residualNorm;
-        rollbackLM();
-        u /= v;
-        v *= 2;
-        recoverDiagFlag = true;
-      }
-    }
-    if (stop)
-      break;
-  }
-  writeBack();
-  deallocateResource();
-  for (int i = 0; i < MemoryPool::getWorldSize(); ++i) {
-    cudaSetDevice(i);
-    cudaFree(extractedDiag[i][0]);
-    cudaFree(extractedDiag[i][1]);
-  }
+//  const auto &cublasHandle = HandleManager::getCUBLASHandle();
+//  makeVertices();
+//  Eigen::Matrix<JetVector<T>, Eigen::Dynamic, Eigen::Dynamic> JV_backup;
+//  int k = 0;
+//  T residualNormNew = 0;
+//  T residualNorm = 0;
+//
+//  edges.backupValueDevicePtrs();
+//  JV_backup = edges.forward();
+//  if (option.useSchur) {
+//    edges.buildLinearSystemSchur(JV_backup, *linearSystemManager);
+//  } else {
+//    // TODO(Jie Ren): implement this
+//  }
+//
+//  std::vector<std::vector<T>> residualNormNewInFlight;
+//  residualNormNewInFlight.resize(MemoryPool::getWorldSize());
+//  for (auto &vec : residualNormNewInFlight)
+//    vec.resize(JV_backup.size());
+//  for (int i = 0; i < JV_backup.rows(); ++i) {
+//    for (int j = 0; j < MemoryPool::getWorldSize(); ++j) {
+//      cudaSetDevice(j);
+//      const T *resPtr = JV_backup(i).getCUDAResPtr()[j];
+//      Wrapper::cublasGdot::call(cublasHandle[j], MemoryPool::getItemNum(j),
+//                                resPtr, 1, resPtr, 1,
+//                                &residualNormNewInFlight[j][i]);
+//    }
+//  }
+//  for (int i = 0; i < MemoryPool::getWorldSize(); ++i) {
+//    cudaStream_t stream;
+//    cudaSetDevice(i);
+//    cublasGetStream_v2(cublasHandle[i], &stream);
+//    cudaStreamSynchronize(stream);
+//    for (const auto residualNormNewLanded : residualNormNewInFlight[i]) {
+//      residualNormNew += residualNormNewLanded;
+//    }
+//  }
+//
+//  std::cout << "start with error: " << residualNormNew / 2
+//            << ", log error: " << std::log10(residualNormNew / 2) << std::endl;
+//
+//  MemoryPool::redistribute();
+//  bool stop{false};
+//  T u = option.algoOptionLM.initialRegion;
+//  T v = 2;
+//  T rho = 0;
+//
+//  std::vector<std::array<T *, 2>> extractedDiag;
+//  extractedDiag.resize(MemoryPool::getWorldSize());
+//  for (int i = 0; i < MemoryPool::getWorldSize(); ++i) {
+//    cudaSetDevice(i);
+//    auto &container = edges.schurEquationContainer[i];
+//    cudaMalloc(&extractedDiag[i][0],
+//               container.nnz[2] / container.dim[0] * sizeof(T));
+//    cudaMalloc(&extractedDiag[i][1],
+//               container.nnz[3] / container.dim[1] * sizeof(T));
+//  }
+//  bool recoverDiagFlag{false};
+//  while (!stop && k < option.algoOptionLM.maxIter) {
+//    k++;
+//    if (option.useSchur) {
+//      if (recoverDiagFlag) {
+//        for (int i = 0; i < MemoryPool::getWorldSize(); ++i) {
+//          cudaSetDevice(i);
+//          auto &container = edges.schurEquationContainer[i];
+//          ASSERT_CUDA_NO_ERROR();
+//          RecoverDiag(extractedDiag[i][0], T(1.) / u,
+//                      container.nnz[2] / container.dim[0] / container.dim[0],
+//                      container.dim[0], container.csrVal[2]);
+//          ASSERT_CUDA_NO_ERROR();
+//          RecoverDiag(extractedDiag[i][1], T(1.) / u,
+//                      container.nnz[3] / container.dim[1] / container.dim[1],
+//                      container.dim[1], container.csrVal[3]);
+//          ASSERT_CUDA_NO_ERROR();
+//        }
+//        recoverDiagFlag = false;
+//      } else {
+//        for (int i = 0; i < MemoryPool::getWorldSize(); ++i) {
+//          cudaSetDevice(i);
+//          auto &container = edges.schurEquationContainer[i];
+//          extractOldAndApplyNewDiag(
+//              T(1.) / u, container.nnz[2] / container.dim[0] / container.dim[0],
+//              container.dim[0], container.csrVal[2], extractedDiag[i][0]);
+//          extractOldAndApplyNewDiag(
+//              T(1.) / u, container.nnz[3] / container.dim[1] / container.dim[1],
+//              container.dim[1], container.csrVal[3], extractedDiag[i][1]);
+//        }
+//      }
+//    } else {
+//      // TODO(Jie Ren): implement this
+//    }
+////    bool solverSuccess = solveLinear();
+//    solver->solve();
+//    MemoryPool::redistribute();
+//    ASSERT_CUDA_NO_ERROR();
+//
+//    T deltaXL2, xL2;
+//    if (option.useSchur) {
+//      cudaSetDevice(0);
+//      deltaXL2 = l2NormPow2(deltaXPtr[0], hessianShape);
+//      xL2 = l2NormPow2(xPtr[0], hessianShape);
+//    } else {
+//      // TODO(Jie Ren): implement this
+//    }
+//    ASSERT_CUDA_NO_ERROR();
+//
+//    deltaXL2 = std::sqrt(deltaXL2);
+//    xL2 = std::sqrt(xL2);
+//    if (deltaXL2 <= option.algoOptionLM.epsilon2 * (xL2 + option.algoOptionLM.epsilon1)) {
+//      break;
+//    } else {
+//      if (option.useSchur) {
+//        edges.updateSchur(deltaXPtr);
+//      } else {
+//        // TODO(Jie Ren): implement this
+//      }
+//
+//      T rhoDenominator{0};
+//      if (option.useSchur) {
+//        rhoDenominator = computeRhoDenominator(JV_backup, deltaXPtr, edges);
+//        rhoDenominator -= residualNormNew;
+//      } else {
+//        // TODO(Jie Ren): implement this
+//      }
+//      ASSERT_CUDA_NO_ERROR();
+//
+//      residualNorm = residualNormNew;
+//      residualNormNew = 0.;
+//      auto JV = edges.forward();
+//      for (int i = 0; i < JV.size(); ++i) {
+//        for (int j = 0; j < MemoryPool::getWorldSize(); ++j) {
+//          cudaSetDevice(j);
+//          const T *resPtr = JV(i).getCUDAResPtr()[j];
+//          Wrapper::cublasGdot::call(cublasHandle[j], MemoryPool::getItemNum(j),
+//                                    resPtr, 1, resPtr, 1,
+//                                    &residualNormNewInFlight[j][i]);
+//        }
+//      }
+//      for (int i = 0; i < MemoryPool::getWorldSize(); ++i) {
+//        cudaStream_t stream;
+//        cudaSetDevice(i);
+//        cublasGetStream_v2(cublasHandle[i], &stream);
+//        cudaStreamSynchronize(stream);
+//        for (const auto residualNormNewLanded : residualNormNewInFlight[i]) {
+//          residualNormNew += residualNormNewLanded;
+//        }
+//      }
+//      ASSERT_CUDA_NO_ERROR();
+//
+//      rho = -(residualNorm - residualNormNew) / rhoDenominator;
+//
+//      if (residualNorm > residualNormNew) {
+//        for (int i = 0; i < JV.size(); ++i)
+//          JV_backup(i) = JV(i);
+//        if (option.useSchur) {
+//          edges.buildLinearSystemSchur(JV, *linearSystemManager);
+//        } else {
+//          // TODO(Jie Ren): implement this
+//        }
+//        std::cout << k << "-th iter error: " << residualNormNew / 2
+//                  << ", log error: " << std::log10(residualNormNew / 2)
+//                  << std::endl;
+//
+//        backupLM();
+//        residualNorm = residualNormNew;
+//        if (option.useSchur) {
+//          cudaSetDevice(0);
+//          auto &container = edges.schurEquationContainer[0];
+//          const auto norm = linfNorm(container.g, hessianShape);
+//          stop = norm <= option.algoOptionLM.epsilon1;
+//        } else {
+//          // TODO(Jie Ren): implement this
+//        }
+//        u /= std::max(1. / 3., 1 - std::pow(2 * rho - 1, 3));
+//        v = 2;
+//      } else {
+//        residualNormNew = residualNorm;
+//        rollbackLM();
+//        u /= v;
+//        v *= 2;
+//        recoverDiagFlag = true;
+//      }
+//    }
+//    if (stop)
+//      break;
+//  }
+//  writeBack();
+//  deallocateResource();
+//  for (int i = 0; i < MemoryPool::getWorldSize(); ++i) {
+//    cudaSetDevice(i);
+//    cudaFree(extractedDiag[i][0]);
+//    cudaFree(extractedDiag[i][1]);
+//  }
 }
 
 template <typename T> void BaseProblem<T>::backupLM() {

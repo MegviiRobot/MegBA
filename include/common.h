@@ -18,17 +18,23 @@ enum AlgoKind { LM };
 
 enum SolverKind { PCG };
 
-struct SolverOptionPCG {
-  int maxIter{-1};
-  double tol{1e-2};
-  double refuseRatio{1e0};
+struct SolverOption{
+  struct SolverOptionPCG {
+    int maxIter{100};
+    double tol{1e-1};
+    double refuseRatio{1e0};
+  } solverOptionPCG;
 };
 
-struct AlgoOptionLM {
-  int maxIter{-1};
-  double initialRegion{1e4};
-  double epsilon1{0};
-  double epsilon2{1e-8};
+struct AlgoOption {
+  const Device &device;
+  struct AlgoOptionLM {
+    int maxIter{20};
+    double initialRegion{1e3};
+    double epsilon1{1};
+    double epsilon2{1e-10};
+  } algoOptionLM;
+  explicit AlgoOption(const Device &device) : device(device) {}
 };
 
 struct ProblemOption {
@@ -39,8 +45,8 @@ struct ProblemOption {
   int64_t nItem{-1};
   AlgoKind algoKind{LM};
   SolverKind solverKind{PCG};
-  AlgoOptionLM algoOptionLM{};
-  SolverOptionPCG solverOptionPCG{};
+  AlgoOption algoOption{device};
+  SolverOption solverOption{};
 };
 
 template <typename T>
@@ -57,6 +63,9 @@ class BaseEdge;
 
 template <typename T>
 class EdgeVector;
+
+template <typename T>
+class BaseAlgo;
 
 template <typename T>
 class BaseSolver;

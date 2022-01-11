@@ -12,17 +12,18 @@
 namespace MegBA {
 template <typename T>
 struct BaseLinearSystemManager {
-  std::vector<T *> deltaXPtr{};
+  explicit BaseLinearSystemManager(const ProblemOption &option)
+      : solverOption{option.solverOption},
+        deltaXPtr{option.deviceUsed.size()} {}
 
-  void buildLinearSystem(const JVD<T> &jetEstimation, const JVD<T> &jetInformation) {
-      buildLinearSystemCUDA(jetEstimation, jetInformation);
-  };
+  const SolverOption &solverOption;
+  std::vector<T *> deltaXPtr;
 
-  virtual void preSolve(const AlgoStatus &algoStatus) {}
+  virtual std::size_t getHessianShape() const = 0;
 
-  virtual void buildLinearSystemCUDA(const JVD<T> &jetEstimation, const JVD<T> &jetInformation) = 0;
+  virtual void solve() const = 0;
 
-  virtual void postSolve(const AlgoStatus &algoStatus) {}
+  virtual void buildIndex(const BaseProblem<T> &problem) = 0;
 
   virtual void applyUpdate(T *xPtr) const = 0;
 };

@@ -8,6 +8,7 @@
 #include "edge/base_edge.h"
 #include <omp.h>
 #include <utility>
+#include "linear_system_manager/schurLM_linear_system_manager.h"
 
 namespace MegBA {
 template <typename T> void BaseEdge<T>::appendVertex(BaseVertex<T> *vertex) {
@@ -200,48 +201,43 @@ template <typename T> unsigned int EdgeVector<T>::getGradShape() const {
 template <typename T> void EdgeVector<T>::allocateResourcePre() {
   decideEdgeKind();
   // TODO(Jie Ren): num is a global variable
-  num.reset(new int[cameraVertexNum + pointVertexNum]);
-
-  if (option.useSchur) {
-    schurAbsolutePosition.resize(2);
-    for (auto &vs : schurAbsolutePosition) {
-      vs.resize(MemoryPool::getWorldSize());
-      for (int i = 0; i < MemoryPool::getWorldSize(); ++i) {
-        vs[i].resize(MemoryPool::getItemNum(i));
-      }
-    }
-
-    schurRelativePosition.resize(2);
-    for (auto &vs : schurRelativePosition) {
-      vs.resize(MemoryPool::getWorldSize());
-      for (int i = 0; i < MemoryPool::getWorldSize(); ++i) {
-        vs[i].resize(MemoryPool::getItemNum(i));
-      }
-    }
-  } else {
-    // TODO(Jie Ren): implement this
-  }
+//  num.reset(new int[cameraVertexNum + pointVertexNum]);
+//
+//  if (option.useSchur) {
+//    schurAbsolutePosition.resize(2);
+//    for (auto &vs : schurAbsolutePosition) {
+//      vs.resize(MemoryPool::getWorldSize());
+//      for (int i = 0; i < MemoryPool::getWorldSize(); ++i) {
+//        vs[i].resize(MemoryPool::getItemNum(i));
+//      }
+//    }
+//
+//    schurRelativePosition.resize(2);
+//    for (auto &vs : schurRelativePosition) {
+//      vs.resize(MemoryPool::getWorldSize());
+//      for (int i = 0; i < MemoryPool::getWorldSize(); ++i) {
+//        vs[i].resize(MemoryPool::getItemNum(i));
+//      }
+//    }
+//  } else {
+//    // TODO(Jie Ren): implement this
+//  }
   switch (option.device) {
-  case Device::CUDA: {
+  case Device::CUDA:
     PrepareUpdateDataCUDA();
     break;
-  }
-  default: {
+  default:
     throw std::runtime_error("Not implemented.");
-  }
   }
 }
 
 template <typename T> void EdgeVector<T>::allocateResourcePost() {
   switch (option.device) {
-  case Device::CUDA: {
+  case Device::CUDA:
     preparePositionAndRelationDataCUDA();
     break;
-  }
-  default: {
+  default:
     throw std::runtime_error("Not implemented");
-    break;
-  }
   }
 }
 
@@ -251,14 +247,11 @@ template <typename T> void EdgeVector<T>::deallocateResource() {
       ptr.reset();
 
   switch (option.device) {
-  case Device::CUDA: {
+  case Device::CUDA:
     deallocateResourceCUDA();
     break;
-  }
-  default: {
+  default:
     throw std::runtime_error("Not implemented");
-    break;
-  }
   }
 }
 
@@ -271,57 +264,57 @@ template <typename T> void EdgeVector<T>::makeVertices() {
 }
 
 template <typename T> void EdgeVector<T>::makeSchurVertices() {
-  for (int vertex_kind_idx = 0; vertex_kind_idx < 2; ++vertex_kind_idx) {
-    const auto &vertex_vector = edges[vertex_kind_idx];
-
-    // TODO(Jie Ren): global setting
-    const auto &vertices_set =
-        verticesSetPtr->find(vertex_vector[0]->kind())->second;
-
-    auto &relative_position_inner = schurRelativePosition[vertex_kind_idx];
-    auto &absolute_position_inner = schurAbsolutePosition[vertex_kind_idx];
-
-    const auto &vertex_vector_other = edges[1 ^ vertex_kind_idx];
-    const auto other_kind = vertex_vector_other[0]->kind();
-
-    // iterate element, fill data in Jet_estimation_ and prepare data for
-    // make_H_and_g_without_Info_two_Vertices
-
-    std::size_t total_vertex_idx{0};
-    for (int i = 0; i < option.deviceUsed.size(); ++i) {
-      const auto &schur_H_entrance_other = schurHessianEntrance[i].ra[other_kind];
-      omp_set_num_threads(16);
-#pragma omp parallel for
-      for (int j = 0; j < schurHessianEntrance[i].counter; ++j) {
-        const auto &row =
-            schur_H_entrance_other[vertex_vector_other[total_vertex_idx + j]
-                                       ->absolutePosition];
-        relative_position_inner[i][j] = std::distance(
-            row.begin(), std::lower_bound(row.begin(), row.end(),
-                                          vertex_vector[total_vertex_idx + j]));
-        absolute_position_inner[i][j] =
-            vertex_vector[total_vertex_idx + j]->absolutePosition;
-      }
-      total_vertex_idx += schurHessianEntrance[i].counter;
-
-      schurCsrRowPtr[i][vertex_kind_idx] = std::move(
-          const_cast<std::vector<SchurHessianEntrance<T>> &>(schurHessianEntrance)[i]
-              .csrRowPtr[vertex_kind_idx]);
-      // fill csrRowPtr_. next row's csrRowPtr_ = this row's csrRowPtr_ + this
-      // row's non-zero element number.
-      const unsigned int rows = vertex_vector[0]->getEstimation().rows();
-      const unsigned int cols = vertex_vector[0]->getEstimation().cols();
-      num[vertex_kind_idx] = vertices_set.size();
-
-      schurEquationContainer[i].nnz[vertex_kind_idx] = schurHessianEntrance[i].nnzInE;
-      schurEquationContainer[i].nnz[vertex_kind_idx + 2] =
-          num[vertex_kind_idx] * rows * cols * rows * cols;
-      schurEquationContainer[i].dim[vertex_kind_idx] = rows * cols;
-    }
-  }
+//  for (int vertex_kind_idx = 0; vertex_kind_idx < 2; ++vertex_kind_idx) {
+//    const auto &vertex_vector = edges[vertex_kind_idx];
+//
+//    // TODO(Jie Ren): global setting
+//    const auto &vertices_set =
+//        verticesSetPtr->find(vertex_vector[0]->kind())->second;
+//
+//    auto &relative_position_inner = schurRelativePosition[vertex_kind_idx];
+//    auto &absolute_position_inner = schurAbsolutePosition[vertex_kind_idx];
+//
+//    const auto &vertex_vector_other = edges[1 ^ vertex_kind_idx];
+//    const auto other_kind = vertex_vector_other[0]->kind();
+//
+//    // iterate element, fill data in Jet_estimation_ and prepare data for
+//    // make_H_and_g_without_Info_two_Vertices
+//
+//    std::size_t total_vertex_idx{0};
+//    for (int i = 0; i < option.deviceUsed.size(); ++i) {
+//      const auto &schur_H_entrance_other = schurHessianEntrance[i].ra[other_kind];
+//      omp_set_num_threads(16);
+//#pragma omp parallel for
+//      for (int j = 0; j < schurHessianEntrance[i].counter; ++j) {
+//        const auto &row =
+//            schur_H_entrance_other[vertex_vector_other[total_vertex_idx + j]
+//                                       ->absolutePosition];
+//        relative_position_inner[i][j] = std::distance(
+//            row.begin(), std::lower_bound(row.begin(), row.end(),
+//                                          vertex_vector[total_vertex_idx + j]));
+//        absolute_position_inner[i][j] =
+//            vertex_vector[total_vertex_idx + j]->absolutePosition;
+//      }
+//      total_vertex_idx += schurHessianEntrance[i].counter;
+//
+//      schurCsrRowPtr[i][vertex_kind_idx] = std::move(
+//          const_cast<std::vector<SchurHessianEntrance<T>> &>(schurHessianEntrance)[i]
+//              .csrRowPtr[vertex_kind_idx]);
+//      // fill csrRowPtr_. next row's csrRowPtr_ = this row's csrRowPtr_ + this
+//      // row's non-zero element number.
+//      const unsigned int rows = vertex_vector[0]->getEstimation().rows();
+//      const unsigned int cols = vertex_vector[0]->getEstimation().cols();
+//      num[vertex_kind_idx] = vertices_set.size();
+//
+//      schurEquationContainer[i].nnz[vertex_kind_idx] = schurHessianEntrance[i].nnzInE;
+//      schurEquationContainer[i].nnz[vertex_kind_idx + 2] =
+//          num[vertex_kind_idx] * rows * cols * rows * cols;
+//      schurEquationContainer[i].dim[vertex_kind_idx] = rows * cols;
+//    }
+//  }
 }
 
-template <typename T> JVD<T> EdgeVector<T>::forward() {
+template <typename T> JVD<T> EdgeVector<T>::forward() const {
   edgesPtr[0]->_edge.bindEdgeVector(this);
   return edgesPtr[0]->forward();
 }
@@ -330,26 +323,26 @@ template <typename T> void EdgeVector<T>::fitDevice() {
   if (option.device == Device::CUDA)
     bindCUDAGradPtrs();
 
-  for (int vertex_kind_idx = 0; vertex_kind_idx < edges.size();
-       ++vertex_kind_idx) {
-    const auto &vertex_vector = edges[vertex_kind_idx];
+  for (int vertexKindIdx = 0; vertexKindIdx < edges.size();
+       ++vertexKindIdx) {
+    const auto &vertexVector = edges[vertexKindIdx];
     // set _device
-    auto &Jet_estimation = edges[vertex_kind_idx].getJVEstimation();
-    auto &Jet_observation = edges[vertex_kind_idx].getJVObservation();
+    auto &jetEstimation = edges[vertexKindIdx].getJVEstimation();
+    auto &jvObservation = edges[vertexKindIdx].getJVObservation();
 
-    auto rows = vertex_vector[0]->getEstimation().rows();
-    auto cols = vertex_vector[0]->getEstimation().cols();
+    auto rows = vertexVector[0]->getEstimation().rows();
+    auto cols = vertexVector[0]->getEstimation().cols();
     for (int i = 0; i < rows; ++i) {
       for (int j = 0; j < cols; ++j) {
-        Jet_estimation(i, j).to(option.device);
+        jetEstimation(i, j).to(option.device);
       }
     }
 
-    rows = Jet_observation.rows();
-    cols = Jet_observation.cols();
+    rows = jvObservation.rows();
+    cols = jvObservation.cols();
     for (int i = 0; i < rows; ++i) {
       for (int j = 0; j < cols; ++j) {
-        Jet_observation(i, j).to(option.device);
+        jvObservation(i, j).to(option.device);
       }
     }
   }
@@ -369,10 +362,10 @@ template <typename T> void EdgeVector<T>::fitDevice() {
 }
 
 template <typename T>
-void EdgeVector<T>::buildLinearSystemSchur(const JVD<T> &jetEstimation) {
+void EdgeVector<T>::buildLinearSystemSchur(const JVD<T> &jetEstimation, const BaseLinearSystemManager<T> &linearSystemManager) const {
   switch (option.device) {
   case Device::CUDA: {
-    buildLinearSystemSchurCUDA(jetEstimation);
+    buildLinearSystemSchurCUDA(jetEstimation, linearSystemManager);
     break;
   }
   default:

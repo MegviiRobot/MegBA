@@ -6,6 +6,7 @@
 **/
 
 #include "edge/base_edge.h"
+#include "linear_system_manager/schurLM_linear_system_manager.h"
 
 namespace MegBA {
 namespace {
@@ -41,16 +42,15 @@ updateDeltaXTwoVertices(const T *deltaX, const int *absolutePositionCamera,
 }  // namespace
 
     template <typename T>
-void EdgeVector<T>::updateSchur(const std::vector<T *> &deltaXPtr) {
+void EdgeVector<T>::updateSchur(const SchurLMLinearSystemManager<T> &linearSystemManager) const {
   for (int i = 0; i < MemoryPool::getWorldSize(); ++i) {
     cudaSetDevice(i);
     cudaStreamSynchronize(schurStreamLmMemcpy[i]);
   }
 
-  const auto cameraDim = edges[0][0]->getGradShape();
-  const auto cameraNum =
-      verticesSetPtr->find(edges[0][0]->kind())->second.size();
-  const auto pointDim = edges[1][0]->getGradShape();
+  const auto cameraDim = linearSystemManager.dim[0];
+  const auto cameraNum = linearSystemManager.num[0];
+  const auto pointDim = linearSystemManager.dim[1];
 
   // TODO(Jie Ren): merge into method 'solve_Linear'
   for (int i = 0; i < MemoryPool::getWorldSize(); ++i) {
@@ -59,9 +59,9 @@ void EdgeVector<T>::updateSchur(const std::vector<T *> &deltaXPtr) {
     dim3 block(std::min((decltype(nItem))256, nItem));
     dim3 grid((nItem - 1) / block.x + 1);
     updateDeltaXTwoVertices<T><<<grid, block>>>(
-        deltaXPtr[i],
-        schurPositionAndRelationContainer[i].absolutePositionCamera,
-        schurPositionAndRelationContainer[i].absolutePositionPoint, cameraDim,
+        linearSystemManager.deltaXPtr[i],
+        linearSystemManager.positionContainers[i].absolutePositionCamera,
+        linearSystemManager.positionContainers[i].absolutePositionPoint, cameraDim,
         pointDim, cameraNum, nItem, schurValueDevicePtrs[0][i], schurValueDevicePtrs[1][i]);
   }
 }

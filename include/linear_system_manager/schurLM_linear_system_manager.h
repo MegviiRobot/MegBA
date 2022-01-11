@@ -7,10 +7,13 @@
 
 #pragma once
 #include "base_linear_system_manager.h"
+#include "problem/hessian_entrance.h"
 
 namespace MegBA {
 template <typename T>
 struct SchurLMLinearSystemManager : public BaseLinearSystemManager<T> {
+  explicit SchurLMLinearSystemManager(const ProblemOption &option);
+
   struct EquationContainer {
     std::array<int *, 2> csrRowPtr{nullptr, nullptr};
     std::array<T *, 4> csrVal{nullptr, nullptr, nullptr, nullptr};
@@ -19,34 +22,43 @@ struct SchurLMLinearSystemManager : public BaseLinearSystemManager<T> {
     std::array<std::size_t, 4> nnz{0, 0, 0, 0};
   };
 
-  struct PositionAndRelationContainer {
+  struct PositionContainer {
     int *relativePositionCamera{nullptr}, *relativePositionPoint{nullptr};
     int *absolutePositionCamera{nullptr}, *absolutePositionPoint{nullptr};
   };
 
-  std::vector<T *> deltaXPtrBackup{};
+  std::vector<T *> deltaXPtrBackup;
 
   std::vector<EquationContainer> equationContainers;
 
-  std::vector<PositionAndRelationContainer> positionAndRelationContainers;
+  std::vector<PositionContainer> positionContainers;
 
   std::array<int, 2> num{};
   std::array<int, 2> dim{};
 
   std::vector<std::array<T *, 2>> extractedDiag;
 
-  std::size_t getHessianShape() const { return dim[0] * num[0] + dim[1] * num[1]; }
+  std::size_t getHessianShape() const override {
+    return dim[0] * num[0] + dim[1] * num[1];
+  }
 
-  void preSolve(const AlgoStatus &algoStatus) override;
+  void allocateResourceCUDA();
 
-  void buildLinearSystemCUDA(const JVD<T> &jetEstimation, const JVD<T> &jetInformation) override;
+  void buildPositionContainer(
+      const std::vector<SchurHessianEntrance<T>> &schurHessianEntrance,
+      const VertexVector<T> &vertexVectorCamera,
+      const VertexVector<T> &vertexVectorPoint);
 
-  void backup();
+  void processDiag(const AlgoStatus::AlgoStatusLM &lmAlgoStatus) const;
 
-  void rollback();
+  void backup() const;
+
+  void rollback() const;
+
+  void buildIndex(const BaseProblem<T> &problem) override;
+
+  void solve() const override;
 
   void applyUpdate(T *xPtr) const override;
-
-  double computeRhoDenominator(JVD<T> &JV, std::vector<T *> &schurDeltaXPtr);
 };
 }

@@ -6,244 +6,755 @@
 **/
 
 #include "linear_system_manager/schurLM_linear_system_manager.h"
-#include <thrust/device_ptr.h>
-#include <thrust/async/reduce.h>
 #include "wrapper.hpp"
-
-#if __CUDA_ARCH__ < 600 && defined(__CUDA_ARCH__)
-union AtomicUnion{
-  double dValue;
-  unsigned long long ullValue;
-};
-
-__inline__ __device__ double atomicAdd(double* address, double val) {
-  AtomicUnion old, assumed;
-  old.dValue = *address;
-
-  do {
-    assumed = old;
-    old.ullValue = atomicCAS(reinterpret_cast<unsigned long long *>(address),
-                             assumed.ullValue,
-                             AtomicUnion{val + assumed.dValue}.ullValue);
-
-    // Note: uses integer comparison to
-    // avoid hang in case of NaN (since NaN != NaN)
-  } while (assumed.ullValue != old.ullValue);
-
-  return old.dValue;
-}
-#endif
 
 namespace MegBA {
 namespace {
-template <typename T>
-__device__ void makeHpp(const T *valSmem, const T valI, const int cameraDim,
-                        const int hppCsrRowI, T *hppCsrVal) {
-  for (int i = 0; i < cameraDim; ++i)
-    atomicAdd(&hppCsrVal[hppCsrRowI + i],
-              valI * valSmem[i * blockDim.x + threadIdx.x]);
-}
+void CUDART_CB freeCallback(void *ptr) { free(ptr); }
 
 template <typename T>
-__device__ void makeHpl(const T *valSmem, const T valI,
-                        const int relativePositionPoint, const int pointDim,
-                        const int cameraDim, int hplCsrRow, T *hplCsrVal) {
-  const int hplCsrRowI = hplCsrRow + relativePositionPoint * pointDim;
-
-  for (int i = 0; i < pointDim; ++i) {
-    hplCsrVal[hplCsrRowI + i] +=
-        valI * valSmem[(i + cameraDim) * blockDim.x + threadIdx.x];
+__global__ void broadCastCsrColInd(const int *input, const int other_dim,
+                                   const int nItem, int *output) {
+  unsigned int tid = threadIdx.x + blockIdx.x * blockDim.x;
+  if (tid >= nItem) return;
+  for (int i = 0; i < other_dim; ++i) {
+    output[i + tid * other_dim] = i + input[tid] * other_dim;
   }
 }
 
 template <typename T>
-__device__ void makeHlp(const T *valSmem, const T valI,
-                        const int relativePositionCamera, const int cameraDim,
-                        int hlpCsrRow, T *hlpCsrVal) {
-  const int hlpCsrRow_i = hlpCsrRow + relativePositionCamera * cameraDim;
+__global__ void weightedPlusKernel(int nItem, const T *x, const T *y, T weight,
+                                   T *z) {
+  unsigned int tid = threadIdx.x + blockIdx.x * blockDim.x;
+  if (tid >= nItem) return;
+  z[tid] = x[tid] + weight * y[tid];
+}
 
-  for (int i = 0; i < cameraDim; ++i) {
-    hlpCsrVal[hlpCsrRow_i + i] += valI * valSmem[i * blockDim.x + threadIdx.x];
+template <typename T>
+__global__ void fillPtr(const T *aData, T *ainvData, const int batchSize,
+                        const int hRowsNumPow2, const T **a, T **ainv) {
+  unsigned int tid = threadIdx.x + blockIdx.x * blockDim.x;
+  if (tid >= batchSize) return;
+  a[tid] = &aData[tid * hRowsNumPow2];
+  ainv[tid] = &ainvData[tid * hRowsNumPow2];
+}
+
+template <typename T>
+void invert(const T *aFlat, int n, const int pointNum, T *cFlat) {
+  cublasHandle_t handle = HandleManager::getCUBLASHandle()[0];
+
+  const T **a;
+  T **ainv;
+  cudaMalloc(&a, pointNum * sizeof(T *));
+  cudaMalloc(&ainv, pointNum * sizeof(T *));
+  dim3 blockDim(std::min(decltype(pointNum)(256), pointNum));
+  dim3 gridDim((pointNum - 1) / blockDim.x + 1);
+
+  fillPtr<<<gridDim, blockDim>>>(aFlat, cFlat, pointNum, n * n, a, ainv);
+
+  int *info;
+  cudaMalloc(&info, pointNum * sizeof(int));
+  Wrapper::cublasGmatinvBatched::call(handle, n, a, n, ainv, n, info, pointNum);
+
+  cudaDeviceSynchronize();
+
+  cudaFree(a);
+  cudaFree(ainv);
+  cudaFree(info);
+}
+
+template <typename T>
+void invertDistributed(const std::vector<T *> aFlat, int n, const int pointNum,
+                       std::vector<T *> cFlat) {
+  const auto &handle = HandleManager::getCUBLASHandle();
+  const auto worldSize = MemoryPool::getWorldSize();
+
+  std::vector<const T **> a{static_cast<std::size_t>(worldSize)};
+  std::vector<T **> ainv{static_cast<std::size_t>(worldSize)};
+  std::vector<int *> info{static_cast<std::size_t>(worldSize)};
+  dim3 blockDim(std::min(decltype(pointNum)(256), pointNum));
+  dim3 gridDim((pointNum - 1) / blockDim.x + 1);
+
+  for (int i = 0; i < worldSize; ++i) {
+    MemoryPool::allocateNormal(reinterpret_cast<void **>(&a[i]),
+                               pointNum * sizeof(T *), i);
+    MemoryPool::allocateNormal(reinterpret_cast<void **>(&ainv[i]),
+                               pointNum * sizeof(T *), i);
+    MemoryPool::allocateNormal(reinterpret_cast<void **>(&info[i]),
+                               pointNum * sizeof(int), i);
+  }
+
+  for (int i = 0; i < worldSize; ++i) {
+    cudaSetDevice(i);
+    fillPtr<<<gridDim, blockDim>>>(aFlat[i], cFlat[i], pointNum, n * n, a[i],
+                                   ainv[i]);
+
+    Wrapper::cublasGmatinvBatched::call(handle[i], n, a[i], n, ainv[i], n,
+                                        info[i], pointNum);
+  }
+
+  for (int i = 0; i < worldSize; ++i) {
+    cudaSetDevice(i);
+    cudaDeviceSynchronize();
+    MemoryPool::deallocateNormal(info[i], i);
+    MemoryPool::deallocateNormal(ainv[i], i);
+    MemoryPool::deallocateNormal(a[i], i);
   }
 }
 
-template <typename T>
-__device__ void makeHll(const T *valSmem, const T valI, const int pointDim,
-                        const int cameraDim, const int hllPosition,
-                        T *hllMatrix) {
-  for (int i = 0; i < pointDim; ++i)
-    atomicAdd(&hllMatrix[hllPosition + i],
-              valI * valSmem[(i + cameraDim) * blockDim.x + threadIdx.x]);
-}
-
-template <typename T>
-__global__ void makeHSchur(
-    const T *const *const valPtrs, const T *const *const errorPtrs,
-    const int *absolutePositionCamera, const int *absolutePositionPoint,
-    const int *relativePositionCamera, const int *relativePositionPoint,
-    const int *hplCsrRowPtr, const int *hlpCsrRowPtr, const int resDim,
-    const int cameraDim, const int pointDim, const int errorNum, T *gCamera,
-    T *gPoint, T *hppCsrVal, T *hllCsrVal, T *hplCsrVal, T *hlpCsrVal) {
+template <typename T, int result_weight = 1, int dest_weight = 0>
+__global__ void oursGgemvBatched(const T *csrVal, const T *r, int batchSize,
+                                 T *dx) {
   /*
-                 * make sure that blockDim.x % 32 == 0, if so, there won't be any thread divergence within a wrap.
+blockDim, x-dim: camera or point dim, y-dim: process how many cameras/points in
+this block
    */
-  const unsigned int tid = threadIdx.x + blockDim.x * blockIdx.x;
-  if (tid >= errorNum) return;
+  unsigned int tid = threadIdx.y + blockIdx.x * blockDim.y;
+  if (tid >= batchSize) return;
 
-  T *valSmem = Wrapper::Shared_Memory<T>::get();
+  T *smem = Wrapper::Shared_Memory<T>::get();
+  T sum = 0;
+  smem[threadIdx.x + threadIdx.y * blockDim.x] =
+      r[threadIdx.x + tid * blockDim.x];
+  __syncthreads();
+  for (unsigned int i = 0; i < blockDim.x; ++i) {
+    sum +=
+        csrVal[i + threadIdx.x * blockDim.x + tid * blockDim.x * blockDim.x] *
+        smem[i + threadIdx.y * blockDim.x];
+  }
+  dx[threadIdx.x + tid * blockDim.x] =
+      result_weight * sum + dest_weight * dx[threadIdx.x + tid * blockDim.x];
+}
 
-  const int absolutePositionPointLocal = absolutePositionPoint[tid];
-  const int absolutePositionCameraLocal = absolutePositionCamera[tid];
-  const int relativePositionPointLocal = relativePositionPoint[tid];
-  const int relativePositionCameraLocal = relativePositionCamera[tid];
+template <typename T>
+bool schurPCGSolverDistributedCUDA(
+    const std::vector<T *> &SpMVbuffer, SolverOption::SolverOptionPCG option,
+    const int cameraNum, const int pointNum, const int cameraDim,
+    const int pointDim, const std::vector<int> &hplNnz, const int hppRows,
+    const int hllRows, const std::vector<T *> &hppCsrVal,
+    const std::vector<T *> &hplCsrVal, const std::vector<int *> &hplCsrColInd,
+    const std::vector<int *> &hplCsrRowPtr, const std::vector<T *> &hlpCsrVal,
+    const std::vector<int *> &hlpCsrColInd,
+    const std::vector<int *> &hlpCsrRowPtr,
+    const std::vector<T *> &hllInvCsrVal, const std::vector<T *> &g,
+    const std::vector<T *> &d_x) {
+  const auto &comms = HandleManager::getNCCLComm();
+  const auto worldSize = MemoryPool::getWorldSize();
+  constexpr auto cudaDataType = Wrapper::declared_cudaDatatype<T>::cuda_dtype;
+  const auto &cusparseHandle = HandleManager::getCUSPARSEHandle();
+  const auto &cublasHandle = HandleManager::getCUBLASHandle();
+  std::vector<cudaStream_t> cusparseStream, cublasStream;
+  const T one{1.0}, zero{0.0}, neg_one{-1.0};
+  T alphaN, alphaNegN, rhoNm1;
+  std::vector<T> dot;
+  std::vector<T *> hppInvCsrVal, pN, rN, axN, temp, deltaXBackup;
+  std::vector<cusparseSpMatDescr_t> hpl, hlp;
+  std::vector<cusparseDnVecDescr_t> vecx, vecp, vecAx, vectemp;
+  cusparseStream.resize(worldSize);
+  cublasStream.resize(worldSize);
+  dot.resize(worldSize);
+  hppInvCsrVal.resize(worldSize);
+  pN.resize(worldSize);
+  rN.resize(worldSize);
+  axN.resize(worldSize);
+  temp.resize(worldSize);
+  deltaXBackup.resize(worldSize);
+  hpl.resize(worldSize);
+  hlp.resize(worldSize);
+  vecx.resize(worldSize);
+  vecp.resize(worldSize);
+  vecAx.resize(worldSize);
+  vectemp.resize(worldSize);
+  for (int i = 0; i < worldSize; ++i) {
+    cudaSetDevice(i);
+    cusparseGetStream(cusparseHandle[i], &cusparseStream[i]);
+    cublasGetStream_v2(cublasHandle[i], &cublasStream[i]);
+    MemoryPool::allocateNormal(reinterpret_cast<void **>(&hppInvCsrVal[i]),
+                               hppRows * cameraDim * sizeof(T), i);
+    MemoryPool::allocateNormal(reinterpret_cast<void **>(&pN[i]),
+                               hppRows * sizeof(T), i);
+    MemoryPool::allocateNormal(reinterpret_cast<void **>(&rN[i]),
+                               hppRows * sizeof(T), i);
+    MemoryPool::allocateNormal(reinterpret_cast<void **>(&axN[i]),
+                               hppRows * sizeof(T), i);
+    MemoryPool::allocateNormal(reinterpret_cast<void **>(&temp[i]),
+                               hllRows * sizeof(T), i);
 
-  T gSum{0.};
-  for (int i = 0; i < resDim; ++i) {
-    const T valI = valPtrs[i][errorNum * threadIdx.y + tid];
-    __syncthreads();
-    valSmem[threadIdx.y * blockDim.x + threadIdx.x] = valI;
-    __syncthreads();
+    MemoryPool::allocateNormal(reinterpret_cast<void **>(&deltaXBackup[i]),
+                               hllRows * sizeof(T), i);
 
-    if (threadIdx.y < cameraDim) {
-      makeHpp(
-          valSmem, valI, cameraDim,
-          (absolutePositionCameraLocal * cameraDim + threadIdx.y) * cameraDim,
-          hppCsrVal);
-      makeHpl(
-          valSmem, valI, relativePositionPointLocal, pointDim, cameraDim,
-          hplCsrRowPtr[absolutePositionCameraLocal * cameraDim + threadIdx.y],
-          hplCsrVal);
-    } else {
-      makeHll(valSmem, valI, pointDim, cameraDim,
-              absolutePositionPointLocal * (pointDim * pointDim) +
-                  (threadIdx.y - cameraDim) * pointDim /* hllPosition */,
-              hllCsrVal);
-      makeHlp(valSmem, valI, relativePositionCameraLocal, cameraDim,
-              hlpCsrRowPtr[absolutePositionPointLocal * pointDim + threadIdx.y -
-                           cameraDim],
-              hlpCsrVal);
+    cudaMemcpyAsync(rN[i], g[i], hppRows * sizeof(T), cudaMemcpyDeviceToDevice);
+
+    /* Wrap raw data into cuSPARSE generic API objects */
+    cusparseCreateCsr(&hpl[i], hppRows, hllRows, hplNnz[i], hplCsrRowPtr[i],
+                      hplCsrColInd[i], hplCsrVal[i], CUSPARSE_INDEX_32I,
+                      CUSPARSE_INDEX_32I, CUSPARSE_INDEX_BASE_ZERO,
+                      cudaDataType);
+    cusparseCreateCsr(&hlp[i], hllRows, hppRows, hplNnz[i], hlpCsrRowPtr[i],
+                      hlpCsrColInd[i], hlpCsrVal[i], CUSPARSE_INDEX_32I,
+                      CUSPARSE_INDEX_32I, CUSPARSE_INDEX_BASE_ZERO,
+                      cudaDataType);
+    cusparseCreateDnVec(&vecx[i], hppRows, d_x[i], cudaDataType);
+    cusparseCreateDnVec(&vecp[i], hppRows, pN[i], cudaDataType);
+    cusparseCreateDnVec(&vecAx[i], hppRows, axN[i], cudaDataType);
+    cusparseCreateDnVec(&vectemp[i], hllRows, temp[i], cudaDataType);
+  }
+
+  invertDistributed(hppCsrVal, cameraDim, cameraNum, hppInvCsrVal);
+
+  /* Allocate workspace for cuSPARSE */
+  for (int i = 0; i < worldSize; ++i) {
+    cudaSetDevice(i);
+    /* Begin CG */
+    // x1 = ET*x
+    cusparseSpMV(cusparseHandle[i], CUSPARSE_OPERATION_NON_TRANSPOSE, &one,
+                 hlp[i], vecx[i], &zero, vectemp[i], cudaDataType,
+                 CUSPARSE_SPMV_ALG_DEFAULT, SpMVbuffer[i]);
+  }
+
+  ncclGroupStart();
+  for (int i = 0; i < worldSize; ++i) {
+    ncclAllReduce(temp[i], temp[i], hllRows,
+                  Wrapper::declared_cudaDatatype<T>::nccl_dtype, ncclSum,
+                  comms[i], cusparseStream[i]);
+  }
+  ncclGroupEnd();
+
+  for (int i = 0; i < worldSize; ++i) {
+    dim3 block(pointDim, std::min(32, pointNum));
+    dim3 grid((pointNum - 1) / block.y + 1);
+    cudaSetDevice(i);
+    // borrow pN as temp workspace
+    oursGgemvBatched<<<grid, block, block.x * block.y * sizeof(T),
+                       cusparseStream[i]>>>(hllInvCsrVal[i], temp[i], pointNum,
+                                            temp[i]);
+
+    cusparseSpMV(cusparseHandle[i], CUSPARSE_OPERATION_NON_TRANSPOSE, &one,
+                 hpl[i], vectemp[i], &zero, vecAx[i], cudaDataType,
+                 CUSPARSE_SPMV_ALG_DEFAULT, SpMVbuffer[i]);
+  }
+
+  ncclGroupStart();
+  for (int i = 0; i < worldSize; ++i) {
+    ncclAllReduce(axN[i], axN[i], hppRows,
+                  Wrapper::declared_cudaDatatype<T>::nccl_dtype, ncclSum,
+                  comms[i], cusparseStream[i]);
+  }
+  ncclGroupEnd();
+
+  for (int i = 0; i < worldSize; ++i) {
+    dim3 block(cameraDim, std::min(32, cameraNum));
+    dim3 grid((cameraNum - 1) / block.y + 1);
+    cudaSetDevice(i);
+    oursGgemvBatched<T, 1, -1>
+        <<<grid, block, block.x * block.y * sizeof(T), cusparseStream[i]>>>(
+            hppCsrVal[i], d_x[i], cameraNum, axN[i]);
+  }
+  for (int i = 0; i < worldSize; ++i) {
+    cudaSetDevice(i);
+    cudaStreamSynchronize(cusparseStream[i]);
+    // r = b - Ax
+    Wrapper::cublasGaxpy::call(cublasHandle[i], hppRows, &neg_one, axN[i], 1,
+                               rN[i], 1);
+  }
+  int n{0};
+  T rhoN{0};
+  T rhoMinimum = INFINITY;
+  std::vector<T> rho_n_item;
+  rho_n_item.resize(worldSize);
+  bool done{false};
+  do {
+    std::size_t offset{0};
+    rhoN = 0;
+    for (int i = 0; i < worldSize; ++i) {
+      dim3 block(cameraDim, std::min(32, cameraNum));
+      dim3 grid((cameraNum - 1) / block.y + 1);
+      cudaSetDevice(i);
+      // borrow axN
+      oursGgemvBatched<<<grid, block, block.x * block.y * sizeof(T),
+                         cublasStream[i]>>>(hppInvCsrVal[i], rN[i], cameraNum,
+                                            axN[i]);
+
+      // rhoN = rTr
+      const auto nItem = MemoryPool::getItemNum(i, hppRows);
+      Wrapper::cublasGdot::call(cublasHandle[i], nItem, &rN[i][offset], 1,
+                                &axN[i][offset], 1, &rho_n_item[i]);
+      offset += nItem;
     }
-    gSum += -valI * errorPtrs[i][tid];
+    for (int i = 0; i < worldSize; ++i) {
+      cudaSetDevice(i);
+      cudaStreamSynchronize(cublasStream[i]);
+      rhoN += rho_n_item[i];
+    }
+    if (rhoN > option.refuseRatio * rhoMinimum) {
+      for (int i = 0; i < worldSize; ++i) {
+        cudaSetDevice(i);
+        cudaMemcpyAsync(d_x[i], deltaXBackup[i], hppRows * sizeof(T),
+                        cudaMemcpyDeviceToDevice);
+      }
+      break;
+    }
+    rhoMinimum = std::min(rhoMinimum, rhoN);
+
+    if (n >= 1) {
+      T beta_n = rhoN / rhoNm1;
+      for (int i = 0; i < worldSize; ++i) {
+        dim3 block(std::min(256, hppRows));
+        dim3 grid((hppRows - 1) / block.x + 1);
+        cudaSetDevice(i);
+        weightedPlusKernel<T>
+            <<<grid, block>>>(hppRows, axN[i], pN[i], beta_n, pN[i]);
+      }
+    } else {
+      for (int i = 0; i < worldSize; ++i) {
+        cudaSetDevice(i);
+        Wrapper::cublasGcopy::call(cublasHandle[i], hppRows, axN[i], 1, pN[i],
+                                   1);
+      }
+    }
+
+    for (int i = 0; i < worldSize; ++i) {
+      // Ax = Ad ???? q = Ad
+      // x1 = ET*x
+      cudaSetDevice(i);
+      cudaStreamSynchronize(cublasStream[i]);
+      cusparseSpMV(cusparseHandle[i], CUSPARSE_OPERATION_NON_TRANSPOSE, &one,
+                   hlp[i], vecp[i], &zero, vectemp[i], cudaDataType,
+                   CUSPARSE_SPMV_ALG_DEFAULT, SpMVbuffer[i]);
+    }
+
+    ncclGroupStart();
+    for (int i = 0; i < worldSize; ++i) {
+      ncclAllReduce(temp[i], temp[i], hllRows,
+                    Wrapper::declared_cudaDatatype<T>::nccl_dtype, ncclSum,
+                    comms[i], cusparseStream[i]);
+    }
+    ncclGroupEnd();
+
+    for (int i = 0; i < worldSize; ++i) {
+      dim3 block(pointDim, std::min(32, pointNum));
+      dim3 grid((pointNum - 1) / block.y + 1);
+      cudaSetDevice(i);
+      // borrow pN as temp workspace
+      oursGgemvBatched<<<grid, block, block.x * block.y * sizeof(T),
+                         cusparseStream[i]>>>(hllInvCsrVal[i], temp[i],
+                                              pointNum, temp[i]);
+
+      cusparseSpMV(cusparseHandle[i], CUSPARSE_OPERATION_NON_TRANSPOSE, &one,
+                   hpl[i], vectemp[i], &zero, vecAx[i], cudaDataType,
+                   CUSPARSE_SPMV_ALG_DEFAULT, SpMVbuffer[i]);
+    }
+
+    ncclGroupStart();
+    for (int i = 0; i < worldSize; ++i) {
+      ncclAllReduce(axN[i], axN[i], hppRows,
+                    Wrapper::declared_cudaDatatype<T>::nccl_dtype, ncclSum,
+                    comms[i], cusparseStream[i]);
+    }
+    ncclGroupEnd();
+
+    for (int i = 0; i < worldSize; ++i) {
+      dim3 block(cameraDim, std::min(32, cameraNum));
+      dim3 grid((cameraNum - 1) / block.y + 1);
+      cudaSetDevice(i);
+      oursGgemvBatched<T, 1, -1>
+          <<<grid, block, block.x * block.y * sizeof(T), cusparseStream[i]>>>(
+              hppCsrVal[i], pN[i], cameraNum, axN[i]);
+    }
+
+    offset = 0;
+    for (int i = 0; i < worldSize; ++i) {
+      cudaSetDevice(i);
+      cudaStreamSynchronize(cusparseStream[i]);
+      // dot :dTq
+      const auto nItem = MemoryPool::getItemNum(i, hppRows);
+      Wrapper::cublasGdot::call(cublasHandle[i], nItem, &pN[i][offset], 1,
+                                &axN[i][offset], 1, &dot[i]);
+      offset += nItem;
+    }
+    // beta_n: one = rhoN / dTq
+    double dot_sum{0};
+    for (int i = 0; i < worldSize; ++i) {
+      cudaSetDevice(i);
+      cudaStreamSynchronize(cublasStream[i]);
+      dot_sum += dot[i];
+    }
+    alphaN = rhoN / dot_sum;
+    for (int i = 0; i < worldSize; ++i) {
+      cudaSetDevice(i);
+      // x=x+alphaN*pN
+      cudaMemcpyAsync(deltaXBackup[i], d_x[i], hppRows * sizeof(T),
+                      cudaMemcpyDeviceToDevice);
+      Wrapper::cublasGaxpy::call(cublasHandle[i], hppRows, &alphaN, pN[i], 1,
+                                 d_x[i], 1);
+    }
+
+    alphaNegN = -alphaN;
+
+    for (int i = 0; i < worldSize; ++i) {
+      cudaSetDevice(i);
+      // r = r - alphaN*Ax = r - alphaN*q
+      Wrapper::cublasGaxpy::call(cublasHandle[i], hppRows, &alphaNegN, axN[i],
+                                 1, rN[i], 1);
+    }
+    rhoNm1 = rhoN;
+    // printf("iteration = %3d, residual = %f\n", n, std::abs(rhoN));
+    ++n;
+    done = std::abs(rhoN) < option.tol;
+  } while (!done && n < option.maxIter);
+  // cudaSetDevice(0);
+  // PRINT_DMEMORY_SEGMENT(d_x[0], 0, 2, T);
+  for (int i = 0; i < worldSize; ++i) {
+    cudaSetDevice(i);
+    cusparseDestroySpMat(hpl[i]);
+    cusparseDestroySpMat(hlp[i]);
+    cusparseDestroyDnVec(vecx[i]);
+    cusparseDestroyDnVec(vecAx[i]);
+    cusparseDestroyDnVec(vecp[i]);
+    cusparseDestroyDnVec(vectemp[i]);
+
+    MemoryPool::deallocateNormal(deltaXBackup[i], i);
+    MemoryPool::deallocateNormal(temp[i], i);
+    MemoryPool::deallocateNormal(axN[i], i);
+    MemoryPool::deallocateNormal(rN[i], i);
+    MemoryPool::deallocateNormal(pN[i], i);
+    MemoryPool::deallocateNormal(hppInvCsrVal[i], i);
+  }
+  return done;
+}
+
+template <typename T>
+void schurMakeVDistributed(std::vector<T *> *SpMVbuffer, const int pointNum,
+                           const int pointDim, const std::vector<int> &hplNnz,
+                           const int hppRows, const int hllRows,
+                           const std::vector<T *> &hplCsrVal,
+                           const std::vector<int *> &hplCsrColInd,
+                           const std::vector<int *> &hplCsrRowPtr,
+                           const std::vector<T *> &hllInvCsrVal,
+                           const std::vector<T *> &r) {
+  const auto &comms = HandleManager::getNCCLComm();
+  const auto worldSize = MemoryPool::getWorldSize();
+  const auto &cusparseHandle = HandleManager::getCUSPARSEHandle();
+  constexpr auto cudaDataType = Wrapper::declared_cudaDatatype<T>::cuda_dtype;
+
+  std::vector<T *> v, w;
+  std::vector<cudaStream_t> cusparseStream;
+  std::vector<cusparseDnVecDescr_t> vecv, vecw;
+  std::vector<cusparseSpMatDescr_t> hpl;
+  v.resize(worldSize);
+  w.resize(worldSize);
+  cusparseStream.resize(worldSize);
+  vecv.resize(worldSize);
+  vecw.resize(worldSize);
+  hpl.resize(worldSize);
+  for (int i = 0; i < worldSize; ++i) {
+    cusparseGetStream(cusparseHandle[i], &cusparseStream[i]);
+    v[i] = &r[i][0];
+    w[i] = &r[i][hppRows];
+    cusparseCreateDnVec(&vecv[i], hppRows, v[i], cudaDataType);
+    cusparseCreateDnVec(&vecw[i], hllRows, w[i], cudaDataType);
+    cusparseCreateCsr(&hpl[i], hppRows, hllRows, hplNnz[i], hplCsrRowPtr[i],
+                      hplCsrColInd[i], hplCsrVal[i], CUSPARSE_INDEX_32I,
+                      CUSPARSE_INDEX_32I, CUSPARSE_INDEX_BASE_ZERO,
+                      cudaDataType);
   }
 
-  if (threadIdx.y < cameraDim) {
-    atomicAdd(&gCamera[absolutePositionCameraLocal * cameraDim + threadIdx.y],
-              gSum);
-  } else {
-    atomicAdd(&gPoint[absolutePositionPointLocal * pointDim + threadIdx.y -
-                      cameraDim],
-              gSum);
+  dim3 blockDim(pointDim, std::min(32, pointNum));
+  dim3 gridDim((pointNum - 1) / blockDim.y + 1);
+  for (int i = 0; i < worldSize; ++i) {
+    cudaSetDevice(i);
+    // notably, w here is changed(w = C^{-1}w),
+    // so later w = C^{-1}(w - ETv) = C^{-1}w - C^{-1}ETv -> w = w - C^{-1}ETv
+    oursGgemvBatched<<<gridDim, blockDim, blockDim.x * blockDim.y * sizeof(T),
+                       cusparseStream[i]>>>(hllInvCsrVal[i], w[i], pointNum,
+                                            w[i]);
   }
+
+  T alpha{-1.0}, beta = T(1. / worldSize);
+
+  SpMVbuffer->resize(worldSize);
+  for (int i = 0; i < worldSize; ++i) {
+    cudaSetDevice(i);
+    // PRINT_DMEMORY(hplCsrVal[i], hplNnz[i], T);
+    // PRINT_DMEMORY(hplCsrColInd[i], hplNnz[i], int);
+    // PRINT_DMEMORY(hplCsrRowPtr[i], hppRows + 1, int);
+    // PRINT_DCSR(hplCsrVal[i], hplCsrColInd[i], hplCsrRowPtr[i], hppRows, T);
+    // PRINT_DMEMORY(w[i], hllRows, T);
+    size_t bufferSize = 0;
+    cusparseSpMV_bufferSize(cusparseHandle[i], CUSPARSE_OPERATION_NON_TRANSPOSE,
+                            &alpha, hpl[i], vecw[i], &beta, vecv[i],
+                            cudaDataType, CUSPARSE_SPMV_ALG_DEFAULT,
+                            &bufferSize);
+    MemoryPool::allocateNormal(
+        reinterpret_cast<void **>(&SpMVbuffer->operator[](i)), bufferSize, i);
+    // cudaMalloc(&SpMVbuffer[i], bufferSize);
+    cusparseSpMV(cusparseHandle[i], CUSPARSE_OPERATION_NON_TRANSPOSE, &alpha,
+                 hpl[i], vecw[i], &beta, vecv[i], cudaDataType,
+                 CUSPARSE_SPMV_ALG_DEFAULT, SpMVbuffer->operator[](i));
+    // PRINT_DMEMORY(v[i], hppRows, T);
+  }
+
+  for (int i = 0; i < worldSize; ++i) {
+    cudaSetDevice(i);
+    cudaStreamSynchronize(cusparseStream[i]);
+
+    cusparseDestroySpMat(hpl[i]);
+    cusparseDestroyDnVec(vecv[i]);
+    cusparseDestroyDnVec(vecw[i]);
+  }
+  ncclGroupStart();
+  for (int i = 0; i < worldSize; ++i) {
+    ncclAllReduce(v[i], v[i], hppRows,
+                  Wrapper::declared_cudaDatatype<T>::nccl_dtype, ncclSum,
+                  comms[i], cusparseStream[i]);
+  }
+  ncclGroupEnd();
+  // cudaSetDevice(0);
+  // PRINT_DMEMORY(v[0], hppRows, T);
+}
+
+template <typename T>
+void schurSolveWDistributed(
+    const std::vector<T *> &SpMVbuffer, const int pointNum, const int pointDim,
+    const std::vector<int> &hplNnz, const int hppRows, const int hllRows,
+    const std::vector<T *> &hlpCsrVal, const std::vector<int *> &hlpCsrColInd,
+    const std::vector<int *> &hlpCsrRowPtr,
+    const std::vector<T *> &hllInvCsrVal, const std::vector<T *> &d_r,
+    const std::vector<T *> &d_x) {
+  const auto comms = HandleManager::getNCCLComm();
+  const auto worldSize = MemoryPool::getWorldSize();
+  constexpr auto cudaDataType = Wrapper::declared_cudaDatatype<T>::cuda_dtype;
+
+  std::vector<T *> xc, xp, w;
+  xc.resize(worldSize);
+  xp.resize(worldSize);
+  w.resize(worldSize);
+  for (int i = 0; i < worldSize; ++i) {
+    xc[i] = &d_x[i][0];
+    xp[i] = &d_x[i][hppRows];
+    w[i] = &d_r[i][hppRows];
+  }
+
+  const auto &cusparseHandle = HandleManager::getCUSPARSEHandle();
+
+  std::vector<cudaStream_t> cusparseStream;
+  std::vector<cusparseDnVecDescr_t> vecxc, vecxp, vecw;
+  std::vector<cusparseSpMatDescr_t> hlp;
+  cusparseStream.resize(worldSize);
+  vecxc.resize(worldSize);
+  vecxp.resize(worldSize);
+  vecw.resize(worldSize);
+  hlp.resize(worldSize);
+
+  for (int i = 0; i < worldSize; ++i) {
+    cusparseGetStream(cusparseHandle[i], &cusparseStream[i]);
+
+    cusparseCreateDnVec(&vecxc[i], hppRows, xc[i], cudaDataType);
+    cusparseCreateDnVec(&vecxp[i], hllRows, xp[i], cudaDataType);
+    cusparseCreateDnVec(&vecw[i], hllRows, w[i], cudaDataType);
+    cusparseCreateCsr(&hlp[i], hllRows, hppRows, hplNnz[i], hlpCsrRowPtr[i],
+                      hlpCsrColInd[i], hlpCsrVal[i], CUSPARSE_INDEX_32I,
+                      CUSPARSE_INDEX_32I, CUSPARSE_INDEX_BASE_ZERO,
+                      cudaDataType);
+  }
+
+  T alpha{1.0}, beta{0.0};
+  for (int i = 0; i < worldSize; ++i) {
+    cudaSetDevice(i);
+    // x1 = ET*x
+    cusparseSpMV(cusparseHandle[i], CUSPARSE_OPERATION_NON_TRANSPOSE, &alpha,
+                 hlp[i], vecxc[i], &beta, vecxp[i], cudaDataType,
+                 CUSPARSE_SPMV_ALG_DEFAULT, SpMVbuffer[i]);
+  }
+
+  ncclGroupStart();
+  for (int i = 0; i < worldSize; ++i) {
+    ncclAllReduce(xp[i], xp[i], hllRows,
+                  Wrapper::declared_cudaDatatype<T>::nccl_dtype, ncclSum,
+                  comms[i], cusparseStream[i]);
+  }
+  ncclGroupEnd();
+
+  dim3 blockDim(pointDim, std::min(32, pointNum));
+  dim3 gridDim((pointNum - 1) / blockDim.y + 1);
+  for (int i = 0; i < worldSize; ++i) {
+    cudaSetDevice(i);
+    oursGgemvBatched<T, -1, 1>
+        <<<gridDim, blockDim, blockDim.x * blockDim.y * sizeof(T),
+           cusparseStream[i]>>>(hllInvCsrVal[i], xp[i], pointNum, w[i]);
+    cudaMemcpyAsync(xp[i], w[i], hllRows * sizeof(T), cudaMemcpyDeviceToDevice,
+                    cusparseStream[i]);
+  }
+
+  for (int i = 0; i < worldSize; ++i) {
+    cudaSetDevice(i);
+    cudaStreamSynchronize(cusparseStream[i]);
+
+    cusparseDestroySpMat(hlp[i]);
+    cusparseDestroyDnVec(vecxc[i]);
+    cusparseDestroyDnVec(vecw[i]);
+  }
+}
+
+template <typename T>
+bool SchurPCGSolverDistributed(
+    const SolverOption::SolverOptionPCG &option,
+    const std::vector<T *> &hppCsrVal, const std::vector<T *> &hllCsrVal,
+    const std::vector<T *> &hplCsrVal, const std::vector<int *> &hplCsrColInd,
+    const std::vector<int *> &hplCsrRowPtr, const std::vector<T *> &hlpCsrVal,
+    const std::vector<int *> &hlpCsrColInd,
+    const std::vector<int *> &hlpCsrRowPtr, const std::vector<T *> &g,
+    int cameraDim, int cameraNum, int pointDim, int pointNum,
+    const std::vector<int> &hplNnz, int hppRows, int hllRows,
+    const std::vector<T *> &deltaX) {
+  // hll inverse-----------------------------------------------------------
+  const auto worldSize = MemoryPool::getWorldSize();
+
+  std::vector<T *> SpMVbuffer;
+
+  std::vector<T *> hllInvCsrVal;
+  hllInvCsrVal.resize(worldSize);
+  for (int i = 0; i < worldSize; ++i) {
+    MemoryPool::allocateNormal(reinterpret_cast<void **>(&hllInvCsrVal[i]),
+                               hllRows * pointDim * sizeof(T), i);
+  }
+  invertDistributed(hllCsrVal, pointDim, pointNum, hllInvCsrVal);
+
+  schurMakeVDistributed(&SpMVbuffer, pointNum, pointDim, hplNnz, hppRows,
+                        hllRows, hplCsrVal, hplCsrColInd, hplCsrRowPtr,
+                        hllInvCsrVal, g);
+  bool PCG_success = schurPCGSolverDistributedCUDA(
+      SpMVbuffer, option, cameraNum, pointNum, cameraDim, pointDim, hplNnz,
+      hppRows, hllRows, hppCsrVal, hplCsrVal, hplCsrColInd, hplCsrRowPtr,
+      hlpCsrVal, hlpCsrColInd, hlpCsrRowPtr, hllInvCsrVal, g, deltaX);
+  schurSolveWDistributed(SpMVbuffer, pointNum, pointDim, hplNnz, hppRows,
+                         hllRows, hlpCsrVal, hlpCsrColInd, hlpCsrRowPtr,
+                         hllInvCsrVal, g, deltaX);
+  for (int i = 0; i < worldSize; ++i) {
+    cudaSetDevice(i);
+    cudaDeviceSynchronize();
+    MemoryPool::deallocateNormal(SpMVbuffer[i], i);
+    MemoryPool::deallocateNormal(hllInvCsrVal[i], i);
+  }
+  // cudaSetDevice(0);
+  // PRINT_DMEMORY(deltaX[0], 9, T);
+  return PCG_success;
 }
 }  // namespace
 
 template <typename T>
-void SchurLMLinearSystemManager<T>::buildLinearSystemCUDA(
-    const JVD<T> &jetEstimation, const JVD<T> &jetInformation) {
-  const auto rows = jetEstimation.rows(), cols = jetEstimation.cols();
-  const auto cameraDim = dim[0];
-  const auto pointDim = dim[1];
-  const auto cameraNum = num[0];
-  const auto pointNum = num[1];
-  const auto hppRows = cameraDim * cameraNum;
-  const auto hllRows = pointDim * pointNum;
-  const std::size_t worldSize = MemoryPool::getWorldSize();
-
-  std::vector<T *> gCameraDevice{worldSize};
-  std::vector<T *> gPointDevice{worldSize};
+void SchurLMLinearSystemManager<T>::allocateResourceCUDA() {
+  const auto worldSize = MemoryPool::getWorldSize();
+  std::vector<std::array<int *, 2>> compressedCsrColInd;
+  compressedCsrColInd.resize(worldSize);
+  extractedDiag.resize(worldSize);
+  deltaXPtrBackup.resize(worldSize);
+  this->deltaXPtr.resize(worldSize);
   for (int i = 0; i < worldSize; ++i) {
     cudaSetDevice(i);
-    cudaMemsetAsync(equationContainers[i].g, 0,
-                    (hppRows + hllRows) * sizeof(T));
-    gCameraDevice[i] = &equationContainers[i].g[0];
-    gPointDevice[i] = &equationContainers[i].g[hppRows];
-    cudaMemsetAsync(equationContainers[i].csrVal[0], 0,
-                    equationContainers[i].nnz[0] * sizeof(T));
-    cudaMemsetAsync(equationContainers[i].csrVal[1], 0,
-                    equationContainers[i].nnz[1] * sizeof(T));
-    cudaMemsetAsync(equationContainers[i].csrVal[2], 0,
-                    equationContainers[i].nnz[2] * sizeof(T));
-    cudaMemsetAsync(equationContainers[i].csrVal[3], 0,
-                    equationContainers[i].nnz[3] * sizeof(T));
-  }
+    cudaMalloc(&deltaXPtrBackup[i], getHessianShape() * sizeof(T));
+    cudaMalloc(&this->deltaXPtr[i], getHessianShape() * sizeof(T));
+    cudaMemsetAsync(this->deltaXPtr[i], 0, getHessianShape() * sizeof(T));
 
-  const auto resDim = rows * cols;
-  std::vector<std::unique_ptr<const T *[]>> totalPtrs {};
-  totalPtrs.reserve(worldSize);
-  std::vector<const T **> totalPtrsDevice{worldSize};
+    cudaMalloc(&extractedDiag[i][0], dim[0] * num[0] * sizeof(T));
+    cudaMalloc(&extractedDiag[i][1], dim[1] * num[1] * sizeof(T));
 
-  std::vector<const T **> valPtrs{worldSize};
-  std::vector<const T **> valPtrsDevice{worldSize};
+    const auto edgeNum = MemoryPool::getItemNum(i);
 
-  std::vector<const T **> errorPtrs{worldSize};
-  std::vector<const T **> errorPtrsDevice{worldSize};
-  for (int deviceRank = 0; deviceRank < worldSize; ++deviceRank) {
-    totalPtrs.emplace_back(new const T *[resDim * (3 + resDim)]);
-    cudaSetDevice(deviceRank);
-    cudaMalloc(&totalPtrsDevice[deviceRank],
-               resDim * (3 + resDim) * sizeof(T *));
+    std::array<int *, 2> csrRowPtrHost{equationContainers[i].csrRowPtr};
+    cudaMalloc(&equationContainers[i].csrRowPtr[0],
+               (num[0] * dim[0] + 1) * sizeof(int));
+    cudaMalloc(&equationContainers[i].csrRowPtr[1],
+               (num[1] * dim[1] + 1) * sizeof(int));
+    cudaMemcpyAsync(equationContainers[i].csrRowPtr[0], csrRowPtrHost[0],
+                    (num[0] * dim[0] + 1) * sizeof(int),
+                    cudaMemcpyHostToDevice);
+    cudaLaunchHostFunc(nullptr, freeCallback, (void *)csrRowPtrHost[0]);
+    cudaMemcpyAsync(equationContainers[i].csrRowPtr[1], csrRowPtrHost[1],
+                    (num[1] * dim[1] + 1) * sizeof(int),
+                    cudaMemcpyHostToDevice);
+    cudaLaunchHostFunc(nullptr, freeCallback, (void *)csrRowPtrHost[1]);
 
-    valPtrs[deviceRank] = &totalPtrs[deviceRank][0];
-    valPtrsDevice[deviceRank] = &totalPtrsDevice[deviceRank][0];
-
-    errorPtrs[deviceRank] = &totalPtrs[deviceRank][resDim];
-    errorPtrsDevice[deviceRank] = &totalPtrsDevice[deviceRank][resDim];
-    for (int i = 0; i < rows; ++i)
-      for (int j = 0; j < cols; ++j) {
-        const auto &jetEstimationInner = jetEstimation(i, j);
-        valPtrs[deviceRank][j + i * cols] =
-            jetEstimationInner.getCUDAGradPtr()[deviceRank];
-        errorPtrs[deviceRank][j + i * cols] =
-            jetEstimationInner.getCUDAResPtr()[deviceRank];
-      }
-    cudaMemcpyAsync(totalPtrsDevice[deviceRank], totalPtrs[deviceRank].get(),
-                    resDim * 2 * sizeof(T *), cudaMemcpyHostToDevice);
-  }
-
-  if (jetInformation.rows() != 0 && jetInformation.cols() != 0) {
-    // TODO(Jie Ren): implement this
-  } else {
-    for (int i = 0; i < worldSize; ++i) {
-      cudaSetDevice(i);
-      const auto edgeNum = MemoryPool::getItemNum(i);
-      dim3 block(std::min((decltype(edgeNum))32, edgeNum),
-                 cameraDim + pointDim);
-      dim3 grid((edgeNum - 1) / block.x + 1);
-      makeHSchur<<<grid, block, block.x * block.y * sizeof(T)>>>(
-          valPtrsDevice[i], errorPtrsDevice[i],
-          positionAndRelationContainers[i].absolutePositionCamera,
-          positionAndRelationContainers[i].absolutePositionPoint,
-          positionAndRelationContainers[i].relativePositionCamera,
-          positionAndRelationContainers[i].relativePositionPoint,
-          equationContainers[i].csrRowPtr[0],
-          equationContainers[i].csrRowPtr[1], resDim, cameraDim, pointDim,
-          edgeNum, gCameraDevice[i], gPointDevice[i],
-          equationContainers[i].csrVal[2], equationContainers[i].csrVal[3],
-          equationContainers[i].csrVal[0], equationContainers[i].csrVal[1]);
+    std::array<int *, 2> csrColIndHost{equationContainers[i].csrColInd};
+    cudaMalloc(&equationContainers[i].csrVal[0],
+               equationContainers[i].nnz[0] * sizeof(T));  // hpl
+    cudaMalloc(&equationContainers[i].csrColInd[0],
+               equationContainers[i].nnz[0] * sizeof(int));
+    {
+      const std::size_t entriesInRows = equationContainers[i].nnz[0] / dim[1];
+      dim3 block(std::min(entriesInRows, (std::size_t)512));
+      dim3 grid((entriesInRows - 1) / block.x + 1);
+      cudaMalloc(&compressedCsrColInd[i][0], entriesInRows * sizeof(int));
+      cudaMemcpyAsync(compressedCsrColInd[i][0], csrColIndHost[0],
+                      entriesInRows * sizeof(int), cudaMemcpyHostToDevice);
+      cudaLaunchHostFunc(nullptr, freeCallback, (void *)csrColIndHost[0]);
+      broadCastCsrColInd<T>
+          <<<grid, block>>>(compressedCsrColInd[i][0], dim[1], entriesInRows,
+                            equationContainers[i].csrColInd[0]);
     }
+
+    cudaMalloc(&equationContainers[i].csrVal[1],
+               equationContainers[i].nnz[1] * sizeof(T));  // hlp
+    cudaMalloc(&equationContainers[i].csrColInd[1],
+               equationContainers[i].nnz[1] * sizeof(int));
+    {
+      const std::size_t entriesInRows = equationContainers[i].nnz[1] / dim[0];
+      dim3 block(std::min(entriesInRows, (std::size_t)512));
+      dim3 grid((entriesInRows - 1) / block.x + 1);
+      cudaMalloc(&compressedCsrColInd[i][1], entriesInRows * sizeof(int));
+      cudaMemcpyAsync(compressedCsrColInd[i][1], csrColIndHost[1],
+                      entriesInRows * sizeof(int), cudaMemcpyHostToDevice);
+      cudaLaunchHostFunc(nullptr, freeCallback, (void *)csrColIndHost[1]);
+      broadCastCsrColInd<T>
+          <<<grid, block>>>(compressedCsrColInd[i][1], dim[0], entriesInRows,
+                            equationContainers[i].csrColInd[1]);
+    }
+
+    cudaMalloc(&equationContainers[i].csrVal[2],
+               equationContainers[i].nnz[2] * sizeof(T));  // hpp
+
+    cudaMalloc(&equationContainers[i].csrVal[3],
+               equationContainers[i].nnz[3] * sizeof(T));  // hll
+
+    cudaMalloc(&equationContainers[i].g,
+               (num[0] * dim[0] + num[1] * dim[1]) * sizeof(T));
+
+    int *tmpPtr;
+    tmpPtr = positionContainers[i].relativePositionCamera;
+    cudaMalloc(&positionContainers[i].relativePositionCamera,
+               edgeNum * sizeof(int));
+
+    cudaMemcpyAsync(positionContainers[i].relativePositionCamera, tmpPtr,
+                    edgeNum * sizeof(int), cudaMemcpyHostToDevice);
+    cudaLaunchHostFunc(nullptr, freeCallback, (void *)tmpPtr);
+
+    tmpPtr = positionContainers[i].relativePositionPoint;
+    cudaMalloc(&positionContainers[i].relativePositionPoint,
+               edgeNum * sizeof(int));
+    cudaMemcpyAsync(positionContainers[i].relativePositionPoint, tmpPtr,
+                    edgeNum * sizeof(int), cudaMemcpyHostToDevice);
+    cudaLaunchHostFunc(nullptr, freeCallback, (void *)tmpPtr);
+
+    tmpPtr = positionContainers[i].absolutePositionCamera;
+    cudaMalloc(&positionContainers[i].absolutePositionCamera,
+               edgeNum * sizeof(int));
+    cudaMemcpyAsync(positionContainers[i].absolutePositionCamera, tmpPtr,
+                    edgeNum * sizeof(int), cudaMemcpyHostToDevice);
+    cudaLaunchHostFunc(nullptr, freeCallback, (void *)tmpPtr);
+
+    tmpPtr = positionContainers[i].absolutePositionPoint;
+    cudaMalloc(&positionContainers[i].absolutePositionPoint,
+               edgeNum * sizeof(int));
+    cudaMemcpyAsync(positionContainers[i].absolutePositionPoint, tmpPtr,
+                    edgeNum * sizeof(int), cudaMemcpyHostToDevice);
+    cudaLaunchHostFunc(nullptr, freeCallback, (void *)tmpPtr);
   }
   for (int i = 0; i < worldSize; ++i) {
     cudaSetDevice(i);
-    cudaStreamSynchronize(nullptr);
-    cudaFree(totalPtrsDevice[i]);
+    cudaDeviceSynchronize();
+    cudaFree(compressedCsrColInd[i][0]);
+    cudaFree(compressedCsrColInd[i][1]);
   }
-
-  const auto &comms = HandleManager::getNCCLComm();
-  ncclGroupStart();
-  for (int i = 0; i < worldSize; ++i) {
-    ncclAllReduce(equationContainers[i].csrVal[2],
-                  equationContainers[i].csrVal[2], equationContainers[i].nnz[2],
-                  Wrapper::declared_cudaDatatype<T>::nccl_dtype, ncclSum,
-                  comms[i], nullptr);
-    ncclAllReduce(equationContainers[i].csrVal[3],
-                  equationContainers[i].csrVal[3], equationContainers[i].nnz[3],
-                  Wrapper::declared_cudaDatatype<T>::nccl_dtype, ncclSum,
-                  comms[i], nullptr);
-    ncclAllReduce(gCameraDevice[i], gCameraDevice[i], hppRows + hllRows,
-                  Wrapper::declared_cudaDatatype<T>::nccl_dtype, ncclSum,
-                  comms[i], nullptr);
-  }
-  ncclGroupEnd();
 }
 
 namespace {
@@ -294,31 +805,30 @@ void extractOldAndApplyNewDiag(const T a, const int batchSize, const int dim,
 }
 
 template <typename T>
-void SchurLMLinearSystemManager<T>::preSolve(const AlgoStatus &algoStatus) {
-  if (algoStatus.lmAlgoStatus.recoverDiag) {
+void SchurLMLinearSystemManager<T>::processDiag(
+    const AlgoStatus::AlgoStatusLM &lmAlgoStatus) const {
+  if (lmAlgoStatus.recoverDiag) {
     for (int i = 0; i < MemoryPool::getWorldSize(); ++i) {
       cudaSetDevice(i);
       auto &container = equationContainers[i];
-      RecoverDiag(extractedDiag[i][0], T(1. / algoStatus.lmAlgoStatus.region),
-                  num[0], dim[0], container.csrVal[2]);
-      RecoverDiag(extractedDiag[i][1], T(1. / algoStatus.lmAlgoStatus.region),
-                  num[1], dim[1], container.csrVal[3]);
+      RecoverDiag(extractedDiag[i][0], T(1. / lmAlgoStatus.region), num[0],
+                  dim[0], container.csrVal[2]);
+      RecoverDiag(extractedDiag[i][1], T(1. / lmAlgoStatus.region), num[1],
+                  dim[1], container.csrVal[3]);
     }
   } else {
     for (int i = 0; i < MemoryPool::getWorldSize(); ++i) {
       cudaSetDevice(i);
       auto &container = equationContainers[i];
-      extractOldAndApplyNewDiag(T(1. / algoStatus.lmAlgoStatus.region), num[0],
-                                dim[0], container.csrVal[2],
-                                extractedDiag[i][0]);
-      extractOldAndApplyNewDiag(T(1. / algoStatus.lmAlgoStatus.region), num[1],
-                                dim[1], container.csrVal[3],
-                                extractedDiag[i][1]);
+      extractOldAndApplyNewDiag(T(1. / lmAlgoStatus.region), num[0], dim[0],
+                                container.csrVal[2], extractedDiag[i][0]);
+      extractOldAndApplyNewDiag(T(1. / lmAlgoStatus.region), num[1], dim[1],
+                                container.csrVal[3], extractedDiag[i][1]);
     }
   }
 }
 template <typename T>
-void SchurLMLinearSystemManager<T>::backup() {
+void SchurLMLinearSystemManager<T>::backup() const {
   const int hessianShape = getHessianShape();
   for (int i = 0; i < MemoryPool::getWorldSize(); ++i) {
     cudaSetDevice(i);
@@ -328,13 +838,50 @@ void SchurLMLinearSystemManager<T>::backup() {
 }
 
 template <typename T>
-void SchurLMLinearSystemManager<T>::rollback() {
+void SchurLMLinearSystemManager<T>::rollback() const {
   const int hessianShape = getHessianShape();
   for (int i = 0; i < MemoryPool::getWorldSize(); ++i) {
     cudaSetDevice(i);
     cudaMemcpyAsync(this->deltaXPtr[i], deltaXPtrBackup[i],
                     hessianShape * sizeof(T), cudaMemcpyDeviceToDevice);
   }
+}
+
+template <typename T>
+void SchurLMLinearSystemManager<T>::solve() const {
+  const std::size_t worldSize = MemoryPool::getWorldSize();
+  std::vector<T *> hppCsrVal{worldSize};
+  std::vector<T *> hllCsrVal{worldSize};
+  std::vector<T *> hplCsrVal{worldSize};
+  std::vector<T *> hlpCsrVal{worldSize};
+  std::vector<int *> hplCsrColInd{worldSize};
+  std::vector<int *> hlpCsrColInd{worldSize};
+  std::vector<int *> hplCsrRowPtr{worldSize};
+  std::vector<int *> hlpCsrRowPtr{worldSize};
+  std::vector<T *> g{worldSize};
+  std::vector<int> hplNnz{};
+  hplNnz.resize(worldSize);
+  std::vector<T *> deltaX{worldSize};
+
+  for (int i = 0; i < worldSize; ++i) {
+    hppCsrVal[i] = equationContainers[i].csrVal[2];
+    hllCsrVal[i] = equationContainers[i].csrVal[3];
+    hplCsrVal[i] = equationContainers[i].csrVal[0];
+    hlpCsrVal[i] = equationContainers[i].csrVal[1];
+    hplCsrColInd[i] = equationContainers[i].csrColInd[0];
+    hlpCsrColInd[i] = equationContainers[i].csrColInd[1];
+    hplCsrRowPtr[i] = equationContainers[i].csrRowPtr[0];
+    hlpCsrRowPtr[i] = equationContainers[i].csrRowPtr[1];
+    g[i] = equationContainers[i].g;
+    hplNnz[i] = equationContainers[i].nnz[0];
+    deltaX[i] = this->deltaXPtr[i];
+  }
+
+  SchurPCGSolverDistributed(this->solverOption.solverOptionPCG, hppCsrVal,
+                            hllCsrVal, hplCsrVal, hplCsrColInd, hplCsrRowPtr,
+                            hlpCsrVal, hlpCsrColInd, hlpCsrRowPtr, g, dim[0],
+                            num[0], dim[1], num[1], hplNnz, dim[0] * num[0],
+                            dim[1] * num[1], deltaX);
 }
 
 template <typename T>
@@ -345,76 +892,6 @@ void SchurLMLinearSystemManager<T>::applyUpdate(T *xPtr) const {
   cudaSetDevice(0);
   Wrapper::cublasGaxpy::call(cublasHandle[0], hessianShape, &one,
                              this->deltaXPtr[0], 1, xPtr, 1);
-}
-
-namespace {
-template <typename T>
-__global__ void JdxpF(const T *grad, const T *deltaX, const T *res,
-                      const int *absCameraPosition, const int *absPointPosition,
-                      const int nItem, const int cameraDim, const int cameraNum,
-                      const int pointDim, T *out) {
-  unsigned int tid = threadIdx.x + blockIdx.x * blockDim.x;
-  if (tid >= nItem)
-    return;
-  T sum{0};
-  const int absCameraPositionLocal = absCameraPosition[tid];
-  const int absPointPositionLocal = absPointPosition[tid];
-  for (int i = 0; i < cameraDim; ++i) {
-    sum +=
-        grad[tid + i * nItem] * deltaX[i + absCameraPositionLocal * cameraDim];
-  }
-  for (int i = 0; i < pointDim; ++i) {
-    sum += grad[tid + (i + cameraDim) * nItem] *
-           deltaX[i + cameraDim * cameraNum + absPointPositionLocal * pointDim];
-  }
-  out[tid] = (sum + res[tid]) * (sum + res[tid]);
-}
-}
-
-template <typename T>
-double SchurLMLinearSystemManager<T>::computeRhoDenominator(
-    JVD<T> &JV, std::vector<T *> &schurDeltaXPtr) {
-  T rhoDenominator{0};
-  std::vector<std::vector<T *>> Jdx;
-  Jdx.resize(MemoryPool::getWorldSize());
-  const int cameraDim = dim[0];
-  const int cameraNum = num[0];
-  const int pointDim = dim[1];
-
-  std::vector<std::vector<thrust::system::cuda::unique_eager_future<T>>>
-      futures;
-  futures.resize(MemoryPool::getWorldSize());
-
-  for (int i = 0; i < MemoryPool::getWorldSize(); ++i) {
-    cudaSetDevice(i);
-    const auto nItem = MemoryPool::getItemNum(i);
-    const auto &positionContainer = positionAndRelationContainers[i];
-    futures[i].resize(JV.size());
-    for (int j = 0; j < JV.size(); ++j) {
-      auto &J = JV(j);
-      T *ptr;
-      MemoryPool::allocateNormal(reinterpret_cast<void **>(&ptr),
-                                 nItem * sizeof(T), i);
-      dim3 block(std::min((std::size_t)256, nItem));
-      dim3 grid((nItem - 1) / block.x + 1);
-      JdxpF<<<grid, block>>>(J.getCUDAGradPtr()[i], schurDeltaXPtr[i],
-                             J.getCUDAResPtr()[i],
-                             positionContainer.absolutePositionCamera,
-                             positionContainer.absolutePositionPoint,
-                             nItem, cameraDim, cameraNum, pointDim, ptr);
-      futures[i][j] = thrust::async::reduce(
-          thrust::cuda::par.on(nullptr), thrust::device_ptr<T>{ptr},
-          thrust::device_ptr<T>{ptr} + nItem, T(0.), thrust::plus<T>{});
-      Jdx[i].push_back(ptr);
-    }
-  }
-  for (int i = 0; i < futures.size(); ++i) {
-    for (int j = futures[i].size() - 1; j >= 0; --j) {
-      rhoDenominator += futures[i][j].get();
-      MemoryPool::deallocateNormal(reinterpret_cast<void *>(Jdx[i][j]), i);
-    }
-  }
-  return rhoDenominator;
 }
 
 template struct SchurLMLinearSystemManager<double>;

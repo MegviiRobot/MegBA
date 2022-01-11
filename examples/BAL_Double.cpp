@@ -109,13 +109,13 @@ int main(int argc, char *arcv[]) {
     for (int i = 0; i < worldSize; ++i) {
       option.deviceUsed.insert(i);
     }
-    option.solverOptionPCG.maxIter = solver_max_iter;
-    option.solverOptionPCG.tol = solver_tol;
-    option.solverOptionPCG.refuseRatio = solver_refuse_ratio;
-    option.algoOptionLM.maxIter = iter;
-    option.algoOptionLM.initialRegion = tau;
-    option.algoOptionLM.epsilon1 = epsilon1;
-    option.algoOptionLM.epsilon2 = epsilon2;
+    option.solverOption.solverOptionPCG.maxIter = solver_max_iter;
+    option.solverOption.solverOptionPCG.tol = solver_tol;
+    option.solverOption.solverOptionPCG.refuseRatio = solver_refuse_ratio;
+    option.algoOption.algoOptionLM.maxIter = iter;
+    option.algoOption.algoOptionLM.initialRegion = tau;
+    option.algoOption.algoOptionLM.epsilon1 = epsilon1;
+    option.algoOption.algoOptionLM.epsilon2 = epsilon2;
     MegBA::BaseProblem<T> problem{option};
 
     std::vector<std::tuple<int, int, Eigen::Matrix<T, 2, 1>>> edge;

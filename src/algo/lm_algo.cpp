@@ -5,9 +5,12 @@
 *
 **/
 
-#include "algo/schurLM_algo.h"
+#include "algo/lm_algo.h"
 
 namespace MegBA {
 template <typename T>
-SchurLMAlgo<T>::SchurLMAlgo(const BaseProblem<T> &problem) : BaseAlgo<T>(problem) {}
+LMAlgo<T>::LMAlgo(const AlgoOption &option) : BaseAlgo<T>(option) {}
+
+template class LMAlgo<double>;
+template class LMAlgo<float>;
 }

@@ -38,6 +38,7 @@ class BaseProblem {
   std::vector<T *> deltaXPtr{nullptr};
   std::vector<T *> deltaXPtrBackup{nullptr};
 
+  const std::unique_ptr<BaseAlgo<T>> algo;
   const std::unique_ptr<BaseSolver<T>> solver;
   const std::unique_ptr<BaseLinearSystemManager<T>> linearSystemManager;
 
@@ -66,13 +67,15 @@ class BaseProblem {
 
   ~BaseProblem();
 
-  const Device &getDevice() const;
+  const auto &getProblemOption() const { return option; };
 
-  const ProblemOption &getProblemOption() const { return option; };
+  const auto &getDeltaXPtr() const { return deltaXPtr; };
 
-  const std::vector<T *> &getDeltaXPtr() const { return deltaXPtr; };
+  const auto &getEdges() const { return edges; };
 
-  const EdgeVector<T> &getEdges() const { return edges; };
+  const auto &getVerticesSets() const { return verticesSets; };
+
+  const auto &getSchurHessianEntrance() const { return schurWS.schurHessianEntrance; };
 
   void appendVertex(int ID, BaseVertex<T> *vertex);
 

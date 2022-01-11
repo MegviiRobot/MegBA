@@ -116,7 +116,7 @@ this block
 
 template <typename T>
 bool schurPCGSolverDistributedCUDA(
-    const std::vector<T *> &SpMVbuffer, SolverOptionPCG option,
+    const std::vector<T *> &SpMVbuffer, SolverOption::SolverOptionPCG option,
     const int cameraNum, const int pointNum, const int cameraDim,
     const int pointDim, const std::vector<int> &hplNnz, const int hppRows,
     const int hllRows, const std::vector<T *> &hppCsrVal,
@@ -586,7 +586,7 @@ void schurSolveWDistributed(
 
 template <typename T>
 bool SchurPCGSolverDistributed(
-    const SolverOptionPCG &option, const std::vector<T *> &hppCsrVal,
+    const SolverOption::SolverOptionPCG &option, const std::vector<T *> &hppCsrVal,
     const std::vector<T *> &hllCsrVal, const std::vector<T *> &hplCsrVal,
     const std::vector<int *> &hplCsrColInd,
     const std::vector<int *> &hplCsrRowPtr, const std::vector<T *> &hlpCsrVal,
@@ -675,7 +675,7 @@ void SchurDistributedPCGSolver<T>::solveCUDA() {
     delta_x[i] = this->problem.getDeltaXPtr()[i];
   }
 
-  SchurPCGSolverDistributed(this->problem.getProblemOption().solverOptionPCG, hppCsrVal, hllCsrVal,
+  SchurPCGSolverDistributed(this->problem.getProblemOption().solverOption.solverOptionPCG, hppCsrVal, hllCsrVal,
                             hplCsrVal, hplCsrColInd, hplCsrRowPtr, hlpCsrVal,
                             hlpCsrColInd, hlpCsrRowPtr, g, cameraDim, cameraNum,
                             pointDim, pointNum, hplNnz, hppRows, hllRows,
