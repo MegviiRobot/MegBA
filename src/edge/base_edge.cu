@@ -217,16 +217,6 @@ template <typename T> void EdgeVector<T>::deallocateResourceCUDA() {
   }
 }
 
-template <typename T> void EdgeVector<T>::SchurEquationContainer::clearCUDA() {
-  for (int i = 0; i < 2; ++i)
-    cudaFree(csrRowPtr[i]);
-  for (int i = 0; i < 4; ++i)
-    cudaFree(csrVal[i]);
-  for (int i = 0; i < 2; ++i)
-    cudaFree(csrColInd[i]);
-  cudaFree(g);
-}
-
 template <typename T>
 void EdgeVector<T>::PositionAndRelationContainer::clearCUDA() {
   cudaFree(relativePositionCamera);

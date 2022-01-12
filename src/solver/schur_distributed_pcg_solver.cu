@@ -632,54 +632,54 @@ bool SchurPCGSolverDistributed(
 
 template <typename T>
 void SchurDistributedPCGSolver<T>::solveCUDA() {
-  const auto worldSize = this->problem.getProblemOption().deviceUsed.size();
-  std::vector<T *> hppCsrVal{worldSize};
-  std::vector<T *> hllCsrVal{worldSize};
-  std::vector<T *> hplCsrVal{worldSize};
-  std::vector<T *> hlpCsrVal{worldSize};
-  std::vector<int *> hplCsrColInd{worldSize};
-  std::vector<int *> hlpCsrColInd{worldSize};
-  std::vector<int *> hplCsrRowPtr{worldSize};
-  std::vector<int *> hlpCsrRowPtr{worldSize};
-  std::vector<T *> g{worldSize};
-  int cameraDim;
-  int cameraNum;
-  int pointDim;
-  int pointNum;
-  std::vector<int> hplNnz{};
-  hplNnz.resize(worldSize);
-  int hppRows;
-  int hllRows;
-  std::vector<T *> delta_x{worldSize};
-
-  for (int i = 0; i < worldSize; ++i) {
-    const auto &schurEquationContainer = this->problem.getEdges().schurEquationContainer[i];
-    hppCsrVal[i] = schurEquationContainer.csrVal[2];
-    hllCsrVal[i] = schurEquationContainer.csrVal[3];
-    hplCsrVal[i] = schurEquationContainer.csrVal[0];
-    hlpCsrVal[i] = schurEquationContainer.csrVal[1];
-    hplCsrColInd[i] = schurEquationContainer.csrColInd[0];
-    hlpCsrColInd[i] = schurEquationContainer.csrColInd[1];
-    hplCsrRowPtr[i] = schurEquationContainer.csrRowPtr[0];
-    hlpCsrRowPtr[i] = schurEquationContainer.csrRowPtr[1];
-    g[i] = schurEquationContainer.g;
-    cameraDim = schurEquationContainer.dim[0];
-    cameraNum = schurEquationContainer.nnz[2] / schurEquationContainer.dim[0] /
-                schurEquationContainer.dim[0];
-    pointDim = schurEquationContainer.dim[1];
-    pointNum = schurEquationContainer.nnz[3] / schurEquationContainer.dim[1] /
-               schurEquationContainer.dim[1];
-    hplNnz[i] = schurEquationContainer.nnz[0];
-    hppRows = schurEquationContainer.nnz[2] / schurEquationContainer.dim[0];
-    hllRows = schurEquationContainer.nnz[3] / schurEquationContainer.dim[1];
-    delta_x[i] = this->problem.getDeltaXPtr()[i];
-  }
-
-  SchurPCGSolverDistributed(this->problem.getProblemOption().solverOption.solverOptionPCG, hppCsrVal, hllCsrVal,
-                            hplCsrVal, hplCsrColInd, hplCsrRowPtr, hlpCsrVal,
-                            hlpCsrColInd, hlpCsrRowPtr, g, cameraDim, cameraNum,
-                            pointDim, pointNum, hplNnz, hppRows, hllRows,
-                            delta_x);
+//  const auto worldSize = this->problem.getProblemOption().deviceUsed.size();
+//  std::vector<T *> hppCsrVal{worldSize};
+//  std::vector<T *> hllCsrVal{worldSize};
+//  std::vector<T *> hplCsrVal{worldSize};
+//  std::vector<T *> hlpCsrVal{worldSize};
+//  std::vector<int *> hplCsrColInd{worldSize};
+//  std::vector<int *> hlpCsrColInd{worldSize};
+//  std::vector<int *> hplCsrRowPtr{worldSize};
+//  std::vector<int *> hlpCsrRowPtr{worldSize};
+//  std::vector<T *> g{worldSize};
+//  int cameraDim;
+//  int cameraNum;
+//  int pointDim;
+//  int pointNum;
+//  std::vector<int> hplNnz{};
+//  hplNnz.resize(worldSize);
+//  int hppRows;
+//  int hllRows;
+//  std::vector<T *> delta_x{worldSize};
+//
+//  for (int i = 0; i < worldSize; ++i) {
+//    const auto &schurEquationContainer = this->problem.getEdges().schurEquationContainer[i];
+//    hppCsrVal[i] = schurEquationContainer.csrVal[2];
+//    hllCsrVal[i] = schurEquationContainer.csrVal[3];
+//    hplCsrVal[i] = schurEquationContainer.csrVal[0];
+//    hlpCsrVal[i] = schurEquationContainer.csrVal[1];
+//    hplCsrColInd[i] = schurEquationContainer.csrColInd[0];
+//    hlpCsrColInd[i] = schurEquationContainer.csrColInd[1];
+//    hplCsrRowPtr[i] = schurEquationContainer.csrRowPtr[0];
+//    hlpCsrRowPtr[i] = schurEquationContainer.csrRowPtr[1];
+//    g[i] = schurEquationContainer.g;
+//    cameraDim = schurEquationContainer.dim[0];
+//    cameraNum = schurEquationContainer.nnz[2] / schurEquationContainer.dim[0] /
+//                schurEquationContainer.dim[0];
+//    pointDim = schurEquationContainer.dim[1];
+//    pointNum = schurEquationContainer.nnz[3] / schurEquationContainer.dim[1] /
+//               schurEquationContainer.dim[1];
+//    hplNnz[i] = schurEquationContainer.nnz[0];
+//    hppRows = schurEquationContainer.nnz[2] / schurEquationContainer.dim[0];
+//    hllRows = schurEquationContainer.nnz[3] / schurEquationContainer.dim[1];
+//    delta_x[i] = this->problem.getDeltaXPtr()[i];
+//  }
+//
+//  SchurPCGSolverDistributed(this->problem.getProblemOption().solverOption.solverOptionPCG, hppCsrVal, hllCsrVal,
+//                            hplCsrVal, hplCsrColInd, hplCsrRowPtr, hlpCsrVal,
+//                            hlpCsrColInd, hlpCsrRowPtr, g, cameraDim, cameraNum,
+//                            pointDim, pointNum, hplNnz, hppRows, hllRows,
+//                            delta_x);
 }
 
 template class SchurDistributedPCGSolver<double>;

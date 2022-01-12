@@ -221,7 +221,6 @@ template <typename T> void BaseProblem<T>::makeVertices() {
   }
 
   linearSystemManager->buildIndex(*this);
-  edges.verticesSetPtr = &verticesSets;
   edges.allocateResourcePre();
 //  edges.makeVertices();
 //  edges.allocateResourcePost();

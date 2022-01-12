@@ -65,16 +65,12 @@ template <typename T> class EdgeVector {
   friend BaseProblem<T>;
 
   const ProblemOption &option;
-  const std::vector<SchurHessianEntrance<T>> &schurHessianEntrance;
-  // total number for each vertex kind
-  std::unique_ptr<int[]> num{nullptr};
   // kind -> worldSize
   std::vector<std::vector<std::vector<int>>> schurRelativePosition;
   std::vector<std::vector<std::vector<int>>> schurAbsolutePosition;
   std::vector<BaseEdge<T> *> edgesPtr;
   std::size_t nameHash{};
   std::vector<VertexVector<T>> edges;
-  std::vector<std::array<std::unique_ptr<int[]>, 2>> schurCsrRowPtr;
   // kind -> worldSize -> ptr
   std::vector<std::vector<T *>> schurValueDevicePtrs;
   std::vector<std::vector<T *>> schurValueDevicePtrsOld;
@@ -84,33 +80,13 @@ template <typename T> class EdgeVector {
   JVD<T> jetInformation;
   std::vector<cudaStream_t> schurStreamLmMemcpy{};
   EdgeKind edgeKind{};
-  std::unordered_map<VertexKind, std::set<BaseVertex<T> *>> const
-      *verticesSetPtr;
 
   void decideEdgeKind();
 
  public:
   EdgeVector() = delete;
 
-  EdgeVector(const ProblemOption &option,
-             const std::vector<SchurHessianEntrance<T>> &schurHessianEntrance);
-
-  struct SchurEquationContainer {
-    explicit SchurEquationContainer(const Device &device) : device(device) {}
-
-    ~SchurEquationContainer() { clear(); }
-
-    void clear();
-
-    void clearCUDA();
-    const Device &device;
-    std::array<int *, 2> csrRowPtr{nullptr, nullptr};
-    std::array<T *, 4> csrVal{nullptr, nullptr, nullptr, nullptr};
-    std::array<int *, 2> csrColInd{nullptr, nullptr};
-    T *g{nullptr};
-    std::array<std::size_t, 4> nnz{0, 0, 0, 0};
-    std::array<int, 2> dim{0, 0};
-  };
+  explicit EdgeVector(const ProblemOption &option);
 
   struct PositionAndRelationContainer {
     explicit PositionAndRelationContainer(const Device &device)
@@ -188,8 +164,6 @@ template <typename T> class EdgeVector {
   void updateSchur(const SchurLMLinearSystemManager<T> &linearSystemManager) const;
 
   void bindCUDAGradPtrs();
-
-  std::vector<SchurEquationContainer> schurEquationContainer;
 
   std::vector<PositionAndRelationContainer> schurPositionAndRelationContainer;
 };

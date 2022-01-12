@@ -32,7 +32,7 @@ class BaseProblem {
     int workingDevice{0};
     std::vector<SchurHessianEntrance<T>> schurHessianEntrance;
   } schurWS{};
-  EdgeVector<T> edges{option, schurWS.schurHessianEntrance};
+  EdgeVector<T> edges{option};
 
   std::vector<T *> xPtr{nullptr};
   std::vector<T *> deltaXPtr{nullptr};

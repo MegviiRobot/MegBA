@@ -31,38 +31,6 @@ template <typename T> void EdgeVector<T>::decideEdgeKind() {
     edgeKind = MULTI;
 }
 
-template <typename T> void EdgeVector<T>::SchurEquationContainer::clear() {
-  switch (device) {
-  case Device::CPU: {
-    for (int i = 0; i < 2; ++i)
-      free(csrRowPtr[i]);
-    for (int i = 0; i < 4; ++i)
-      free(csrVal[i]);
-    for (int i = 0; i < 2; ++i)
-      free(csrColInd[i]);
-    free(g);
-    break;
-  }
-  case Device::CUDA: {
-    clearCUDA();
-    break;
-  }
-  }
-  for (int i = 0; i < 2; ++i)
-    csrRowPtr[i] = nullptr;
-  for (int i = 0; i < 4; ++i)
-    csrVal[i] = nullptr;
-  for (int i = 0; i < 2; ++i)
-    csrColInd[i] = nullptr;
-  g = nullptr;
-  nnz[0] = 0;
-  nnz[1] = 0;
-  nnz[2] = 0;
-  nnz[3] = 0;
-  dim[0] = 0;
-  dim[1] = 0;
-}
-
 template <typename T>
 void EdgeVector<T>::PositionAndRelationContainer::clear() {
   switch (device) {
@@ -83,13 +51,9 @@ void EdgeVector<T>::PositionAndRelationContainer::clear() {
 }
 
 template <typename T>
-EdgeVector<T>::EdgeVector(const ProblemOption &option,
-                          const std::vector<SchurHessianEntrance<T>> &schurHessianEntrance)
-    : option{option}, schurHessianEntrance{schurHessianEntrance},
-      schurCsrRowPtr(option.deviceUsed.size()) {
-  schurEquationContainer.reserve(option.deviceUsed.size());
+EdgeVector<T>::EdgeVector(const ProblemOption &option)
+    : option{option} {
   for (int i = 0; i < option.deviceUsed.size(); ++i) {
-    schurEquationContainer.emplace_back(option.device);
     schurPositionAndRelationContainer.emplace_back(option.device);
   }
 }
@@ -232,9 +196,9 @@ template <typename T> void EdgeVector<T>::allocateResourcePost() {
 }
 
 template <typename T> void EdgeVector<T>::deallocateResource() {
-  for (auto &ptrs : schurCsrRowPtr)
-    for (auto &ptr : ptrs)
-      ptr.reset();
+//  for (auto &ptrs : schurCsrRowPtr)
+//    for (auto &ptr : ptrs)
+//      ptr.reset();
 
   switch (option.device) {
   case Device::CUDA:
