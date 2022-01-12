@@ -7,6 +7,7 @@
 
 #include "problem/base_problem.h"
 #include <thread>
+#include <iostream>
 #include "algo/algo_dispatcher.h"
 #include "solver/solver_dispatcher.h"
 #include "linear_system_manager/schurLM_linear_system_manager.h"
@@ -30,8 +31,8 @@ void internalBuildRandomAccess(
   std::size_t rowCounter{0};
   std::size_t nnzCounter{0};
   auto &HessianEntranceRaBlockMatrix = schurHessianEntrance->ra[i];
-  HessianEntranceRaBlockMatrix.clear();
   HessianEntranceRaBlockMatrix.reserve(hEntranceBlockMatrix.size());
+  HessianEntranceRaBlockMatrix.clear();
   // row
   for (const auto &rowIter : hEntranceBlockMatrix) {
     const auto &hEntranceBlockRow = rowIter.second;
@@ -66,7 +67,11 @@ template <typename T> void SchurHessianEntrance<T>::buildRandomAccess(
     std::array<int *, 2> &csrColInd) {
   // camera and point
   std::vector<std::thread> threads;
+  std::cout << "Here: " << ra[0].size() << std::endl;
+  std::cout << "Here: " << ra[1].size() << std::endl;
+//  getchar();
   threads.emplace_back(std::thread{internalBuildRandomAccess<T>, 0, std::ref(csrRowPtr), std::ref(csrColInd), this});
+//  getchar();
   threads.emplace_back(std::thread{internalBuildRandomAccess<T>, 1, std::ref(csrRowPtr), std::ref(csrColInd), this});
   for (auto &thread : threads)
     thread.join();
@@ -202,15 +207,17 @@ template <typename T> void BaseProblem<T>::makeVertices() {
   hessianShape = getHessianShape();
   prepareUpdateData();
   setAbsolutePosition();
+  std::cout << "Here: " << schurWS.schurHessianEntrance[0].ra[0].size() << std::endl;
+  std::cout << "Here: " << schurWS.schurHessianEntrance[0].ra[1].size() << std::endl;
   if (option.useSchur) {
     std::vector<std::thread> threads;
     for (int i = 0; i < schurWS.schurHessianEntrance.size(); ++i) {
+      auto &entrance = schurWS.schurHessianEntrance[i];
+      auto &csrRowPtr = dynamic_cast<SchurLMLinearSystemManager<T> *>(linearSystemManager.get())->equationContainers[i].csrRowPtr;
+      auto &csrColInd = dynamic_cast<SchurLMLinearSystemManager<T> *>(linearSystemManager.get())->equationContainers[i].csrColInd;
       threads.emplace_back(
-          std::thread{[&]() {
-            schurWS.schurHessianEntrance[i].buildRandomAccess(
-                dynamic_cast<SchurLMLinearSystemManager<T> *>(linearSystemManager.get())->equationContainers[i].csrRowPtr,
-                dynamic_cast<SchurLMLinearSystemManager<T> *>(linearSystemManager.get())->equationContainers[i].csrColInd
-                );
+          std::thread{[&, entrance_ptr = &entrance]() {
+            (*entrance_ptr).buildRandomAccess(csrRowPtr, csrColInd);
           }});
     }
     for (auto &thread : threads) {

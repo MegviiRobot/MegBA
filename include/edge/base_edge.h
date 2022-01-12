@@ -127,9 +127,9 @@ template <typename T> class EdgeVector {
     int *absolutePositionCamera{nullptr}, *absolutePositionPoint{nullptr};
   };
 
-  void backupValueDevicePtrs() const;
+  void backup() const;
 
-  void rollback();
+  void rollback() const;
 
   std::vector<VertexVector<T>> &getEdges() { return edges; }
 

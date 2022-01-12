@@ -8,12 +8,26 @@
 #include "edge/base_edge.h"
 
 namespace MegBA {
-template <typename T> void EdgeVector<T>::backupValueDevicePtrs() const {
+template <typename T> void EdgeVector<T>::backup() const {
   if (option.useSchur) {
     const auto gradShape = getGradShape();
     for (int i = 0; i < MemoryPool::getWorldSize(); ++i) {
       cudaSetDevice(i);
       cudaMemcpyAsync(schurValueDevicePtrsOld[0][i], schurValueDevicePtrs[0][i],
+                      MemoryPool::getItemNum(i) * gradShape * sizeof(T),
+                      cudaMemcpyDeviceToDevice, schurStreamLmMemcpy[i]);
+    }
+  } else {
+    // TODO(Jie Ren): implement this
+  }
+}
+
+template <typename T> void EdgeVector<T>::rollback() const {
+  if (option.useSchur) {
+    const auto gradShape = getGradShape();
+    for (int i = 0; i < MemoryPool::getWorldSize(); ++i) {
+      cudaSetDevice(i);
+      cudaMemcpyAsync(schurValueDevicePtrs[0][i], schurValueDevicePtrsOld[0][i],
                       MemoryPool::getItemNum(i) * gradShape * sizeof(T),
                       cudaMemcpyDeviceToDevice, schurStreamLmMemcpy[i]);
     }

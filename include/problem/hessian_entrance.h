@@ -17,10 +17,10 @@ template <typename T> struct SchurHessianEntrance {
   // first is camera
   using BlockRow = std::set<BaseVertex<T> *>;
   using BlockMatrix = std::map<BaseVertex<T> *, BlockRow>;
-  std::array<BlockMatrix, 2> nra;
+  std::array<BlockMatrix, 2> nra{};
   using BlockRowRA = std::vector<BaseVertex<T> *>;
   using BlockMatrixRA = std::vector<BlockRowRA>;
-  std::array<BlockMatrixRA, 2> ra;
+  std::array<BlockMatrixRA, 2> ra{};
 //  std::array<std::unique_ptr<int[]>, 2> csrRowPtr;
 //  std::array<std::unique_ptr<int[]>, 2> csrColInd;
   std::size_t counter{0};

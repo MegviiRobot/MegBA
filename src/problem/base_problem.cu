@@ -194,7 +194,7 @@ void BaseProblem<T>::solveLM() {
 //  T residualNormNew = 0;
 //  T residualNorm = 0;
 //
-//  edges.backupValueDevicePtrs();
+//  edges.backup();
 //  JV_backup = edges.forward();
 //  if (option.useSchur) {
 //    edges.buildLinearSystemSchur(JV_backup, *linearSystemManager);
@@ -396,7 +396,7 @@ template <typename T> void BaseProblem<T>::backupLM() {
   } else {
     // TODO(Jie Ren): implement this
   }
-  edges.backupValueDevicePtrs();
+  edges.backup();
 }
 
 template <typename T> void BaseProblem<T>::rollbackLM() {

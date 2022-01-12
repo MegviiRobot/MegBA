@@ -94,16 +94,6 @@ EdgeVector<T>::EdgeVector(const ProblemOption &option,
   }
 }
 
-template <typename T> void EdgeVector<T>::rollback() {
-  if (option.useSchur) {
-    schurValueDevicePtrs.swap(schurValueDevicePtrsOld);
-  } else {
-    // TODO(Jie Ren): implement this
-  }
-  bindCUDAGradPtrs();
-  backupValueDevicePtrs();
-}
-
 template <typename T> bool EdgeVector<T>::tryPushBack(BaseEdge<T> *edge) {
   /*
    * Try to push the coming edge into the back of the EdgeVector, return true if

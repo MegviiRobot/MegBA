@@ -151,23 +151,16 @@ void LMAlgo<T>::solveCUDA(const BaseLinearSystemManager<T> &baseLinearSystemMana
   double v = 2.;
   while (!stop && k < this->algoOption.algoOptionLM.maxIter) {
     k++;
-    ASSERT_CUDA_NO_ERROR();
     linearSystemManager.processDiag(this->algoStatus.algoStatusLM);
-    ASSERT_CUDA_NO_ERROR();
     linearSystemManager.solve();
-    ASSERT_CUDA_NO_ERROR();
     MemoryPool::redistribute();
     cudaSetDevice(0);
-    ASSERT_CUDA_NO_ERROR();
-    double deltaXL2 = std::sqrt(l2NormPow2(linearSystemManager.deltaXPtr[0], linearSystemManager.getHessianShape()));
-    ASSERT_CUDA_NO_ERROR();
+    double deltaXL2 = std::sqrt(l2NormPow2(linearSystemManager.deltaXPtr[0], linearSystemManager.getHessianShape()));;
     double xL2 = std::sqrt(l2NormPow2(xPtr, linearSystemManager.getHessianShape()));
     if (deltaXL2 <= this->algoOption.algoOptionLM.epsilon2 * (xL2 + this->algoOption.algoOptionLM.epsilon1)) {
       break;
-    }
-    ASSERT_CUDA_NO_ERROR();
+    };
     edges.updateSchur(linearSystemManager);
-    ASSERT_CUDA_NO_ERROR();
     double rhoDenominator = computeRhoDenominator(jvBackup, linearSystemManager) - residualNormNew;
     residualNorm = residualNormNew;
     JVD<T> jv = edges.forward();
@@ -182,7 +175,7 @@ void LMAlgo<T>::solveCUDA(const BaseLinearSystemManager<T> &baseLinearSystemMana
                 << ", log error: " << std::log10(residualNormNew / 2)
                 << std::endl;
       linearSystemManager.backup();
-      edges.backupValueDevicePtrs();
+      edges.backup();
       linearSystemManager.applyUpdate(xPtr);
 
       residualNorm = residualNormNew;
@@ -196,7 +189,7 @@ void LMAlgo<T>::solveCUDA(const BaseLinearSystemManager<T> &baseLinearSystemMana
       stop = norm <= this->algoOption.algoOptionLM.epsilon1;
     } else {
       linearSystemManager.rollback();
-      const_cast<EdgeVector<T> &>(edges).rollback();
+      edges.rollback();
       residualNormNew = residualNorm;
       this->algoStatus.algoStatusLM.region /= v;
       v *= 2;
