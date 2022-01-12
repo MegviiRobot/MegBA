@@ -120,17 +120,13 @@ double computeRhoDenominator(const JVD<T> &JV, const SchurLMLinearSystemManager<
 }
 
 template <typename T>
-struct CompareAbsValue {
-  __host__ __device__ bool operator()(T lhs, T rhs) {
-    return std::abs(lhs) < std::abs(rhs);
-  }
-};
-
-template <typename T>
 inline T linfNorm(const T *vector, const std::size_t size) {
-  return std::abs(*thrust::max_element(
-      thrust::device_ptr<const T>{vector},
-      thrust::device_ptr<const T>{vector + size}, CompareAbsValue<T>{}));
+  return std::abs(
+      *thrust::max_element(thrust::device_ptr<const T>{vector},
+                           thrust::device_ptr<const T>{vector + size},
+                           [] __device__ __host__ (T lhs, T rhs) {
+                             return std::abs(lhs) < std::abs(rhs);
+                           }));
 }
 }
 template <typename T>

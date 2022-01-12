@@ -827,6 +827,7 @@ void SchurLMLinearSystemManager<T>::processDiag(
     }
   }
 }
+
 template <typename T>
 void SchurLMLinearSystemManager<T>::backup() const {
   const int hessianShape = getHessianShape();

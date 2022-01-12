@@ -285,11 +285,6 @@ template <typename T> void BaseProblem<T>::writeBack() {
 template <typename T> void BaseProblem<T>::solve() {
   makeVertices();
   algo->solve(*linearSystemManager, edges, xPtr[0]);
-//  switch (option.algoKind) {
-//  case LM:
-//    solveLM();
-//    break;
-//  }
 }
 template <typename T>
 BaseProblem<T>::~BaseProblem() = default;

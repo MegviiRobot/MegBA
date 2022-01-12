@@ -17,26 +17,28 @@
 #include "linear_system_manager/schurLM_linear_system_manager.h"
 
 #if __CUDA_ARCH__ < 600 && defined(__CUDA_ARCH__)
-union AtomicUnion{
+namespace {
+  union AtomicUnion {
     double dValue;
     unsigned long long ullValue;
-};
+  };
+}
 
 __inline__ __device__ double atomicAdd(double* address, double val) {
-    AtomicUnion old, assumed;
-    old.dValue = *address;
+  AtomicUnion old, assumed;
+  old.dValue = *address;
 
-    do {
-        assumed = old;
-        old.ullValue = atomicCAS(reinterpret_cast<unsigned long long *>(address),
-                                  assumed.ullValue,
-                                  AtomicUnion{val + assumed.dValue}.ullValue);
+  do {
+    assumed = old;
+    old.ullValue =
+        atomicCAS(reinterpret_cast<unsigned long long *>(address),
+                  assumed.ullValue, AtomicUnion{val + assumed.dValue}.ullValue);
 
-        // Note: uses integer comparison to
-        // avoid hang in case of NaN (since NaN != NaN)
-    } while (assumed.ullValue != old.ullValue);
+    // Note: uses integer comparison to
+    // avoid hang in case of NaN (since NaN != NaN)
+  } while (assumed.ullValue != old.ullValue);
 
-    return old.dValue;
+  return old.dValue;
 }
 #endif
 
@@ -83,8 +85,7 @@ __device__ void makeHll(const T *valSmem, const T valI, const int pointDim,
 }
 
 template <typename T>
-__global__ void
-makeHSchur(
+__global__ void makeHSchur(
     const T *const *const valPtrs, const T *const *const errorPtrs,
     const int *absolutePositionCamera, const int *absolutePositionPoint,
     const int *relativePositionCamera, const int *relativePositionPoint,
@@ -95,8 +96,7 @@ makeHSchur(
                  * make sure that blockDim.x % 32 == 0, if so, there won't be any thread divergence within a wrap.
    */
   const unsigned int tid = threadIdx.x + blockDim.x * blockIdx.x;
-  if (tid >= errorNum)
-    return;
+  if (tid >= errorNum) return;
 
   T *valSmem = Wrapper::Shared_Memory<T>::get();
 
@@ -113,10 +113,10 @@ makeHSchur(
     __syncthreads();
 
     if (threadIdx.y < cameraDim) {
-      makeHpp(valSmem, valI, cameraDim,
-              (absolutePositionCameraLocal * cameraDim + threadIdx.y) *
-                  cameraDim,
-              hppCsrVal);
+      makeHpp(
+          valSmem, valI, cameraDim,
+          (absolutePositionCameraLocal * cameraDim + threadIdx.y) * cameraDim,
+          hppCsrVal);
       makeHpl(
           valSmem, valI, relativePositionPointLocal, pointDim, cameraDim,
           hplCsrRowPtr[absolutePositionCameraLocal * cameraDim + threadIdx.y],
@@ -145,14 +145,12 @@ makeHSchur(
 }
 }  // namespace
 
-template <typename T, int result_weight = 1, int dest_weight = 0>
-__global__ void oursGgemvBatched(const T *csrVal, const T *r,
-                                 int batchSize,
-                                 T *dx);
-
 template <typename T>
-void EdgeVector<T>::buildLinearSystemSchurCUDA(const JVD<T> &jetEstimation, const BaseLinearSystemManager<T> &linearSystemManager) const {
-  const auto &linearSystemManagerLocal = dynamic_cast<const SchurLMLinearSystemManager<T> &>(linearSystemManager);
+void EdgeVector<T>::buildLinearSystemSchurCUDA(
+    const JVD<T> &jetEstimation,
+    const BaseLinearSystemManager<T> &linearSystemManager) const {
+  const auto &linearSystemManagerLocal =
+      dynamic_cast<const SchurLMLinearSystemManager<T> &>(linearSystemManager);
   const auto rows = jetEstimation.rows(), cols = jetEstimation.cols();
   const auto cameraDim = linearSystemManagerLocal.dim[0];
   const auto pointDim = linearSystemManagerLocal.dim[1];
@@ -169,16 +167,21 @@ void EdgeVector<T>::buildLinearSystemSchurCUDA(const JVD<T> &jetEstimation, cons
     cudaMemsetAsync(linearSystemManagerLocal.equationContainers[i].g, 0,
                     (hppRows + hllRows) * sizeof(T));
     gCameraDevice[i] = &linearSystemManagerLocal.equationContainers[i].g[0];
-    gPointDevice[i] = &linearSystemManagerLocal.equationContainers[i].g[hppRows];
+    gPointDevice[i] =
+        &linearSystemManagerLocal.equationContainers[i].g[hppRows];
     ASSERT_CUDA_NO_ERROR();
-    cudaMemsetAsync(linearSystemManagerLocal.equationContainers[i].csrVal[0], 0,
-                    linearSystemManagerLocal.equationContainers[i].nnz[0] * sizeof(T));
-    cudaMemsetAsync(linearSystemManagerLocal.equationContainers[i].csrVal[1], 0,
-                    linearSystemManagerLocal.equationContainers[i].nnz[1] * sizeof(T));
-    cudaMemsetAsync(linearSystemManagerLocal.equationContainers[i].csrVal[2], 0,
-                    linearSystemManagerLocal.equationContainers[i].nnz[2] * sizeof(T));
-    cudaMemsetAsync(linearSystemManagerLocal.equationContainers[i].csrVal[3], 0,
-                    linearSystemManagerLocal.equationContainers[i].nnz[3] * sizeof(T));
+    cudaMemsetAsync(
+        linearSystemManagerLocal.equationContainers[i].csrVal[0], 0,
+        linearSystemManagerLocal.equationContainers[i].nnz[0] * sizeof(T));
+    cudaMemsetAsync(
+        linearSystemManagerLocal.equationContainers[i].csrVal[1], 0,
+        linearSystemManagerLocal.equationContainers[i].nnz[1] * sizeof(T));
+    cudaMemsetAsync(
+        linearSystemManagerLocal.equationContainers[i].csrVal[2], 0,
+        linearSystemManagerLocal.equationContainers[i].nnz[2] * sizeof(T));
+    cudaMemsetAsync(
+        linearSystemManagerLocal.equationContainers[i].csrVal[3], 0,
+        linearSystemManagerLocal.equationContainers[i].nnz[3] * sizeof(T));
     ASSERT_CUDA_NO_ERROR();
   }
   ASSERT_CUDA_NO_ERROR();
@@ -193,7 +196,8 @@ void EdgeVector<T>::buildLinearSystemSchurCUDA(const JVD<T> &jetEstimation, cons
 
   std::vector<const T **> errorPtrs{option.deviceUsed.size()};
   std::vector<const T **> errorPtrsDevice{option.deviceUsed.size()};
-  for (int deviceRank = 0; deviceRank < option.deviceUsed.size(); ++deviceRank) {
+  for (int deviceRank = 0; deviceRank < option.deviceUsed.size();
+       ++deviceRank) {
     totalPtrs.emplace_back(new const T *[resDim * (3 + resDim)]);
     cudaSetDevice(deviceRank);
     cudaMalloc(&totalPtrsDevice[deviceRank],
@@ -234,8 +238,8 @@ void EdgeVector<T>::buildLinearSystemSchurCUDA(const JVD<T> &jetEstimation, cons
           linearSystemManagerLocal.positionContainers[i].relativePositionCamera,
           linearSystemManagerLocal.positionContainers[i].relativePositionPoint,
           linearSystemManagerLocal.equationContainers[i].csrRowPtr[0],
-          linearSystemManagerLocal.equationContainers[i].csrRowPtr[1], resDim, cameraDim, pointDim,
-          edgeNum, gCameraDevice[i], gPointDevice[i],
+          linearSystemManagerLocal.equationContainers[i].csrRowPtr[1], resDim,
+          cameraDim, pointDim, edgeNum, gCameraDevice[i], gPointDevice[i],
           linearSystemManagerLocal.equationContainers[i].csrVal[2],
           linearSystemManagerLocal.equationContainers[i].csrVal[3],
           linearSystemManagerLocal.equationContainers[i].csrVal[0],
