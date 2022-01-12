@@ -67,11 +67,7 @@ template <typename T> void SchurHessianEntrance<T>::buildRandomAccess(
     std::array<int *, 2> &csrColInd) {
   // camera and point
   std::vector<std::thread> threads;
-  std::cout << "Here: " << ra[0].size() << std::endl;
-  std::cout << "Here: " << ra[1].size() << std::endl;
-//  getchar();
   threads.emplace_back(std::thread{internalBuildRandomAccess<T>, 0, std::ref(csrRowPtr), std::ref(csrColInd), this});
-//  getchar();
   threads.emplace_back(std::thread{internalBuildRandomAccess<T>, 1, std::ref(csrRowPtr), std::ref(csrColInd), this});
   for (auto &thread : threads)
     thread.join();
@@ -207,17 +203,14 @@ template <typename T> void BaseProblem<T>::makeVertices() {
   hessianShape = getHessianShape();
   prepareUpdateData();
   setAbsolutePosition();
-  std::cout << "Here: " << schurWS.schurHessianEntrance[0].ra[0].size() << std::endl;
-  std::cout << "Here: " << schurWS.schurHessianEntrance[0].ra[1].size() << std::endl;
   if (option.useSchur) {
     std::vector<std::thread> threads;
     for (int i = 0; i < schurWS.schurHessianEntrance.size(); ++i) {
-      auto &entrance = schurWS.schurHessianEntrance[i];
-      auto &csrRowPtr = dynamic_cast<SchurLMLinearSystemManager<T> *>(linearSystemManager.get())->equationContainers[i].csrRowPtr;
-      auto &csrColInd = dynamic_cast<SchurLMLinearSystemManager<T> *>(linearSystemManager.get())->equationContainers[i].csrColInd;
       threads.emplace_back(
-          std::thread{[&, entrance_ptr = &entrance]() {
-            (*entrance_ptr).buildRandomAccess(csrRowPtr, csrColInd);
+          std::thread{[&, i=i]() {
+          schurWS.schurHessianEntrance[i].buildRandomAccess(
+                dynamic_cast<SchurLMLinearSystemManager<T> *>(linearSystemManager.get())->equationContainers[i].csrRowPtr,
+                dynamic_cast<SchurLMLinearSystemManager<T> *>(linearSystemManager.get())->equationContainers[i].csrColInd);
           }});
     }
     for (auto &thread : threads) {
