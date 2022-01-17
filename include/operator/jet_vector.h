@@ -108,15 +108,8 @@ template <typename T> class JetVector {
   const std::vector<T> &getCPURes() const { return _valueHostVec; }
   std::vector<T> &getCPURes() { return _valueHostVec; }
 
-  // TODO(Jie Ren): change to vector
   const std::vector<T *> &getCUDAGradPtr() const { return _gradDevicePtr; }
   const std::vector<T *> &getCUDAResPtr() const { return _valueDevicePtr; }
-
-  // TODO(Jie Ren): input a array vector
-  void bindValueDevicePtr(T *valueDevicePtr) {
-    _valueDevicePtr.resize(MemoryPool::getWorldSize());
-    _valueDevicePtr[0] = valueDevicePtr;
-  }
 
   void bindValueDevicePtr(std::vector<T *> &&valueDevicePtr) {
     _valueDevicePtr = std::move(valueDevicePtr); }
