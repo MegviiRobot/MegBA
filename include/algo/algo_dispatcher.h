@@ -17,8 +17,8 @@ template <typename T>
 std::unique_ptr<BaseAlgo<T>> dispatchAlgo(const BaseProblem<T> &problem) {
  const ProblemOption &option = problem.getProblemOption();
  if (option.useSchur) {
-   switch (option.solverKind) {
-     case PCG:
+   switch (option.algoKind) {
+     case LM:
        return std::unique_ptr<BaseAlgo<T>>{new LMAlgo<T>{option.algoOption}};
    }
  } else {

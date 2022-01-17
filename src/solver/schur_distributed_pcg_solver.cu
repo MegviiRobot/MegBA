@@ -653,7 +653,7 @@ void SchurDistributedPCGSolver<T>::solveCUDA() {
 //  std::vector<T *> delta_x{worldSize};
 //
 //  for (int i = 0; i < worldSize; ++i) {
-//    const auto &schurEquationContainer = this->problem.getEdges().schurEquationContainer[i];
+//    const auto &schurEquationContainer = this->problem.getEdgeVectors().schurEquationContainer[i];
 //    hppCsrVal[i] = schurEquationContainer.csrVal[2];
 //    hllCsrVal[i] = schurEquationContainer.csrVal[3];
 //    hplCsrVal[i] = schurEquationContainer.csrVal[0];

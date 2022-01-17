@@ -659,8 +659,6 @@ void SchurLMLinearSystemManager<T>::allocateResourceCUDA() {
     cudaMalloc(&extractedDiag[i][0], dim[0] * num[0] * sizeof(T));
     cudaMalloc(&extractedDiag[i][1], dim[1] * num[1] * sizeof(T));
 
-    const auto edgeNum = MemoryPool::getItemNum(i);
-
     std::array<int *, 2> csrRowPtrHost{equationContainers[i].csrRowPtr};
     cudaMalloc(&equationContainers[i].csrRowPtr[0],
                (num[0] * dim[0] + 1) * sizeof(int));
@@ -718,36 +716,6 @@ void SchurLMLinearSystemManager<T>::allocateResourceCUDA() {
 
     cudaMalloc(&equationContainers[i].g,
                (num[0] * dim[0] + num[1] * dim[1]) * sizeof(T));
-
-    int *tmpPtr;
-    tmpPtr = positionContainers[i].relativePositionCamera;
-    cudaMalloc(&positionContainers[i].relativePositionCamera,
-               edgeNum * sizeof(int));
-
-    cudaMemcpyAsync(positionContainers[i].relativePositionCamera, tmpPtr,
-                    edgeNum * sizeof(int), cudaMemcpyHostToDevice);
-    cudaLaunchHostFunc(nullptr, freeCallback, (void *)tmpPtr);
-
-    tmpPtr = positionContainers[i].relativePositionPoint;
-    cudaMalloc(&positionContainers[i].relativePositionPoint,
-               edgeNum * sizeof(int));
-    cudaMemcpyAsync(positionContainers[i].relativePositionPoint, tmpPtr,
-                    edgeNum * sizeof(int), cudaMemcpyHostToDevice);
-    cudaLaunchHostFunc(nullptr, freeCallback, (void *)tmpPtr);
-
-    tmpPtr = positionContainers[i].absolutePositionCamera;
-    cudaMalloc(&positionContainers[i].absolutePositionCamera,
-               edgeNum * sizeof(int));
-    cudaMemcpyAsync(positionContainers[i].absolutePositionCamera, tmpPtr,
-                    edgeNum * sizeof(int), cudaMemcpyHostToDevice);
-    cudaLaunchHostFunc(nullptr, freeCallback, (void *)tmpPtr);
-
-    tmpPtr = positionContainers[i].absolutePositionPoint;
-    cudaMalloc(&positionContainers[i].absolutePositionPoint,
-               edgeNum * sizeof(int));
-    cudaMemcpyAsync(positionContainers[i].absolutePositionPoint, tmpPtr,
-                    edgeNum * sizeof(int), cudaMemcpyHostToDevice);
-    cudaLaunchHostFunc(nullptr, freeCallback, (void *)tmpPtr);
   }
   for (int i = 0; i < worldSize; ++i) {
     cudaSetDevice(i);

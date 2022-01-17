@@ -139,56 +139,56 @@ __global__ void JdxpF(const T *grad, const T *deltaX, const T *res,
 
 template <typename T>
 double computeRhoDenominator(JVD<T> &JV, std::vector<T *> &schurDeltaXPtr, EdgeVector<T> &edges) {
-  T rhoDenominator{0};
-  std::vector<std::vector<T *>> Jdx;
-  Jdx.resize(MemoryPool::getWorldSize());
-  const int cameraDim = edges.schurEquationContainer[0].dim[0];
-  const int cameraNum =
-      edges.schurEquationContainer[0].nnz[2] / cameraDim / cameraDim;
-  const int pointDim = edges.schurEquationContainer[0].dim[1];
-
-  std::vector<std::vector<thrust::system::cuda::unique_eager_future<T>>>
-      futures;
-  futures.resize(MemoryPool::getWorldSize());
-
-  for (int i = 0; i < MemoryPool::getWorldSize(); ++i) {
-    cudaSetDevice(i);
-    const auto nItem = MemoryPool::getItemNum(i);
-    const auto &positionContainer =
-        edges.schurPositionAndRelationContainer[i];
-    futures[i].resize(JV.size());
-    for (int j = 0; j < JV.size(); ++j) {
-      auto &J = JV(j);
-      T *ptr;
-      MemoryPool::allocateNormal(reinterpret_cast<void **>(&ptr),
-                                 nItem * sizeof(T), i);
-      dim3 block(std::min((std::size_t)256, nItem));
-      dim3 grid((nItem - 1) / block.x + 1);
-      JdxpF<<<grid, block>>>(J.getCUDAGradPtr()[i], schurDeltaXPtr[i],
-                             J.getCUDAResPtr()[i],
-                             positionContainer.absolutePositionCamera,
-                             positionContainer.absolutePositionPoint,
-                             nItem, cameraDim, cameraNum, pointDim, ptr);
-      futures[i][j] = thrust::async::reduce(
-          thrust::cuda::par.on(nullptr), thrust::device_ptr<T>{ptr},
-          thrust::device_ptr<T>{ptr} + nItem, T(0.), thrust::plus<T>{});
-      Jdx[i].push_back(ptr);
-    }
-  }
-  for (int i = 0; i < futures.size(); ++i) {
-    for (int j = futures[i].size() - 1; j >= 0; --j) {
-      rhoDenominator += futures[i][j].get();
-      MemoryPool::deallocateNormal(reinterpret_cast<void *>(Jdx[i][j]), i);
-    }
-  }
-  return rhoDenominator;
+//  T rhoDenominator{0};
+//  std::vector<std::vector<T *>> Jdx;
+//  Jdx.resize(MemoryPool::getWorldSize());
+//  const int cameraDim = edges.schurEquationContainer[0].dim[0];
+//  const int cameraNum =
+//      edges.schurEquationContainer[0].nnz[2] / cameraDim / cameraDim;
+//  const int pointDim = edges.schurEquationContainer[0].dim[1];
+//
+//  std::vector<std::vector<thrust::system::cuda::unique_eager_future<T>>>
+//      futures;
+//  futures.resize(MemoryPool::getWorldSize());
+//
+//  for (int i = 0; i < MemoryPool::getWorldSize(); ++i) {
+//    cudaSetDevice(i);
+//    const auto nItem = MemoryPool::getItemNum(i);
+//    const auto &positionContainer =
+//        edges.schurPositionAndRelationContainer[i];
+//    futures[i].resize(JV.size());
+//    for (int j = 0; j < JV.size(); ++j) {
+//      auto &J = JV(j);
+//      T *ptr;
+//      MemoryPool::allocateNormal(reinterpret_cast<void **>(&ptr),
+//                                 nItem * sizeof(T), i);
+//      dim3 block(std::min((std::size_t)256, nItem));
+//      dim3 grid((nItem - 1) / block.x + 1);
+//      JdxpF<<<grid, block>>>(J.getCUDAGradPtr()[i], schurDeltaXPtr[i],
+//                             J.getCUDAResPtr()[i],
+//                             positionContainer.absolutePositionCamera,
+//                             positionContainer.absolutePositionPoint,
+//                             nItem, cameraDim, cameraNum, pointDim, ptr);
+//      futures[i][j] = thrust::async::reduce(
+//          thrust::cuda::par.on(nullptr), thrust::device_ptr<T>{ptr},
+//          thrust::device_ptr<T>{ptr} + nItem, T(0.), thrust::plus<T>{});
+//      Jdx[i].push_back(ptr);
+//    }
+//  }
+//  for (int i = 0; i < futures.size(); ++i) {
+//    for (int j = futures[i].size() - 1; j >= 0; --j) {
+//      rhoDenominator += futures[i][j].get();
+//      MemoryPool::deallocateNormal(reinterpret_cast<void *>(Jdx[i][j]), i);
+//    }
+//  }
+//  return rhoDenominator;
 }
 }  // namespace
 
 template <typename T>
 void BaseProblem<T>::solveLM() {
 //  const auto &cublasHandle = HandleManager::getCUBLASHandle();
-//  makeVertices();
+//  buildIndex();
 //  Eigen::Matrix<JetVector<T>, Eigen::Dynamic, Eigen::Dynamic> JV_backup;
 //  int k = 0;
 //  T residualNormNew = 0;

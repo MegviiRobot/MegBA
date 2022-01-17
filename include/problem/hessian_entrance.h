@@ -13,7 +13,7 @@
 #include "vertex/base_vertex.h"
 
 namespace MegBA {
-template <typename T> struct SchurHessianEntrance {
+template <typename T> struct HessianEntrance {
   // first is camera
   using BlockRow = std::set<BaseVertex<T> *>;
   using BlockMatrix = std::map<BaseVertex<T> *, BlockRow>;
@@ -27,7 +27,7 @@ template <typename T> struct SchurHessianEntrance {
   std::array<int, 2> dim{};
   std::size_t nnzInE{};
 
-  SchurHessianEntrance() = default;
+  HessianEntrance() = default;
 
   void buildRandomAccess(std::array<int *, 2> &csrRowPtr, std::array<int *, 2> &csrColInd);
 };

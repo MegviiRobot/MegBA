@@ -12,6 +12,7 @@
 #include "solver/solver_dispatcher.h"
 #include "linear_system_manager/schurLM_linear_system_manager.h"
 #include "linear_system_manager/linear_system_manager_dispatcher.h"
+#include "macro.h"
 
 namespace MegBA {
 namespace {
@@ -20,7 +21,7 @@ void internalBuildRandomAccess(
     int i,
     std::array<int *, 2> &csrRowPtr,
     std::array<int *, 2> &csrColInd,
-    SchurHessianEntrance<T> *schurHessianEntrance) {
+                               HessianEntrance<T> *schurHessianEntrance) {
   const auto &hEntranceBlockMatrix = schurHessianEntrance->nra[i];
   const auto dimOther = schurHessianEntrance->dim[1 ^ i];
   auto &csrRowPtrKind = csrRowPtr[i];
@@ -62,7 +63,7 @@ void internalBuildRandomAccess(
 }
 }  // namespace
 
-template <typename T> void SchurHessianEntrance<T>::buildRandomAccess(
+template <typename T> void HessianEntrance<T>::buildRandomAccess(
     std::array<int *, 2> &csrRowPtr,
     std::array<int *, 2> &csrColInd) {
   // camera and point
@@ -82,10 +83,10 @@ BaseProblem<T>::BaseProblem(const ProblemOption& option)
   if (option.N != -1 && option.nItem != -1)
     MemoryPool::resetPool(option.N, option.nItem, sizeof(T), option.deviceUsed.size());
   if (option.useSchur) {
-    schurWS.splitSize = option.nItem / option.deviceUsed.size() + 1;
-    schurWS.workingDevice = 0;
-    schurWS.schurHessianEntrance.resize(option.deviceUsed.size());
-    schurWS.schurHessianEntrance.shrink_to_fit();
+    schurWorkSpace.splitSize = option.nItem / option.deviceUsed.size() + 1;
+    schurWorkSpace.workingDevice = 0;
+    schurWorkSpace.hessianEntrance.resize(option.deviceUsed.size());
+    schurWorkSpace.hessianEntrance.shrink_to_fit();
   }
 }
 
@@ -110,17 +111,17 @@ template <typename T> void BaseProblem<T>::appendEdge(BaseEdge<T> *edge) {
 
     if (option.useSchur) {
       for (int i = 0; i < option.deviceUsed.size(); ++i) {
-        auto &workingSchurHessianEntrance = schurWS.schurHessianEntrance[i];
+        auto &workingSchurHessianEntrance = schurWorkSpace.hessianEntrance[i];
         workingSchurHessianEntrance.dim[kind] = vertex->getGradShape();
         auto &connectionBlockMatrix = workingSchurHessianEntrance.nra[kind];
         auto connectionFind = connectionBlockMatrix.find(vertex);
         if (connectionFind == connectionBlockMatrix.end()) {
           connectionFind =
               connectionBlockMatrix
-                  .emplace(vertex, typename SchurHessianEntrance<T>::BlockRow{})
+                  .emplace(vertex, typename HessianEntrance<T>::BlockRow{})
                   .first;
         }
-        if (i == schurWS.workingDevice) {
+        if (i == schurWorkSpace.workingDevice) {
           connectionFind->second.emplace(edge->operator[](1 ^ vertex_idx));
         }
       }
@@ -129,10 +130,11 @@ template <typename T> void BaseProblem<T>::appendEdge(BaseEdge<T> *edge) {
     }
   }
   if (option.useSchur) {
-    auto &workingSchurHessianEntrance = schurWS.schurHessianEntrance[schurWS.workingDevice];
+    auto &workingSchurHessianEntrance =
+        schurWorkSpace.hessianEntrance[schurWorkSpace.workingDevice];
     workingSchurHessianEntrance.counter++;
-    if (workingSchurHessianEntrance.counter >= schurWS.splitSize)
-      schurWS.workingDevice++;
+    if (workingSchurHessianEntrance.counter >= schurWorkSpace.splitSize)
+      schurWorkSpace.workingDevice++;
   } else {
     // TODO(Jie Ren): implement this
   }
@@ -199,16 +201,16 @@ template <typename T> void BaseProblem<T>::prepareUpdateData() {
   }
 }
 
-template <typename T> void BaseProblem<T>::makeVertices() {
+template <typename T> void BaseProblem<T>::buildIndex() {
   hessianShape = getHessianShape();
   prepareUpdateData();
   setAbsolutePosition();
   if (option.useSchur) {
     std::vector<std::thread> threads;
-    for (int i = 0; i < schurWS.schurHessianEntrance.size(); ++i) {
+    for (int i = 0; i < schurWorkSpace.hessianEntrance.size(); ++i) {
       threads.emplace_back(
           std::thread{[&, i=i]() {
-          schurWS.schurHessianEntrance[i].buildRandomAccess(
+        schurWorkSpace.hessianEntrance[i].buildRandomAccess(
                 dynamic_cast<SchurLMLinearSystemManager<T> *>(linearSystemManager.get())->equationContainers[i].csrRowPtr,
                 dynamic_cast<SchurLMLinearSystemManager<T> *>(linearSystemManager.get())->equationContainers[i].csrColInd);
           }});
@@ -220,11 +222,16 @@ template <typename T> void BaseProblem<T>::makeVertices() {
     // TODO(Jie Ren): implement this
   }
 
+  edges.buildPositionContainer(schurWorkSpace.hessianEntrance);
+  ASSERT_CUDA_NO_ERROR();
   linearSystemManager->buildIndex(*this);
-  edges.allocateResourcePre();
-//  edges.makeVertices();
+  ASSERT_CUDA_NO_ERROR();
+  edges.allocateResource();
+//  edges.buildIndex();
 //  edges.allocateResourcePost();
+  ASSERT_CUDA_NO_ERROR();
   edges.fitDevice();
+  ASSERT_CUDA_NO_ERROR();
 }
 
 template <typename T> void BaseProblem<T>::setAbsolutePosition() {
@@ -283,7 +290,7 @@ template <typename T> void BaseProblem<T>::writeBack() {
   delete[] hxPtr;
 }
 template <typename T> void BaseProblem<T>::solve() {
-  makeVertices();
+  buildIndex();
   algo->solve(*linearSystemManager, edges, xPtr[0]);
 }
 template <typename T>

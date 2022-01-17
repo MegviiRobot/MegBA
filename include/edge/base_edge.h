@@ -66,8 +66,12 @@ template <typename T> class EdgeVector {
 
   const ProblemOption &option;
   // kind -> worldSize
-  std::vector<std::vector<std::vector<int>>> schurRelativePosition;
-  std::vector<std::vector<std::vector<int>>> schurAbsolutePosition;
+  struct PositionContainer {
+    std::vector<int *> relativePosition{};
+    std::vector<int *> absolutePosition{};
+  };
+
+  std::vector<PositionContainer> positionContainers;
   std::vector<BaseEdge<T> *> edgesPtr;
   std::size_t nameHash{};
   std::vector<VertexVector<T>> edges;
@@ -88,28 +92,13 @@ template <typename T> class EdgeVector {
 
   explicit EdgeVector(const ProblemOption &option);
 
-  struct PositionAndRelationContainer {
-    explicit PositionAndRelationContainer(const Device &device)
-        : device(device) {}
-
-    ~PositionAndRelationContainer() { clear(); }
-
-    void clear();
-
-    void clearCUDA();
-
-    const Device &device;
-    int *relativePositionCamera{nullptr}, *relativePositionPoint{nullptr};
-    int *absolutePositionCamera{nullptr}, *absolutePositionPoint{nullptr};
-  };
-
   void backup() const;
 
   void rollback() const;
 
-  std::vector<VertexVector<T>> &getEdges() { return edges; }
+  std::vector<VertexVector<T>> &getVertexVectors() { return edges; }
 
-  const std::vector<VertexVector<T>> &getEdges() const { return edges; }
+  const std::vector<VertexVector<T>> &getVertexVectors() const { return edges; }
 
   JVD<T> &getEstimation(int i) { return edges[i].getJVEstimation(); }
 
@@ -123,13 +112,17 @@ template <typename T> class EdgeVector {
     return edges[i].getJVObservation();
   }
 
-  JVD<T> &getMeasurement() { return jetMeasurement; }
+  auto &getMeasurement() { return jetMeasurement; }
 
-  const JVD<T> &getMeasurement() const { return jetMeasurement; }
+  const auto &getMeasurement() const { return jetMeasurement; }
 
-  JVD<T> &getInformation() { return jetInformation; }
+  auto &getInformation() { return jetInformation; }
 
-  const JVD<T> &getInformation() const { return jetInformation; }
+  auto &getInformation() const { return jetInformation; }
+
+  auto &getPositionContainers() { return positionContainers; }
+
+  const auto &getPositionContainers() const { return positionContainers; }
 
   bool tryPushBack(BaseEdge<T> *edge);
 
@@ -137,21 +130,13 @@ template <typename T> class EdgeVector {
 
   unsigned int getGradShape() const;
 
-  void allocateResourcePre();
-
-  void allocateResourcePost();
-
-  void preparePositionAndRelationDataCUDA();
+  void allocateResource();
 
   void deallocateResource();
 
   void deallocateResourceCUDA();
 
-  void makeVertices();
-
-  void makeSchurVertices();
-
-  void PrepareUpdateDataCUDA();
+  void allocateResourceCUDA();
 
   JVD<T> forward() const;
 
@@ -165,6 +150,6 @@ template <typename T> class EdgeVector {
 
   void bindCUDAGradPtrs();
 
-  std::vector<PositionAndRelationContainer> schurPositionAndRelationContainer;
+  void buildPositionContainer(const std::vector<HessianEntrance<T>> &hessianEntrance);
 };
 }  // namespace MegBA

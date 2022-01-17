@@ -60,8 +60,8 @@ void EdgeVector<T>::updateSchur(const SchurLMLinearSystemManager<T> &linearSyste
     dim3 grid((nItem - 1) / block.x + 1);
     updateDeltaXTwoVertices<T><<<grid, block>>>(
         linearSystemManager.deltaXPtr[i],
-        linearSystemManager.positionContainers[i].absolutePositionCamera,
-        linearSystemManager.positionContainers[i].absolutePositionPoint, cameraDim,
+        positionContainers[i].absolutePosition[0],
+        positionContainers[i].absolutePosition[1], cameraDim,
         pointDim, cameraNum, nItem, schurValueDevicePtrs[0][i], schurValueDevicePtrs[1][i]);
   }
 }

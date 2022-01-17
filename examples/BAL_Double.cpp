@@ -7,6 +7,7 @@
 #include <cusparse_v2.h>
 #include "geo/geo.cuh"
 #include <fstream>
+#include "macro.h"
 
 template<typename T>
 class BAL_Edge : public MegBA::BaseEdge<T> {
@@ -17,16 +18,23 @@ public:
         MappedJVD angle_axisd{&Vertices[0].getEstimation()(0, 0), 3, 1};
         MappedJVD t{&Vertices[0].getEstimation()(3, 0), 3, 1};
         MappedJVD intrinsics{&Vertices[0].getEstimation()(6, 0), 3, 1};
-
+        ASSERT_CUDA_NO_ERROR();
         const auto &point_xyz = Vertices[1].getEstimation();
+        ASSERT_CUDA_NO_ERROR();
         const auto &obs_uv = this->getMeasurement();
+        ASSERT_CUDA_NO_ERROR();
         auto &&R = MegBA::geo::AngleAxisToRotationKernelMatrix(angle_axisd);
+        ASSERT_CUDA_NO_ERROR();
         Eigen::Matrix<MegBA::JetVector<T>, 3, 1> re_projection = R * point_xyz + t;
+        ASSERT_CUDA_NO_ERROR();
         re_projection = -re_projection / re_projection(2);
         // f, k1, k2 = intrinsics
+        ASSERT_CUDA_NO_ERROR();
         auto fr = MegBA::geo::RadialDistortion(re_projection, intrinsics);
+        ASSERT_CUDA_NO_ERROR();
 
         MegBA::JVD<T> error = fr * re_projection.head(2) - obs_uv;
+        ASSERT_CUDA_NO_ERROR();
         return error;
     }
 };

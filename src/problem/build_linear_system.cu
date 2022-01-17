@@ -233,10 +233,10 @@ void EdgeVector<T>::buildLinearSystemSchurCUDA(
       dim3 grid((edgeNum - 1) / block.x + 1);
       makeHSchur<<<grid, block, block.x * block.y * sizeof(T)>>>(
           valPtrsDevice[i], errorPtrsDevice[i],
-          linearSystemManagerLocal.positionContainers[i].absolutePositionCamera,
-          linearSystemManagerLocal.positionContainers[i].absolutePositionPoint,
-          linearSystemManagerLocal.positionContainers[i].relativePositionCamera,
-          linearSystemManagerLocal.positionContainers[i].relativePositionPoint,
+          positionContainers[i].absolutePosition[0],
+          positionContainers[i].absolutePosition[1],
+          positionContainers[i].relativePosition[0],
+          positionContainers[i].relativePosition[1],
           linearSystemManagerLocal.equationContainers[i].csrRowPtr[0],
           linearSystemManagerLocal.equationContainers[i].csrRowPtr[1], resDim,
           cameraDim, pointDim, edgeNum, gCameraDevice[i], gPointDevice[i],

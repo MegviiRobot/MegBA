@@ -30,8 +30,8 @@ class BaseProblem {
     // first: working index, second: body
     std::size_t splitSize{0};
     int workingDevice{0};
-    std::vector<SchurHessianEntrance<T>> schurHessianEntrance;
-  } schurWS{};
+    std::vector<HessianEntrance<T>> hessianEntrance;
+  } schurWorkSpace{};
   EdgeVector<T> edges{option};
 
   std::vector<T *> xPtr{nullptr};
@@ -48,7 +48,7 @@ class BaseProblem {
 
   unsigned int getHessianShape() const;
 
-  void makeVertices();
+  void buildIndex();
 
   void setAbsolutePosition();
 
@@ -71,11 +71,11 @@ class BaseProblem {
 
   const auto &getDeltaXPtr() const { return deltaXPtr; };
 
-  const auto &getEdges() const { return edges; };
+  const auto &getEdgeVectors() const { return edges; };
 
   const auto &getVerticesSets() const { return verticesSets; };
 
-  const auto &getSchurHessianEntrance() const { return schurWS.schurHessianEntrance; };
+  const auto &getHessianEntrance() const { return schurWorkSpace.hessianEntrance; };
 
   void appendVertex(int ID, BaseVertex<T> *vertex);
 

@@ -22,16 +22,9 @@ struct SchurLMLinearSystemManager : public BaseLinearSystemManager<T> {
     std::array<std::size_t, 4> nnz{0, 0, 0, 0};
   };
 
-  struct PositionContainer {
-    int *relativePositionCamera{nullptr}, *relativePositionPoint{nullptr};
-    int *absolutePositionCamera{nullptr}, *absolutePositionPoint{nullptr};
-  };
-
   std::vector<T *> deltaXPtrBackup;
 
   std::vector<EquationContainer> equationContainers;
-
-  std::vector<PositionContainer> positionContainers;
 
   std::array<int, 2> num{};
   std::array<int, 2> dim{};
@@ -43,11 +36,6 @@ struct SchurLMLinearSystemManager : public BaseLinearSystemManager<T> {
   }
 
   void allocateResourceCUDA();
-
-  void buildPositionContainer(
-      const std::vector<SchurHessianEntrance<T>> &schurHessianEntrance,
-      const VertexVector<T> &vertexVectorCamera,
-      const VertexVector<T> &vertexVectorPoint);
 
   void processDiag(const AlgoStatus::AlgoStatusLM &lmAlgoStatus) const;
 

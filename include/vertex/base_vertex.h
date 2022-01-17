@@ -79,8 +79,8 @@ template <typename T> struct PointVertex : public BaseVertex<T> {
 template <typename T> class VertexVector : public std::vector<BaseVertex<T> *> {
   typedef std::vector<BaseVertex<T> *> parent;
   std::map<const BaseVertex<T> *, std::size_t> _vertexCounter;
-  JVD<T> _JVEstimation;
-  JVD<T> _JVObservation;
+  JVD<T> _jvEstimation;
+  JVD<T> _jvObservation;
   int64_t _estimationRows;
   int64_t _estimationCols;
   int64_t _observationRows;
@@ -92,21 +92,21 @@ template <typename T> class VertexVector : public std::vector<BaseVertex<T> *> {
   void CPU() {
     for (int i = 0; i < _estimationRows; ++i)
       for (int j = 0; j < _estimationCols; ++j)
-        _JVEstimation(i, j).CPU();
+        _jvEstimation(i, j).CPU();
 
     for (int i = 0; i < _observationRows; ++i)
       for (int j = 0; j < _observationCols; ++j)
-        _JVObservation(i, j).CPU();
+        _jvObservation(i, j).CPU();
   }
 
   void erase(std::size_t idx) {
     for (int i = 0; i < _estimationRows; ++i)
       for (int j = 0; j < _estimationCols; ++j)
-        _JVEstimation(i, j).erase(idx);
+        _jvEstimation(i, j).erase(idx);
 
     for (int i = 0; i < _observationRows; ++i)
       for (int j = 0; j < _observationCols; ++j)
-        _JVObservation(i, j).erase(idx);
+        _jvObservation(i, j).erase(idx);
 
     auto vertex = (*this)[idx];
     auto find = _vertexCounter.find(vertex);
@@ -125,16 +125,16 @@ template <typename T> class VertexVector : public std::vector<BaseVertex<T> *> {
   void resizeJVEstimation(int64_t rows, int64_t cols) {
     _estimationRows = rows;
     _estimationCols = cols;
-    _JVEstimation.resize(rows, cols);
+    _jvEstimation.resize(rows, cols);
   }
 
   void resizeJVObservation(int64_t rows, int64_t cols) {
     _observationRows = rows;
     _observationCols = cols;
-    _JVObservation.resize(rows, cols);
+    _jvObservation.resize(rows, cols);
     for (int i = 0; i < rows; ++i) {
       for (int j = 0; j < cols; ++j) {
-        _JVObservation(i, j).set_Grad_Shape(0);
+        _jvObservation(i, j).set_Grad_Shape(0);
       }
     }
   }
@@ -144,8 +144,8 @@ template <typename T> class VertexVector : public std::vector<BaseVertex<T> *> {
       offset = -_estimationRows * _estimationCols - 1;
     for (int i = 0; i < _estimationRows; ++i) {
       for (int j = 0; j < _estimationCols; ++j) {
-        _JVEstimation(i, j).set_Grad_Shape(fixed ? 0 : N);
-        _JVEstimation(i, j).setGradPosition(
+        _jvEstimation(i, j).set_Grad_Shape(fixed ? 0 : N);
+        _jvEstimation(i, j).setGradPosition(
             fixed ? -1 : offset + i * _estimationCols + j);
       }
     }
@@ -163,50 +163,50 @@ template <typename T> class VertexVector : public std::vector<BaseVertex<T> *> {
     const auto &estimation = vertex->getEstimation();
     for (int i = 0; i < _estimationRows; ++i) {
       for (int j = 0; j < _estimationCols; ++j) {
-        _JVEstimation(i, j).appendJet(estimation(i, j));
+        _jvEstimation(i, j).appendJet(estimation(i, j));
       }
     }
 
     const auto &observation = vertex->getObservation();
     for (int i = 0; i < _observationRows; ++i) {
       for (int j = 0; j < _observationCols; ++j) {
-        _JVObservation(i, j).appendJet(observation(i, j));
+        _jvObservation(i, j).appendJet(observation(i, j));
       }
     }
   }
 
-  auto &getJVEstimation() { return _JVEstimation; }
+  auto &getJVEstimation() { return _jvEstimation; }
 
-  const auto &getJVEstimation() const { return _JVEstimation; }
+  const auto &getJVEstimation() const { return _jvEstimation; }
 
   auto getGradShape() const {
     return fixed ? 0 : _estimationRows * _estimationCols;
   }
 
-  auto &getJVObservation() { return _JVObservation; }
+  auto &getJVObservation() { return _jvObservation; }
 
-  const auto &getJVObservation() const { return _JVObservation; }
+  const auto &getJVObservation() const { return _jvObservation; }
 };
 
 template <typename T> class BaseVertexWrapper {
   friend BaseEdgeWrapper<T>;
 
   void bindJVEstimation(const JVD<T> &JVEstimation) {
-    _JVEstimation = &JVEstimation;
+    _jvEstimation = &JVEstimation;
   }
 
   void bindJVObservation(const JVD<T> &JVObservation) {
-    _JVObservation = &JVObservation;
+    _jvObservation = &JVObservation;
   }
 
-  JVD<T> const *_JVEstimation{nullptr};
+  JVD<T> const *_jvEstimation{nullptr};
 
-  JVD<T> const *_JVObservation{nullptr};
+  JVD<T> const *_jvObservation{nullptr};
 
  public:
-  JVD<T> const &getEstimation() const { return *_JVEstimation; }
+  JVD<T> const &getEstimation() const { return *_jvEstimation; }
 
-  JVD<T> const &getObservation() const { return *_JVObservation; }
+  JVD<T> const &getObservation() const { return *_jvObservation; }
 };
 
 template <typename T>
@@ -217,13 +217,13 @@ class BaseEdgeWrapper : public std::vector<BaseVertexWrapper<T>> {
 
   friend EdgeVector<T>;
 
-  JVD<T> const *_JVMeasurement{nullptr};
+  JVD<T> const *_jvMeasurement{nullptr};
 
-  JVD<T> const &getMeasurement() const { return *_JVMeasurement; }
+  JVD<T> const &getMeasurement() const { return *_jvMeasurement; }
 
   void bindEdgeVector(const EdgeVector<T> *EV) {
-    _JVMeasurement = &EV->getMeasurement();
-    parent::resize(EV->getEdges().size());
+    _jvMeasurement = &EV->getMeasurement();
+    parent::resize(EV->getVertexVectors().size());
     for (int i = 0; i < parent::size(); ++i) {
       (*this)[i].bindJVEstimation(EV->getEstimation(i));
       (*this)[i].bindJVObservation(EV->getObservation(i));
