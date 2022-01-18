@@ -142,11 +142,11 @@ template <typename T> class EdgeVector {
 
   void fitDevice();
 
-  void buildLinearSystemSchur(const JVD<T> &jetEstimation, const BaseLinearSystemManager<T> &linearSystemManager) const;
+  void buildLinearSystem(const JVD<T> &jetEstimation, const BaseLinearSystemManager<T> &linearSystemManager) const;
 
-  void buildLinearSystemSchurCUDA(const JVD<T> &jetEstimation, const BaseLinearSystemManager<T> &linearSystemManager) const;
+  void buildLinearSystemCUDA(const JVD<T> &jetEstimation, const BaseLinearSystemManager<T> &linearSystemManager) const;
 
-  void updateSchur(const SchurLMLinearSystemManager<T> &linearSystemManager) const;
+  void update(const BaseLinearSystemManager<T> &linearSystemManager) const;
 
   void bindCUDAGradPtrs();
 

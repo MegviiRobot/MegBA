@@ -146,7 +146,7 @@ __global__ void makeHSchur(
 }  // namespace
 
 template <typename T>
-void EdgeVector<T>::buildLinearSystemSchurCUDA(
+void EdgeVector<T>::buildLinearSystemCUDA(
     const JVD<T> &jetEstimation,
     const BaseLinearSystemManager<T> &linearSystemManager) const {
   const auto &linearSystemManagerLocal =
@@ -164,11 +164,10 @@ void EdgeVector<T>::buildLinearSystemSchurCUDA(
   std::vector<T *> gPointDevice{option.deviceUsed.size()};
   for (int i = 0; i < option.deviceUsed.size(); ++i) {
     cudaSetDevice(i);
-    cudaMemsetAsync(linearSystemManagerLocal.equationContainers[i].g, 0,
+    cudaMemsetAsync(linearSystemManagerLocal.g[i], 0,
                     (hppRows + hllRows) * sizeof(T));
-    gCameraDevice[i] = &linearSystemManagerLocal.equationContainers[i].g[0];
-    gPointDevice[i] =
-        &linearSystemManagerLocal.equationContainers[i].g[hppRows];
+    gCameraDevice[i] = &linearSystemManagerLocal.g[i][0];
+    gPointDevice[i] = &linearSystemManagerLocal.g[i][hppRows];
     ASSERT_CUDA_NO_ERROR();
     cudaMemsetAsync(
         linearSystemManagerLocal.equationContainers[i].csrVal[0], 0,

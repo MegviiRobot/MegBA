@@ -6,42 +6,30 @@
 **/
 
 #pragma once
-#include "base_linear_system_manager.h"
+#include "LM_linear_system_manager.h"
 #include "problem/hessian_entrance.h"
 
 namespace MegBA {
 template <typename T>
-struct SchurLMLinearSystemManager : public BaseLinearSystemManager<T> {
+struct SchurLMLinearSystemManager : public LMLinearSystemManager<T> {
   explicit SchurLMLinearSystemManager(const ProblemOption &option);
 
   struct EquationContainer {
     std::array<int *, 2> csrRowPtr{nullptr, nullptr};
     std::array<T *, 4> csrVal{nullptr, nullptr, nullptr, nullptr};
     std::array<int *, 2> csrColInd{nullptr, nullptr};
-    T *g{nullptr};
     std::array<std::size_t, 4> nnz{0, 0, 0, 0};
   };
 
-  std::vector<T *> deltaXPtrBackup;
-
   std::vector<EquationContainer> equationContainers;
-
-  std::array<int, 2> num{};
-  std::array<int, 2> dim{};
-
-  std::vector<std::array<T *, 2>> extractedDiag;
-
-  std::size_t getHessianShape() const override {
-    return dim[0] * num[0] + dim[1] * num[1];
-  }
 
   void allocateResourceCUDA();
 
-  void processDiag(const AlgoStatus::AlgoStatusLM &lmAlgoStatus) const;
+  void processDiag(const AlgoStatus::AlgoStatusLM &lmAlgoStatus) const override;
 
-  void backup() const;
+  void backup() const override;
 
-  void rollback() const;
+  void rollback() const override;
 
   void buildIndex(const BaseProblem<T> &problem) override;
 

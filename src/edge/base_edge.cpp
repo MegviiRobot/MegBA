@@ -199,10 +199,10 @@ template <typename T> void EdgeVector<T>::fitDevice() {
 }
 
 template <typename T>
-void EdgeVector<T>::buildLinearSystemSchur(const JVD<T> &jetEstimation, const BaseLinearSystemManager<T> &linearSystemManager) const {
+void EdgeVector<T>::buildLinearSystem(const JVD<T> &jetEstimation, const BaseLinearSystemManager<T> &linearSystemManager) const {
   switch (option.device) {
   case Device::CUDA: {
-    buildLinearSystemSchurCUDA(jetEstimation, linearSystemManager);
+    buildLinearSystemCUDA(jetEstimation, linearSystemManager);
     break;
   }
   default:

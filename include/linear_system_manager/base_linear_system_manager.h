@@ -14,12 +14,19 @@ template <typename T>
 struct BaseLinearSystemManager {
   explicit BaseLinearSystemManager(const ProblemOption &option)
       : solverOption{option.solverOption},
-        deltaXPtr{option.deviceUsed.size()} {}
+        deltaXPtr{option.deviceUsed.size()},
+        g{option.deviceUsed.size()} {}
 
   const SolverOption &solverOption;
   std::vector<T *> deltaXPtr;
+  std::vector<T *> g;
 
-  virtual std::size_t getHessianShape() const = 0;
+  std::array<int, 2> num{};
+  std::array<int, 2> dim{};
+
+  std::size_t getHessianShape() const {
+    return dim[0] * num[0] + dim[1] * num[1];
+  }
 
   virtual void solve() const = 0;
 

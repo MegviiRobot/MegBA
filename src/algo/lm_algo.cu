@@ -10,7 +10,7 @@
 #include <thrust/inner_product.h>
 #include <thrust/async/reduce.h>
 #include <iostream>
-#include "linear_system_manager/schurLM_linear_system_manager.h"
+#include "linear_system_manager/LM_linear_system_manager.h"
 #include "wrapper.hpp"
 #include "macro.h"
 
@@ -73,7 +73,7 @@ __global__ void JdxpF(const T *grad, const T *deltaX, const T *res,
 }
 
 template <typename T>
-double computeRhoDenominator(const JVD<T> &JV, const SchurLMLinearSystemManager<T> &linearSystemManager, const EdgeVector<T> &edges) {
+double computeRhoDenominator(const JVD<T> &JV, const BaseLinearSystemManager<T> &linearSystemManager, const EdgeVector<T> &edges) {
   T rhoDenominator{0};
   std::vector<std::vector<T *>> Jdx;
   Jdx.resize(MemoryPool::getWorldSize());
@@ -133,11 +133,11 @@ template <typename T>
 void LMAlgo<T>::solveCUDA(const BaseLinearSystemManager<T> &baseLinearSystemManager,
                           const EdgeVector<T> &edges,
                           T *xPtr) {
-  const auto &linearSystemManager = dynamic_cast<const SchurLMLinearSystemManager<T> &>(baseLinearSystemManager);
+  const auto &linearSystemManager = dynamic_cast<const LMLinearSystemManager<T> &>(baseLinearSystemManager);
   JVD<T> jvBackup;
   jvBackup = edges.forward();
   ASSERT_CUDA_NO_ERROR();
-  edges.buildLinearSystemSchur(jvBackup, linearSystemManager);
+  edges.buildLinearSystem(jvBackup, linearSystemManager);
   double residualNorm, residualNormNew = computeResidualNorm(jvBackup);
   std::cout << "start with error: " << residualNormNew / 2
             << ", log error: " << std::log10(residualNormNew / 2) << std::endl;
@@ -157,7 +157,7 @@ void LMAlgo<T>::solveCUDA(const BaseLinearSystemManager<T> &baseLinearSystemMana
     if (deltaXL2 <= this->algoOption.algoOptionLM.epsilon2 * (xL2 + this->algoOption.algoOptionLM.epsilon1)) {
       break;
     }
-    edges.updateSchur(linearSystemManager);
+    edges.update(linearSystemManager);
     double rhoDenominator = computeRhoDenominator(jvBackup, linearSystemManager, edges) - residualNormNew;
     residualNorm = residualNormNew;
     JVD<T> jv = edges.forward();
@@ -167,7 +167,7 @@ void LMAlgo<T>::solveCUDA(const BaseLinearSystemManager<T> &baseLinearSystemMana
       for (int i = 0; i < jv.size(); ++i) {
         jvBackup(i) = jv(i);
       }
-      edges.buildLinearSystemSchur(jv, linearSystemManager);
+      edges.buildLinearSystem(jv, linearSystemManager);
       std::cout << k << "-th iter error: " << residualNormNew / 2
                 << ", log error: " << std::log10(residualNormNew / 2)
                 << std::endl;
@@ -182,7 +182,7 @@ void LMAlgo<T>::solveCUDA(const BaseLinearSystemManager<T> &baseLinearSystemMana
 
       cudaSetDevice(0);
       const auto norm =
-          linfNorm(linearSystemManager.equationContainers[0].g, linearSystemManager.getHessianShape());
+          linfNorm(linearSystemManager.g[0], linearSystemManager.getHessianShape());
       stop = norm <= this->algoOption.algoOptionLM.epsilon1;
     } else {
       linearSystemManager.rollback();

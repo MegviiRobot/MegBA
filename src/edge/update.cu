@@ -42,7 +42,7 @@ updateDeltaXTwoVertices(const T *deltaX, const int *absolutePositionCamera,
 }  // namespace
 
     template <typename T>
-void EdgeVector<T>::updateSchur(const SchurLMLinearSystemManager<T> &linearSystemManager) const {
+void EdgeVector<T>::update(const BaseLinearSystemManager<T> &linearSystemManager) const {
   for (int i = 0; i < MemoryPool::getWorldSize(); ++i) {
     cudaSetDevice(i);
     cudaStreamSynchronize(schurStreamLmMemcpy[i]);

@@ -647,29 +647,26 @@ void SchurLMLinearSystemManager<T>::allocateResourceCUDA() {
   const auto worldSize = MemoryPool::getWorldSize();
   std::vector<std::array<int *, 2>> compressedCsrColInd;
   compressedCsrColInd.resize(worldSize);
-  extractedDiag.resize(worldSize);
-  deltaXPtrBackup.resize(worldSize);
-  this->deltaXPtr.resize(worldSize);
   for (int i = 0; i < worldSize; ++i) {
     cudaSetDevice(i);
-    cudaMalloc(&deltaXPtrBackup[i], getHessianShape() * sizeof(T));
-    cudaMalloc(&this->deltaXPtr[i], getHessianShape() * sizeof(T));
-    cudaMemsetAsync(this->deltaXPtr[i], 0, getHessianShape() * sizeof(T));
+    cudaMalloc(&this->deltaXPtrBackup[i], this->getHessianShape() * sizeof(T));
+    cudaMalloc(&this->deltaXPtr[i], this->getHessianShape() * sizeof(T));
+    cudaMemsetAsync(this->deltaXPtr[i], 0, this->getHessianShape() * sizeof(T));
 
-    cudaMalloc(&extractedDiag[i][0], dim[0] * num[0] * sizeof(T));
-    cudaMalloc(&extractedDiag[i][1], dim[1] * num[1] * sizeof(T));
+    cudaMalloc(&this->extractedDiag[i][0], this->dim[0] * this->num[0] * sizeof(T));
+    cudaMalloc(&this->extractedDiag[i][1], this->dim[1] * this->num[1] * sizeof(T));
 
     std::array<int *, 2> csrRowPtrHost{equationContainers[i].csrRowPtr};
     cudaMalloc(&equationContainers[i].csrRowPtr[0],
-               (num[0] * dim[0] + 1) * sizeof(int));
+               (this->num[0] * this->dim[0] + 1) * sizeof(int));
     cudaMalloc(&equationContainers[i].csrRowPtr[1],
-               (num[1] * dim[1] + 1) * sizeof(int));
+               (this->num[1] * this->dim[1] + 1) * sizeof(int));
     cudaMemcpyAsync(equationContainers[i].csrRowPtr[0], csrRowPtrHost[0],
-                    (num[0] * dim[0] + 1) * sizeof(int),
+                    (this->num[0] * this->dim[0] + 1) * sizeof(int),
                     cudaMemcpyHostToDevice);
     cudaLaunchHostFunc(nullptr, freeCallback, (void *)csrRowPtrHost[0]);
     cudaMemcpyAsync(equationContainers[i].csrRowPtr[1], csrRowPtrHost[1],
-                    (num[1] * dim[1] + 1) * sizeof(int),
+                    (this->num[1] * this->dim[1] + 1) * sizeof(int),
                     cudaMemcpyHostToDevice);
     cudaLaunchHostFunc(nullptr, freeCallback, (void *)csrRowPtrHost[1]);
 
@@ -679,7 +676,7 @@ void SchurLMLinearSystemManager<T>::allocateResourceCUDA() {
     cudaMalloc(&equationContainers[i].csrColInd[0],
                equationContainers[i].nnz[0] * sizeof(int));
     {
-      const std::size_t entriesInRows = equationContainers[i].nnz[0] / dim[1];
+      const std::size_t entriesInRows = equationContainers[i].nnz[0] / this->dim[1];
       dim3 block(std::min(entriesInRows, (std::size_t)512));
       dim3 grid((entriesInRows - 1) / block.x + 1);
       cudaMalloc(&compressedCsrColInd[i][0], entriesInRows * sizeof(int));
@@ -687,7 +684,7 @@ void SchurLMLinearSystemManager<T>::allocateResourceCUDA() {
                       entriesInRows * sizeof(int), cudaMemcpyHostToDevice);
       cudaLaunchHostFunc(nullptr, freeCallback, (void *)csrColIndHost[0]);
       broadCastCsrColInd<T>
-          <<<grid, block>>>(compressedCsrColInd[i][0], dim[1], entriesInRows,
+          <<<grid, block>>>(compressedCsrColInd[i][0], this->dim[1], entriesInRows,
                             equationContainers[i].csrColInd[0]);
     }
 
@@ -696,7 +693,7 @@ void SchurLMLinearSystemManager<T>::allocateResourceCUDA() {
     cudaMalloc(&equationContainers[i].csrColInd[1],
                equationContainers[i].nnz[1] * sizeof(int));
     {
-      const std::size_t entriesInRows = equationContainers[i].nnz[1] / dim[0];
+      const std::size_t entriesInRows = equationContainers[i].nnz[1] / this->dim[0];
       dim3 block(std::min(entriesInRows, (std::size_t)512));
       dim3 grid((entriesInRows - 1) / block.x + 1);
       cudaMalloc(&compressedCsrColInd[i][1], entriesInRows * sizeof(int));
@@ -704,7 +701,7 @@ void SchurLMLinearSystemManager<T>::allocateResourceCUDA() {
                       entriesInRows * sizeof(int), cudaMemcpyHostToDevice);
       cudaLaunchHostFunc(nullptr, freeCallback, (void *)csrColIndHost[1]);
       broadCastCsrColInd<T>
-          <<<grid, block>>>(compressedCsrColInd[i][1], dim[0], entriesInRows,
+          <<<grid, block>>>(compressedCsrColInd[i][1], this->dim[0], entriesInRows,
                             equationContainers[i].csrColInd[1]);
     }
 
@@ -714,8 +711,8 @@ void SchurLMLinearSystemManager<T>::allocateResourceCUDA() {
     cudaMalloc(&equationContainers[i].csrVal[3],
                equationContainers[i].nnz[3] * sizeof(T));  // hll
 
-    cudaMalloc(&equationContainers[i].g,
-               (num[0] * dim[0] + num[1] * dim[1]) * sizeof(T));
+    cudaMalloc(&this->g[i],
+               (this->num[0] * this->dim[0] + this->num[1] * this->dim[1]) * sizeof(T));
   }
   for (int i = 0; i < worldSize; ++i) {
     cudaSetDevice(i);
@@ -779,39 +776,39 @@ void SchurLMLinearSystemManager<T>::processDiag(
     for (int i = 0; i < MemoryPool::getWorldSize(); ++i) {
       cudaSetDevice(i);
       auto &container = equationContainers[i];
-      RecoverDiag(extractedDiag[i][0], T(1. / lmAlgoStatus.region), num[0],
-                  dim[0], container.csrVal[2]);
-      RecoverDiag(extractedDiag[i][1], T(1. / lmAlgoStatus.region), num[1],
-                  dim[1], container.csrVal[3]);
+      RecoverDiag(this->extractedDiag[i][0], T(1. / lmAlgoStatus.region), this->num[0],
+                  this->dim[0], container.csrVal[2]);
+      RecoverDiag(this->extractedDiag[i][1], T(1. / lmAlgoStatus.region), this->num[1],
+                  this->dim[1], container.csrVal[3]);
     }
   } else {
     for (int i = 0; i < MemoryPool::getWorldSize(); ++i) {
       cudaSetDevice(i);
       auto &container = equationContainers[i];
-      extractOldAndApplyNewDiag(T(1. / lmAlgoStatus.region), num[0], dim[0],
-                                container.csrVal[2], extractedDiag[i][0]);
-      extractOldAndApplyNewDiag(T(1. / lmAlgoStatus.region), num[1], dim[1],
-                                container.csrVal[3], extractedDiag[i][1]);
+      extractOldAndApplyNewDiag(T(1. / lmAlgoStatus.region), this->num[0], this->dim[0],
+                                container.csrVal[2], this->extractedDiag[i][0]);
+      extractOldAndApplyNewDiag(T(1. / lmAlgoStatus.region), this->num[1], this->dim[1],
+                                container.csrVal[3], this->extractedDiag[i][1]);
     }
   }
 }
 
 template <typename T>
 void SchurLMLinearSystemManager<T>::backup() const {
-  const int hessianShape = getHessianShape();
+  const int hessianShape = this->getHessianShape();
   for (int i = 0; i < MemoryPool::getWorldSize(); ++i) {
     cudaSetDevice(i);
-    cudaMemcpyAsync(deltaXPtrBackup[i], this->deltaXPtr[i],
+    cudaMemcpyAsync(this->deltaXPtrBackup[i], this->deltaXPtr[i],
                     hessianShape * sizeof(T), cudaMemcpyDeviceToDevice);
   }
 }
 
 template <typename T>
 void SchurLMLinearSystemManager<T>::rollback() const {
-  const int hessianShape = getHessianShape();
+  const int hessianShape = this->getHessianShape();
   for (int i = 0; i < MemoryPool::getWorldSize(); ++i) {
     cudaSetDevice(i);
-    cudaMemcpyAsync(this->deltaXPtr[i], deltaXPtrBackup[i],
+    cudaMemcpyAsync(this->deltaXPtr[i], this->deltaXPtrBackup[i],
                     hessianShape * sizeof(T), cudaMemcpyDeviceToDevice);
   }
 }
@@ -841,22 +838,22 @@ void SchurLMLinearSystemManager<T>::solve() const {
     hlpCsrColInd[i] = equationContainers[i].csrColInd[1];
     hplCsrRowPtr[i] = equationContainers[i].csrRowPtr[0];
     hlpCsrRowPtr[i] = equationContainers[i].csrRowPtr[1];
-    g[i] = equationContainers[i].g;
+    g[i] = this->g[i];
     hplNnz[i] = equationContainers[i].nnz[0];
     deltaX[i] = this->deltaXPtr[i];
   }
 
   SchurPCGSolverDistributed(this->solverOption.solverOptionPCG, hppCsrVal,
                             hllCsrVal, hplCsrVal, hplCsrColInd, hplCsrRowPtr,
-                            hlpCsrVal, hlpCsrColInd, hlpCsrRowPtr, g, dim[0],
-                            num[0], dim[1], num[1], hplNnz, dim[0] * num[0],
-                            dim[1] * num[1], deltaX);
+                            hlpCsrVal, hlpCsrColInd, hlpCsrRowPtr, g, this->dim[0],
+                            this->num[0], this->dim[1], this->num[1], hplNnz, this->dim[0] * this->num[0],
+                            this->dim[1] * this->num[1], deltaX);
 }
 
 template <typename T>
 void SchurLMLinearSystemManager<T>::applyUpdate(T *xPtr) const {
   const auto &cublasHandle = HandleManager::getCUBLASHandle();
-  const int hessianShape = getHessianShape();
+  const int hessianShape = this->getHessianShape();
   const T one = 1.;
   cudaSetDevice(0);
   Wrapper::cublasGaxpy::call(cublasHandle[0], hessianShape, &one,

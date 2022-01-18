@@ -197,7 +197,7 @@ void BaseProblem<T>::solveLM() {
 //  edges.backup();
 //  JV_backup = edges.forward();
 //  if (option.useSchur) {
-//    edges.buildLinearSystemSchur(JV_backup, *linearSystemManager);
+//    edges.buildLinearSystem(JV_backup, *linearSystemManager);
 //  } else {
 //    // TODO(Jie Ren): implement this
 //  }
@@ -299,7 +299,7 @@ void BaseProblem<T>::solveLM() {
 //      break;
 //    } else {
 //      if (option.useSchur) {
-//        edges.updateSchur(deltaXPtr);
+//        edges.update(deltaXPtr);
 //      } else {
 //        // TODO(Jie Ren): implement this
 //      }
@@ -342,7 +342,7 @@ void BaseProblem<T>::solveLM() {
 //        for (int i = 0; i < JV.size(); ++i)
 //          JV_backup(i) = JV(i);
 //        if (option.useSchur) {
-//          edges.buildLinearSystemSchur(JV, *linearSystemManager);
+//          edges.buildLinearSystem(JV, *linearSystemManager);
 //        } else {
 //          // TODO(Jie Ren): implement this
 //        }
