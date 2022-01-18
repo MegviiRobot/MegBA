@@ -12,11 +12,6 @@
 namespace MegBA {
 template <typename T>
 struct LMLinearSystem : public BaseLinearSystem<T> {
-  explicit LMLinearSystem(const ProblemOption &option)
-      : BaseLinearSystem<T>(option),
-        deltaXPtrBackup{option.deviceUsed.size()},
-        extractedDiag{option.deviceUsed.size()} {}
-
   std::vector<T *> deltaXPtrBackup;
 
   std::vector<std::array<T *, 2>> extractedDiag;
@@ -27,5 +22,11 @@ struct LMLinearSystem : public BaseLinearSystem<T> {
   virtual void backup() const = 0;
 
   virtual void rollback() const = 0;
+
+ protected:
+  explicit LMLinearSystem(const ProblemOption &option)
+      : BaseLinearSystem<T>(option),
+        deltaXPtrBackup{option.deviceUsed.size()},
+        extractedDiag{option.deviceUsed.size()} {}
 };
 }

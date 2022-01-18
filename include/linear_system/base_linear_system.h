@@ -7,15 +7,13 @@
 
 #pragma once
 #include <vector>
+#include "problem/base_problem.h"
 #include "algo/base_algo.h"
 
 namespace MegBA {
 template <typename T>
 struct BaseLinearSystem {
-  explicit BaseLinearSystem(const ProblemOption &option)
-      : solverOption{option.solverOption},
-        deltaXPtr{option.deviceUsed.size()},
-        g{option.deviceUsed.size()} {}
+  static std::unique_ptr<BaseLinearSystem<T>> dispatch(const BaseProblem<T> *problem);
 
   const SolverOption &solverOption;
   std::vector<T *> deltaXPtr;
@@ -33,5 +31,8 @@ struct BaseLinearSystem {
   virtual void buildIndex(const BaseProblem<T> &problem) = 0;
 
   virtual void applyUpdate(T *xPtr) const = 0;
+
+ protected:
+  explicit BaseLinearSystem(const ProblemOption &option);
 };
 }

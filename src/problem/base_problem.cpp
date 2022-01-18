@@ -8,8 +8,9 @@
 #include "problem/base_problem.h"
 #include <thread>
 #include <iostream>
-#include "algo/algo_dispatcher.h"
-#include "linear_system/linear_system_dispatcher.h"
+#include "algo/base_algo.h"
+#include "linear_system/base_linear_system.h"
+#include "linear_system/schurLM_linear_system.h"
 #include "macro.h"
 
 namespace MegBA {
@@ -75,8 +76,8 @@ template <typename T> void HessianEntrance<T>::buildRandomAccess(
 template <typename T>
 BaseProblem<T>::BaseProblem(const ProblemOption& option)
     : option(option),
-      algo(dispatchAlgo(*this)),
-      linearSystem(dispatchLinearSystem(*this)) {
+      algo(BaseAlgo<T>::dispatch(this)),
+      linearSystem(BaseLinearSystem<T>::dispatch(this)) {
   if (option.N != -1 && option.nItem != -1)
     MemoryPool::resetPool(option.N, option.nItem, sizeof(T), option.deviceUsed.size());
   if (option.useSchur) {

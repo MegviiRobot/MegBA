@@ -8,7 +8,6 @@
 #pragma once
 #include <memory>
 #include "common.h"
-#include "problem/base_problem.h"
 
 namespace MegBA {
 struct AlgoStatus {
@@ -19,27 +18,20 @@ struct AlgoStatus {
 };
 
 template <typename T>
-class BaseAlgo {
- protected:
-  const AlgoOption &algoOption;
-  AlgoStatus algoStatus{};
-
- public:
-  explicit BaseAlgo(const AlgoOption &algoOption) : algoOption{algoOption} {}
+struct BaseAlgo {
+  static std::unique_ptr<BaseAlgo<T>> dispatch(const BaseProblem<T> *problem);
 
   void solve(const BaseLinearSystem<T> &baseLinearSystem,
-             const EdgeVector<T> &edges, T *xPtr) {
-    switch (algoOption.device) {
-      case CUDA:
-        solveCUDA(baseLinearSystem, edges, xPtr);
-        break;
-      default:
-        throw std::runtime_error("Not implemented");
-    }
-  };
+             const EdgeVector<T> &edges, T *xPtr);
 
   virtual void solveCUDA(
       const BaseLinearSystem<T> &baseLinearSystem,
       const EdgeVector<T> &edges, T *xPtr) = 0;
+
+ protected:
+  explicit BaseAlgo(const AlgoOption &algoOption);
+
+  const AlgoOption &algoOption;
+  AlgoStatus algoStatus{};
 };
 }

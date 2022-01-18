@@ -10,8 +10,7 @@
 
 namespace MegBA {
 template <typename T>
-class LMAlgo : public BaseAlgo<T> {
- public:
+struct LMAlgo : public BaseAlgo<T> {
   explicit LMAlgo(const AlgoOption &algoOption);
 
   void solveCUDA(const BaseLinearSystem<T> &baseLinearSystem,
