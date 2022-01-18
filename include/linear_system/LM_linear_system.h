@@ -6,14 +6,14 @@
 **/
 
 #pragma once
-#include "base_linear_system_manager.h"
+#include "base_linear_system.h"
 #include "problem/hessian_entrance.h"
 
 namespace MegBA {
 template <typename T>
-struct LMLinearSystemManager : public BaseLinearSystemManager<T> {
-  explicit LMLinearSystemManager(const ProblemOption &option)
-      : BaseLinearSystemManager<T>(option),
+struct LMLinearSystem : public BaseLinearSystem<T> {
+  explicit LMLinearSystem(const ProblemOption &option)
+      : BaseLinearSystem<T>(option),
         deltaXPtrBackup{option.deviceUsed.size()},
         extractedDiag{option.deviceUsed.size()} {}
 

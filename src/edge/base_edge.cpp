@@ -8,7 +8,7 @@
 #include "edge/base_edge.h"
 #include <omp.h>
 #include <utility>
-#include "linear_system_manager/schurLM_linear_system_manager.h"
+#include "linear_system/schurLM_linear_system.h"
 
 namespace MegBA {
 template <typename T> void BaseEdge<T>::appendVertex(BaseVertex<T> *vertex) {
@@ -199,10 +199,10 @@ template <typename T> void EdgeVector<T>::fitDevice() {
 }
 
 template <typename T>
-void EdgeVector<T>::buildLinearSystem(const JVD<T> &jetEstimation, const BaseLinearSystemManager<T> &linearSystemManager) const {
+void EdgeVector<T>::buildLinearSystem(const JVD<T> &jetEstimation, const BaseLinearSystem<T> &linearSystem) const {
   switch (option.device) {
   case Device::CUDA: {
-    buildLinearSystemCUDA(jetEstimation, linearSystemManager);
+    buildLinearSystemCUDA(jetEstimation, linearSystem);
     break;
   }
   default:

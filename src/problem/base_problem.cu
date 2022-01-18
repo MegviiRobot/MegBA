@@ -13,7 +13,7 @@
 #include "resource/handle_manager.h"
 #include "macro.h"
 #include "solver/base_solver.h"
-#include "linear_system_manager/schurLM_linear_system_manager.h"
+#include "linear_system/schurLM_linear_system.h"
 
 namespace MegBA {
 template <typename T> void BaseProblem<T>::deallocateResourceCUDA() {
@@ -197,7 +197,7 @@ void BaseProblem<T>::solveLM() {
 //  edges.backup();
 //  JV_backup = edges.forward();
 //  if (option.useSchur) {
-//    edges.buildLinearSystem(JV_backup, *linearSystemManager);
+//    edges.buildLinearSystem(JV_backup, *linearSystem);
 //  } else {
 //    // TODO(Jie Ren): implement this
 //  }
@@ -342,7 +342,7 @@ void BaseProblem<T>::solveLM() {
 //        for (int i = 0; i < JV.size(); ++i)
 //          JV_backup(i) = JV(i);
 //        if (option.useSchur) {
-//          edges.buildLinearSystem(JV, *linearSystemManager);
+//          edges.buildLinearSystem(JV, *linearSystem);
 //        } else {
 //          // TODO(Jie Ren): implement this
 //        }

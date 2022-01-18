@@ -40,7 +40,7 @@ class BaseProblem {
 
   const std::unique_ptr<BaseAlgo<T>> algo;
   const std::unique_ptr<BaseSolver<T>> solver;
-  const std::unique_ptr<BaseLinearSystemManager<T>> linearSystemManager;
+  const std::unique_ptr<BaseLinearSystem<T>> linearSystem;
 
   void deallocateResource();
 

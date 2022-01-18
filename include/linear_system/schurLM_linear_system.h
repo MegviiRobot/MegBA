@@ -6,13 +6,13 @@
 **/
 
 #pragma once
-#include "LM_linear_system_manager.h"
+#include "LM_linear_system.h"
 #include "problem/hessian_entrance.h"
 
 namespace MegBA {
 template <typename T>
-struct SchurLMLinearSystemManager : public LMLinearSystemManager<T> {
-  explicit SchurLMLinearSystemManager(const ProblemOption &option);
+struct SchurLMLinearSystem : public LMLinearSystem<T> {
+  explicit SchurLMLinearSystem(const ProblemOption &option);
 
   struct EquationContainer {
     std::array<int *, 2> csrRowPtr{nullptr, nullptr};

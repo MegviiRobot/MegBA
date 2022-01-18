@@ -27,11 +27,11 @@ class BaseAlgo {
  public:
   explicit BaseAlgo(const AlgoOption &algoOption) : algoOption{algoOption} {}
 
-  void solve(const BaseLinearSystemManager<T> &baseLinearSystemManager,
+  void solve(const BaseLinearSystem<T> &baseLinearSystem,
              const EdgeVector<T> &edges, T *xPtr) {
     switch (algoOption.device) {
       case CUDA:
-        solveCUDA(baseLinearSystemManager, edges, xPtr);
+        solveCUDA(baseLinearSystem, edges, xPtr);
         break;
       default:
         throw std::runtime_error("Not implemented");
@@ -39,7 +39,7 @@ class BaseAlgo {
   };
 
   virtual void solveCUDA(
-      const BaseLinearSystemManager<T> &baseLinearSystemManager,
+      const BaseLinearSystem<T> &baseLinearSystem,
       const EdgeVector<T> &edges, T *xPtr) = 0;
 };
 }

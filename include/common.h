@@ -71,7 +71,7 @@ template <typename T>
 class BaseSolver;
 
 template <typename T>
-class BaseLinearSystemManager;
+class BaseLinearSystem;
 
 template <typename T>
 using JVD = Eigen::Matrix<JetVector<T>, Eigen::Dynamic, Eigen::Dynamic>;

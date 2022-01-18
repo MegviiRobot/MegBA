@@ -5,7 +5,7 @@
 *
 **/
 
-#include "linear_system_manager/schurLM_linear_system_manager.h"
+#include "linear_system/schurLM_linear_system.h"
 #include "wrapper.hpp"
 
 namespace MegBA {
@@ -643,7 +643,7 @@ bool SchurPCGSolverDistributed(
 }  // namespace
 
 template <typename T>
-void SchurLMLinearSystemManager<T>::allocateResourceCUDA() {
+void SchurLMLinearSystem<T>::allocateResourceCUDA() {
   const auto worldSize = MemoryPool::getWorldSize();
   std::vector<std::array<int *, 2>> compressedCsrColInd;
   compressedCsrColInd.resize(worldSize);
@@ -770,7 +770,7 @@ void extractOldAndApplyNewDiag(const T a, const int batchSize, const int dim,
 }
 
 template <typename T>
-void SchurLMLinearSystemManager<T>::processDiag(
+void SchurLMLinearSystem<T>::processDiag(
     const AlgoStatus::AlgoStatusLM &lmAlgoStatus) const {
   if (lmAlgoStatus.recoverDiag) {
     for (int i = 0; i < MemoryPool::getWorldSize(); ++i) {
@@ -794,7 +794,7 @@ void SchurLMLinearSystemManager<T>::processDiag(
 }
 
 template <typename T>
-void SchurLMLinearSystemManager<T>::backup() const {
+void SchurLMLinearSystem<T>::backup() const {
   const int hessianShape = this->getHessianShape();
   for (int i = 0; i < MemoryPool::getWorldSize(); ++i) {
     cudaSetDevice(i);
@@ -804,7 +804,7 @@ void SchurLMLinearSystemManager<T>::backup() const {
 }
 
 template <typename T>
-void SchurLMLinearSystemManager<T>::rollback() const {
+void SchurLMLinearSystem<T>::rollback() const {
   const int hessianShape = this->getHessianShape();
   for (int i = 0; i < MemoryPool::getWorldSize(); ++i) {
     cudaSetDevice(i);
@@ -814,7 +814,7 @@ void SchurLMLinearSystemManager<T>::rollback() const {
 }
 
 template <typename T>
-void SchurLMLinearSystemManager<T>::solve() const {
+void SchurLMLinearSystem<T>::solve() const {
   const std::size_t worldSize = MemoryPool::getWorldSize();
   std::vector<T *> hppCsrVal{worldSize};
   std::vector<T *> hllCsrVal{worldSize};
@@ -851,7 +851,7 @@ void SchurLMLinearSystemManager<T>::solve() const {
 }
 
 template <typename T>
-void SchurLMLinearSystemManager<T>::applyUpdate(T *xPtr) const {
+void SchurLMLinearSystem<T>::applyUpdate(T *xPtr) const {
   const auto &cublasHandle = HandleManager::getCUBLASHandle();
   const int hessianShape = this->getHessianShape();
   const T one = 1.;
@@ -860,6 +860,6 @@ void SchurLMLinearSystemManager<T>::applyUpdate(T *xPtr) const {
                              this->deltaXPtr[0], 1, xPtr, 1);
 }
 
-template struct SchurLMLinearSystemManager<double>;
-template struct SchurLMLinearSystemManager<float>;
+template struct SchurLMLinearSystem<double>;
+template struct SchurLMLinearSystem<float>;
 }

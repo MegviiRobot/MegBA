@@ -1,0 +1,3 @@
+add_library(schurLM_linear_system SHARED schurLM_linear_system.cpp)
+cuda_add_library(schurLM_linear_system_CUDA SHARED schurLM_linear_system.cu)
+target_link_libraries(schurLM_linear_system schurLM_linear_system_CUDA)

@@ -10,7 +10,7 @@
 #include <thrust/inner_product.h>
 #include <thrust/async/reduce.h>
 #include <iostream>
-#include "linear_system_manager/LM_linear_system_manager.h"
+#include "linear_system/LM_linear_system.h"
 #include "wrapper.hpp"
 #include "macro.h"
 
@@ -73,13 +73,13 @@ __global__ void JdxpF(const T *grad, const T *deltaX, const T *res,
 }
 
 template <typename T>
-double computeRhoDenominator(const JVD<T> &JV, const BaseLinearSystemManager<T> &linearSystemManager, const EdgeVector<T> &edges) {
+double computeRhoDenominator(const JVD<T> &JV, const BaseLinearSystem<T> &linearSystem, const EdgeVector<T> &edges) {
   T rhoDenominator{0};
   std::vector<std::vector<T *>> Jdx;
   Jdx.resize(MemoryPool::getWorldSize());
-  const int cameraDim = linearSystemManager.dim[0];
-  const int cameraNum = linearSystemManager.num[0];
-  const int pointDim = linearSystemManager.dim[1];
+  const int cameraDim = linearSystem.dim[0];
+  const int cameraNum = linearSystem.num[0];
+  const int pointDim = linearSystem.dim[1];
 
   std::vector<std::vector<thrust::system::cuda::unique_eager_future<T>>>
       futures;
@@ -98,7 +98,7 @@ double computeRhoDenominator(const JVD<T> &JV, const BaseLinearSystemManager<T> 
       dim3 block(std::min((std::size_t)256, nItem));
       dim3 grid((nItem - 1) / block.x + 1);
       ASSERT_CUDA_NO_ERROR();
-      JdxpF<<<grid, block>>>(J.getCUDAGradPtr()[i], linearSystemManager.deltaXPtr[i],
+      JdxpF<<<grid, block>>>(J.getCUDAGradPtr()[i], linearSystem.deltaXPtr[i],
                              J.getCUDAResPtr()[i],
                              positionContainer.absolutePosition[0],
                              positionContainer.absolutePosition[1], nItem,
@@ -130,14 +130,14 @@ inline T linfNorm(const T *vector, const std::size_t size) {
 }
 }
 template <typename T>
-void LMAlgo<T>::solveCUDA(const BaseLinearSystemManager<T> &baseLinearSystemManager,
+void LMAlgo<T>::solveCUDA(const BaseLinearSystem<T> &baseLinearSystem,
                           const EdgeVector<T> &edges,
                           T *xPtr) {
-  const auto &linearSystemManager = dynamic_cast<const LMLinearSystemManager<T> &>(baseLinearSystemManager);
+  const auto &linearSystem = dynamic_cast<const LMLinearSystem<T> &>(baseLinearSystem);
   JVD<T> jvBackup;
   jvBackup = edges.forward();
   ASSERT_CUDA_NO_ERROR();
-  edges.buildLinearSystem(jvBackup, linearSystemManager);
+  edges.buildLinearSystem(jvBackup, linearSystem);
   double residualNorm, residualNormNew = computeResidualNorm(jvBackup);
   std::cout << "start with error: " << residualNormNew / 2
             << ", log error: " << std::log10(residualNormNew / 2) << std::endl;
@@ -148,17 +148,17 @@ void LMAlgo<T>::solveCUDA(const BaseLinearSystemManager<T> &baseLinearSystemMana
   double v = 2.;
   while (!stop && k < this->algoOption.algoOptionLM.maxIter) {
     k++;
-    linearSystemManager.processDiag(this->algoStatus.algoStatusLM);
-    linearSystemManager.solve();
+    linearSystem.processDiag(this->algoStatus.algoStatusLM);
+    linearSystem.solve();
     MemoryPool::redistribute();
     cudaSetDevice(0);
-    double deltaXL2 = std::sqrt(l2NormPow2(linearSystemManager.deltaXPtr[0], linearSystemManager.getHessianShape()));;
-    double xL2 = std::sqrt(l2NormPow2(xPtr, linearSystemManager.getHessianShape()));
+    double deltaXL2 = std::sqrt(l2NormPow2(linearSystem.deltaXPtr[0], linearSystem.getHessianShape()));;
+    double xL2 = std::sqrt(l2NormPow2(xPtr, linearSystem.getHessianShape()));
     if (deltaXL2 <= this->algoOption.algoOptionLM.epsilon2 * (xL2 + this->algoOption.algoOptionLM.epsilon1)) {
       break;
     }
-    edges.update(linearSystemManager);
-    double rhoDenominator = computeRhoDenominator(jvBackup, linearSystemManager, edges) - residualNormNew;
+    edges.update(linearSystem);
+    double rhoDenominator = computeRhoDenominator(jvBackup, linearSystem, edges) - residualNormNew;
     residualNorm = residualNormNew;
     JVD<T> jv = edges.forward();
     residualNormNew = computeResidualNorm(jv);
@@ -167,13 +167,13 @@ void LMAlgo<T>::solveCUDA(const BaseLinearSystemManager<T> &baseLinearSystemMana
       for (int i = 0; i < jv.size(); ++i) {
         jvBackup(i) = jv(i);
       }
-      edges.buildLinearSystem(jv, linearSystemManager);
+      edges.buildLinearSystem(jv, linearSystem);
       std::cout << k << "-th iter error: " << residualNormNew / 2
                 << ", log error: " << std::log10(residualNormNew / 2)
                 << std::endl;
-      linearSystemManager.backup();
+      linearSystem.backup();
       edges.backup();
-      linearSystemManager.applyUpdate(xPtr);
+      linearSystem.applyUpdate(xPtr);
 
       residualNorm = residualNormNew;
       this->algoStatus.algoStatusLM.region /= std::max(1. / 3., 1 - std::pow(2 * rho - 1, 3));
@@ -182,10 +182,10 @@ void LMAlgo<T>::solveCUDA(const BaseLinearSystemManager<T> &baseLinearSystemMana
 
       cudaSetDevice(0);
       const auto norm =
-          linfNorm(linearSystemManager.g[0], linearSystemManager.getHessianShape());
+          linfNorm(linearSystem.g[0], linearSystem.getHessianShape());
       stop = norm <= this->algoOption.algoOptionLM.epsilon1;
     } else {
-      linearSystemManager.rollback();
+      linearSystem.rollback();
       edges.rollback();
       residualNormNew = residualNorm;
       this->algoStatus.algoStatusLM.region /= v;

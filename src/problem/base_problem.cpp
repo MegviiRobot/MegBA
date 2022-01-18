@@ -10,8 +10,8 @@
 #include <iostream>
 #include "algo/algo_dispatcher.h"
 #include "solver/solver_dispatcher.h"
-#include "linear_system_manager/schurLM_linear_system_manager.h"
-#include "linear_system_manager/linear_system_manager_dispatcher.h"
+#include "linear_system/schurLM_linear_system.h"
+#include "linear_system/linear_system_dispatcher.h"
 #include "macro.h"
 
 namespace MegBA {
@@ -79,7 +79,7 @@ BaseProblem<T>::BaseProblem(const ProblemOption& option)
     : option(option),
       algo(dispatchAlgo(*this)),
       solver(dispatchSolver(*this)),
-      linearSystemManager(dispatchLinearSystemManager(*this)) {
+      linearSystem(dispatchLinearSystem(*this)) {
   if (option.N != -1 && option.nItem != -1)
     MemoryPool::resetPool(option.N, option.nItem, sizeof(T), option.deviceUsed.size());
   if (option.useSchur) {
@@ -211,8 +211,8 @@ template <typename T> void BaseProblem<T>::buildIndex() {
       threads.emplace_back(
           std::thread{[&, i=i]() {
         schurWorkSpace.hessianEntrance[i].buildRandomAccess(
-                dynamic_cast<SchurLMLinearSystemManager<T> *>(linearSystemManager.get())->equationContainers[i].csrRowPtr,
-                dynamic_cast<SchurLMLinearSystemManager<T> *>(linearSystemManager.get())->equationContainers[i].csrColInd);
+                dynamic_cast<SchurLMLinearSystem<T> *>(linearSystem.get())->equationContainers[i].csrRowPtr,
+                dynamic_cast<SchurLMLinearSystem<T> *>(linearSystem.get())->equationContainers[i].csrColInd);
           }});
     }
     for (auto &thread : threads) {
@@ -224,7 +224,7 @@ template <typename T> void BaseProblem<T>::buildIndex() {
 
   edges.buildPositionContainer(schurWorkSpace.hessianEntrance);
   ASSERT_CUDA_NO_ERROR();
-  linearSystemManager->buildIndex(*this);
+  linearSystem->buildIndex(*this);
   ASSERT_CUDA_NO_ERROR();
   edges.allocateResource();
 //  edges.buildIndex();
@@ -291,7 +291,7 @@ template <typename T> void BaseProblem<T>::writeBack() {
 }
 template <typename T> void BaseProblem<T>::solve() {
   buildIndex();
-  algo->solve(*linearSystemManager, edges, xPtr[0]);
+  algo->solve(*linearSystem, edges, xPtr[0]);
 }
 template <typename T>
 BaseProblem<T>::~BaseProblem() = default;

@@ -11,8 +11,8 @@
 
 namespace MegBA {
 template <typename T>
-struct BaseLinearSystemManager {
-  explicit BaseLinearSystemManager(const ProblemOption &option)
+struct BaseLinearSystem {
+  explicit BaseLinearSystem(const ProblemOption &option)
       : solverOption{option.solverOption},
         deltaXPtr{option.deviceUsed.size()},
         g{option.deviceUsed.size()} {}

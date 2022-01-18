@@ -14,7 +14,7 @@ class LMAlgo : public BaseAlgo<T> {
  public:
   explicit LMAlgo(const AlgoOption &option);
 
-  void solveCUDA(const BaseLinearSystemManager<T> &baseLinearSystemManager,
+  void solveCUDA(const BaseLinearSystem<T> &baseLinearSystem,
                  const EdgeVector<T> &edges,
                  T *xPtr) override;
 };

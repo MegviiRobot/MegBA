@@ -5,18 +5,18 @@
 *
 **/
 
-#include "linear_system_manager/schurLM_linear_system_manager.h"
+#include "linear_system/schurLM_linear_system.h"
 #include <omp.h>
 
 namespace MegBA {
 template <typename T>
-SchurLMLinearSystemManager<T>::SchurLMLinearSystemManager(
+SchurLMLinearSystem<T>::SchurLMLinearSystem(
     const ProblemOption &option)
-    : LMLinearSystemManager<T>{option},
+    : LMLinearSystem<T>{option},
       equationContainers{option.deviceUsed.size()} {}
 
 template <typename T>
-void SchurLMLinearSystemManager<T>::buildIndex(const BaseProblem<T> &problem) {
+void SchurLMLinearSystem<T>::buildIndex(const BaseProblem<T> &problem) {
   const auto &edges = problem.getEdgeVectors().getVertexVectors();
   this->num[0] = problem.getVerticesSets().find(CAMERA)->second.size();
   this->num[1] = problem.getVerticesSets().find(POINT)->second.size();
@@ -33,6 +33,6 @@ void SchurLMLinearSystemManager<T>::buildIndex(const BaseProblem<T> &problem) {
   allocateResourceCUDA();
 }
 
-template struct SchurLMLinearSystemManager<double>;
-template struct SchurLMLinearSystemManager<float>;
+template struct SchurLMLinearSystem<double>;
+template struct SchurLMLinearSystem<float>;
 }

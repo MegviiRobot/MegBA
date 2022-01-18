@@ -19,7 +19,7 @@
 
 namespace MegBA {
 template <typename T>
-struct SchurLMLinearSystemManager;
+struct SchurLMLinearSystem;
 
 enum EdgeKind { ONE, ONE_CAMERA_ONE_POINT, TWO_CAMERA, MULTI };
 
@@ -142,11 +142,11 @@ template <typename T> class EdgeVector {
 
   void fitDevice();
 
-  void buildLinearSystem(const JVD<T> &jetEstimation, const BaseLinearSystemManager<T> &linearSystemManager) const;
+  void buildLinearSystem(const JVD<T> &jetEstimation, const BaseLinearSystem<T> &linearSystem) const;
 
-  void buildLinearSystemCUDA(const JVD<T> &jetEstimation, const BaseLinearSystemManager<T> &linearSystemManager) const;
+  void buildLinearSystemCUDA(const JVD<T> &jetEstimation, const BaseLinearSystem<T> &linearSystem) const;
 
-  void update(const BaseLinearSystemManager<T> &linearSystemManager) const;
+  void update(const BaseLinearSystem<T> &linearSystem) const;
 
   void bindCUDAGradPtrs();
 

@@ -14,7 +14,7 @@
 #include "edge/base_edge.h"
 #include "wrapper.hpp"
 #include "resource/handle_manager.h"
-#include "linear_system_manager/schurLM_linear_system_manager.h"
+#include "linear_system/schurLM_linear_system.h"
 
 #if __CUDA_ARCH__ < 600 && defined(__CUDA_ARCH__)
 namespace {
@@ -148,14 +148,14 @@ __global__ void makeHSchur(
 template <typename T>
 void EdgeVector<T>::buildLinearSystemCUDA(
     const JVD<T> &jetEstimation,
-    const BaseLinearSystemManager<T> &linearSystemManager) const {
-  const auto &linearSystemManagerLocal =
-      dynamic_cast<const SchurLMLinearSystemManager<T> &>(linearSystemManager);
+    const BaseLinearSystem<T> &linearSystem) const {
+  const auto &linearSystemLocal =
+      dynamic_cast<const SchurLMLinearSystem<T> &>(linearSystem);
   const auto rows = jetEstimation.rows(), cols = jetEstimation.cols();
-  const auto cameraDim = linearSystemManagerLocal.dim[0];
-  const auto pointDim = linearSystemManagerLocal.dim[1];
-  const auto cameraNum = linearSystemManagerLocal.num[0];
-  const auto pointNum = linearSystemManagerLocal.num[1];
+  const auto cameraDim = linearSystemLocal.dim[0];
+  const auto pointDim = linearSystemLocal.dim[1];
+  const auto cameraNum = linearSystemLocal.num[0];
+  const auto pointNum = linearSystemLocal.num[1];
   const auto hppRows = cameraDim * cameraNum;
   const auto hllRows = pointDim * pointNum;
   ASSERT_CUDA_NO_ERROR();
@@ -164,23 +164,23 @@ void EdgeVector<T>::buildLinearSystemCUDA(
   std::vector<T *> gPointDevice{option.deviceUsed.size()};
   for (int i = 0; i < option.deviceUsed.size(); ++i) {
     cudaSetDevice(i);
-    cudaMemsetAsync(linearSystemManagerLocal.g[i], 0,
+    cudaMemsetAsync(linearSystemLocal.g[i], 0,
                     (hppRows + hllRows) * sizeof(T));
-    gCameraDevice[i] = &linearSystemManagerLocal.g[i][0];
-    gPointDevice[i] = &linearSystemManagerLocal.g[i][hppRows];
+    gCameraDevice[i] = &linearSystemLocal.g[i][0];
+    gPointDevice[i] = &linearSystemLocal.g[i][hppRows];
     ASSERT_CUDA_NO_ERROR();
     cudaMemsetAsync(
-        linearSystemManagerLocal.equationContainers[i].csrVal[0], 0,
-        linearSystemManagerLocal.equationContainers[i].nnz[0] * sizeof(T));
+        linearSystemLocal.equationContainers[i].csrVal[0], 0,
+        linearSystemLocal.equationContainers[i].nnz[0] * sizeof(T));
     cudaMemsetAsync(
-        linearSystemManagerLocal.equationContainers[i].csrVal[1], 0,
-        linearSystemManagerLocal.equationContainers[i].nnz[1] * sizeof(T));
+        linearSystemLocal.equationContainers[i].csrVal[1], 0,
+        linearSystemLocal.equationContainers[i].nnz[1] * sizeof(T));
     cudaMemsetAsync(
-        linearSystemManagerLocal.equationContainers[i].csrVal[2], 0,
-        linearSystemManagerLocal.equationContainers[i].nnz[2] * sizeof(T));
+        linearSystemLocal.equationContainers[i].csrVal[2], 0,
+        linearSystemLocal.equationContainers[i].nnz[2] * sizeof(T));
     cudaMemsetAsync(
-        linearSystemManagerLocal.equationContainers[i].csrVal[3], 0,
-        linearSystemManagerLocal.equationContainers[i].nnz[3] * sizeof(T));
+        linearSystemLocal.equationContainers[i].csrVal[3], 0,
+        linearSystemLocal.equationContainers[i].nnz[3] * sizeof(T));
     ASSERT_CUDA_NO_ERROR();
   }
   ASSERT_CUDA_NO_ERROR();
@@ -236,13 +236,13 @@ void EdgeVector<T>::buildLinearSystemCUDA(
           positionContainers[i].absolutePosition[1],
           positionContainers[i].relativePosition[0],
           positionContainers[i].relativePosition[1],
-          linearSystemManagerLocal.equationContainers[i].csrRowPtr[0],
-          linearSystemManagerLocal.equationContainers[i].csrRowPtr[1], resDim,
+          linearSystemLocal.equationContainers[i].csrRowPtr[0],
+          linearSystemLocal.equationContainers[i].csrRowPtr[1], resDim,
           cameraDim, pointDim, edgeNum, gCameraDevice[i], gPointDevice[i],
-          linearSystemManagerLocal.equationContainers[i].csrVal[2],
-          linearSystemManagerLocal.equationContainers[i].csrVal[3],
-          linearSystemManagerLocal.equationContainers[i].csrVal[0],
-          linearSystemManagerLocal.equationContainers[i].csrVal[1]);
+          linearSystemLocal.equationContainers[i].csrVal[2],
+          linearSystemLocal.equationContainers[i].csrVal[3],
+          linearSystemLocal.equationContainers[i].csrVal[0],
+          linearSystemLocal.equationContainers[i].csrVal[1]);
     }
   }
   ASSERT_CUDA_NO_ERROR();
@@ -255,14 +255,14 @@ void EdgeVector<T>::buildLinearSystemCUDA(
   const auto &comms = HandleManager::getNCCLComm();
   ncclGroupStart();
   for (int i = 0; i < option.deviceUsed.size(); ++i) {
-    ncclAllReduce(linearSystemManagerLocal.equationContainers[i].csrVal[2],
-                  linearSystemManagerLocal.equationContainers[i].csrVal[2],
-                  linearSystemManagerLocal.equationContainers[i].nnz[2],
+    ncclAllReduce(linearSystemLocal.equationContainers[i].csrVal[2],
+                  linearSystemLocal.equationContainers[i].csrVal[2],
+                  linearSystemLocal.equationContainers[i].nnz[2],
                   Wrapper::declared_cudaDatatype<T>::nccl_dtype, ncclSum,
                   comms[i], nullptr);
-    ncclAllReduce(linearSystemManagerLocal.equationContainers[i].csrVal[3],
-                  linearSystemManagerLocal.equationContainers[i].csrVal[3],
-                  linearSystemManagerLocal.equationContainers[i].nnz[3],
+    ncclAllReduce(linearSystemLocal.equationContainers[i].csrVal[3],
+                  linearSystemLocal.equationContainers[i].csrVal[3],
+                  linearSystemLocal.equationContainers[i].nnz[3],
                   Wrapper::declared_cudaDatatype<T>::nccl_dtype, ncclSum,
                   comms[i], nullptr);
     ncclAllReduce(gCameraDevice[i], gCameraDevice[i], hppRows + hllRows,
