@@ -124,38 +124,38 @@ CUXXX_WRAPPER(cublasGgetriBatched, cublasSgetriBatched, cublasDgetriBatched);
 
 CUXXX_WRAPPER(cublasGmatinvBatched, cublasSmatinvBatched, cublasDmatinvBatched);
 
-template <typename T> struct declared_cudaDatatype {};
+template <typename T> struct declaredDtype {};
 
-template <> struct declared_cudaDatatype<float> {
-  constexpr static const ncclDataType_t nccl_dtype{ncclFloat32};
-  constexpr static const cudaDataType cuda_dtype{CUDA_R_32F};
+template <> struct declaredDtype<float> {
+  constexpr static const ncclDataType_t ncclDtype{ncclFloat32};
+  constexpr static const cudaDataType cudaDtype{CUDA_R_32F};
 };
 
-template <> struct declared_cudaDatatype<double> {
-  constexpr static const ncclDataType_t nccl_dtype{ncclFloat64};
-  constexpr static const cudaDataType cuda_dtype{CUDA_R_64F};
+template <> struct declaredDtype<double> {
+  constexpr static const ncclDataType_t ncclDtype{ncclFloat64};
+  constexpr static const cudaDataType cudaDtype{CUDA_R_64F};
 };
 
-template <typename T> struct Shared_Memory {};
+template <typename T> struct SharedMemory {};
 
-template <> struct Shared_Memory<float> {
+template <> struct SharedMemory<float> {
   static __device__ float *get() {
-    extern __shared__ float s_float[];
-    return s_float;
+    extern __shared__ float floatPtr[];
+    return floatPtr;
   }
 };
 
-template <> struct Shared_Memory<double> {
+template <> struct SharedMemory<double> {
   static __device__ double *get() {
-    extern __shared__ double s_double[];
-    return s_double;
+    extern __shared__ double doublePtr[];
+    return doublePtr;
   }
 };
 
-template <> struct Shared_Memory<int> {
+template <> struct SharedMemory<int> {
   static __device__ int *get() {
-    extern __shared__ int s_int[];
-    return s_int;
+    extern __shared__ int intPtr[];
+    return intPtr;
   }
 };
 

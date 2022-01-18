@@ -9,7 +9,6 @@
 #include <thread>
 #include <iostream>
 #include "algo/algo_dispatcher.h"
-#include "solver/solver_dispatcher.h"
 #include "linear_system/linear_system_dispatcher.h"
 #include "macro.h"
 
@@ -77,7 +76,6 @@ template <typename T>
 BaseProblem<T>::BaseProblem(const ProblemOption& option)
     : option(option),
       algo(dispatchAlgo(*this)),
-      solver(dispatchSolver(*this)),
       linearSystem(dispatchLinearSystem(*this)) {
   if (option.N != -1 && option.nItem != -1)
     MemoryPool::resetPool(option.N, option.nItem, sizeof(T), option.deviceUsed.size());
@@ -284,8 +282,11 @@ template <typename T> void BaseProblem<T>::solve() {
   buildIndex();
   algo->solve(*linearSystem, edges, xPtr[0]);
 }
+
 template <typename T>
-BaseProblem<T>::~BaseProblem() = default;
+BaseProblem<T>::~BaseProblem() {
+
+};
 
 template class BaseProblem<double>;
 template class BaseProblem<float>;

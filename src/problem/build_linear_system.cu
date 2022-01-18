@@ -98,7 +98,7 @@ __global__ void makeHSchur(
   const unsigned int tid = threadIdx.x + blockDim.x * blockIdx.x;
   if (tid >= errorNum) return;
 
-  T *valSmem = Wrapper::Shared_Memory<T>::get();
+  T *valSmem = Wrapper::SharedMemory<T>::get();
 
   const int absolutePositionPointLocal = absolutePositionPoint[tid];
   const int absolutePositionCameraLocal = absolutePositionCamera[tid];
@@ -124,12 +124,10 @@ __global__ void makeHSchur(
     } else {
       makeHll(valSmem, valI, pointDim, cameraDim,
               absolutePositionPointLocal * (pointDim * pointDim) +
-                  (threadIdx.y - cameraDim) * pointDim /* hllPosition */,
-              hllCsrVal);
+                  (threadIdx.y - cameraDim) * pointDim, hllCsrVal);
       makeHlp(valSmem, valI, relativePositionCameraLocal, cameraDim,
               hlpCsrRowPtr[absolutePositionPointLocal * pointDim + threadIdx.y -
-                           cameraDim],
-              hlpCsrVal);
+                           cameraDim], hlpCsrVal);
     }
     gSum += -valI * errorPtrs[i][tid];
   }
@@ -258,15 +256,15 @@ void EdgeVector<T>::buildLinearSystemCUDA(
     ncclAllReduce(linearSystemLocal.equationContainers[i].csrVal[2],
                   linearSystemLocal.equationContainers[i].csrVal[2],
                   linearSystemLocal.equationContainers[i].nnz[2],
-                  Wrapper::declared_cudaDatatype<T>::nccl_dtype, ncclSum,
+                  Wrapper::declaredDtype<T>::ncclDtype, ncclSum,
                   comms[i], nullptr);
     ncclAllReduce(linearSystemLocal.equationContainers[i].csrVal[3],
                   linearSystemLocal.equationContainers[i].csrVal[3],
                   linearSystemLocal.equationContainers[i].nnz[3],
-                  Wrapper::declared_cudaDatatype<T>::nccl_dtype, ncclSum,
+                  Wrapper::declaredDtype<T>::ncclDtype, ncclSum,
                   comms[i], nullptr);
     ncclAllReduce(gCameraDevice[i], gCameraDevice[i], hppRows + hllRows,
-                  Wrapper::declared_cudaDatatype<T>::nccl_dtype, ncclSum,
+                  Wrapper::declaredDtype<T>::ncclDtype, ncclSum,
                   comms[i], nullptr);
   }
   ncclGroupEnd();

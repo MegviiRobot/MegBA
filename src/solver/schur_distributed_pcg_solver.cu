@@ -100,7 +100,7 @@ this block
   unsigned int tid = threadIdx.y + blockIdx.x * blockDim.y;
   if (tid >= batchSize) return;
 
-  T *smem = Wrapper::Shared_Memory<T>::get();
+  T *smem = Wrapper::SharedMemory<T>::get();
   T sum = 0;
   smem[threadIdx.x + threadIdx.y * blockDim.x] =
       r[threadIdx.x + tid * blockDim.x];
@@ -128,7 +128,7 @@ bool schurPCGSolverDistributedCUDA(
     const std::vector<T *> &d_x) {
   const auto &comms = HandleManager::getNCCLComm();
   const auto worldSize = MemoryPool::getWorldSize();
-  constexpr auto cudaDataType = Wrapper::declared_cudaDatatype<T>::cuda_dtype;
+  constexpr auto cudaDataType = Wrapper::declaredDtype<T>::cuda_dtype;
   const auto &cusparseHandle = HandleManager::getCUSPARSEHandle();
   const auto &cublasHandle = HandleManager::getCUBLASHandle();
   std::vector<cudaStream_t> cusparseStream, cublasStream;
@@ -203,7 +203,7 @@ bool schurPCGSolverDistributedCUDA(
   ncclGroupStart();
   for (int i = 0; i < worldSize; ++i) {
     ncclAllReduce(temp[i], temp[i], hllRows,
-                  Wrapper::declared_cudaDatatype<T>::nccl_dtype, ncclSum,
+                  Wrapper::declaredDtype<T>::ncclDtype, ncclSum,
                   comms[i], cusparseStream[i]);
   }
   ncclGroupEnd();
@@ -225,7 +225,7 @@ bool schurPCGSolverDistributedCUDA(
   ncclGroupStart();
   for (int i = 0; i < worldSize; ++i) {
     ncclAllReduce(axN[i], axN[i], hppRows,
-                  Wrapper::declared_cudaDatatype<T>::nccl_dtype, ncclSum,
+                  Wrapper::declaredDtype<T>::ncclDtype, ncclSum,
                   comms[i], cusparseStream[i]);
   }
   ncclGroupEnd();
@@ -314,7 +314,7 @@ bool schurPCGSolverDistributedCUDA(
     ncclGroupStart();
     for (int i = 0; i < worldSize; ++i) {
       ncclAllReduce(temp[i], temp[i], hllRows,
-                    Wrapper::declared_cudaDatatype<T>::nccl_dtype, ncclSum,
+                    Wrapper::declaredDtype<T>::ncclDtype, ncclSum,
                     comms[i], cusparseStream[i]);
     }
     ncclGroupEnd();
@@ -336,7 +336,7 @@ bool schurPCGSolverDistributedCUDA(
     ncclGroupStart();
     for (int i = 0; i < worldSize; ++i) {
       ncclAllReduce(axN[i], axN[i], hppRows,
-                    Wrapper::declared_cudaDatatype<T>::nccl_dtype, ncclSum,
+                    Wrapper::declaredDtype<T>::ncclDtype, ncclSum,
                     comms[i], cusparseStream[i]);
     }
     ncclGroupEnd();
@@ -423,7 +423,7 @@ void schurMakeVDistributed(std::vector<T *> *SpMVbuffer, const int pointNum,
   const auto &comms = HandleManager::getNCCLComm();
   const auto worldSize = MemoryPool::getWorldSize();
   const auto &cusparseHandle = HandleManager::getCUSPARSEHandle();
-  constexpr auto cudaDataType = Wrapper::declared_cudaDatatype<T>::cuda_dtype;
+  constexpr auto cudaDataType = Wrapper::declaredDtype<T>::cuda_dtype;
 
   std::vector<T *> v, w;
   std::vector<cudaStream_t> cusparseStream;
@@ -493,7 +493,7 @@ void schurMakeVDistributed(std::vector<T *> *SpMVbuffer, const int pointNum,
   ncclGroupStart();
   for (int i = 0; i < worldSize; ++i) {
     ncclAllReduce(v[i], v[i], hppRows,
-                  Wrapper::declared_cudaDatatype<T>::nccl_dtype, ncclSum,
+                  Wrapper::declaredDtype<T>::ncclDtype, ncclSum,
                   comms[i], cusparseStream[i]);
   }
   ncclGroupEnd();
@@ -511,7 +511,7 @@ void schurSolveWDistributed(
     const std::vector<T *> &d_x) {
   const auto comms = HandleManager::getNCCLComm();
   const auto worldSize = MemoryPool::getWorldSize();
-  constexpr auto cudaDataType = Wrapper::declared_cudaDatatype<T>::cuda_dtype;
+  constexpr auto cudaDataType = Wrapper::declaredDtype<T>::cuda_dtype;
 
   std::vector<T *> xc, xp, w;
   xc.resize(worldSize);
@@ -558,7 +558,7 @@ void schurSolveWDistributed(
   ncclGroupStart();
   for (int i = 0; i < worldSize; ++i) {
     ncclAllReduce(xp[i], xp[i], hllRows,
-                  Wrapper::declared_cudaDatatype<T>::nccl_dtype, ncclSum,
+                  Wrapper::declaredDtype<T>::ncclDtype, ncclSum,
                   comms[i], cusparseStream[i]);
   }
   ncclGroupEnd();
