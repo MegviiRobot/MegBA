@@ -22,8 +22,6 @@ namespace MegBA {
 template <typename T>
 class BaseProblem {
   const ProblemOption option;
-
-  std::size_t hessianShape{0};
   std::unordered_map<int, BaseVertex<T> *> vertices{};
   std::unordered_map<VertexKind, std::set<BaseVertex<T> *>> verticesSets{};
   struct {
@@ -35,8 +33,6 @@ class BaseProblem {
   EdgeVector<T> edges{option};
 
   std::vector<T *> xPtr{nullptr};
-  std::vector<T *> deltaXPtr{nullptr};
-  std::vector<T *> deltaXPtrBackup{nullptr};
 
   const std::unique_ptr<BaseAlgo<T>> algo;
   const std::unique_ptr<BaseSolver<T>> solver;
@@ -46,30 +42,21 @@ class BaseProblem {
 
   void deallocateResourceCUDA();
 
-  unsigned int getHessianShape() const;
-
   void buildIndex();
 
   void setAbsolutePosition();
 
-  void prepareUpdateData();
+  void allocateResource();
 
   void writeBack();
 
-  void prepareUpdateDataCUDA();
-
-  void backupLM();
-
-  void rollbackLM();
-
+  void allocateResourceCUDA();
  public:
   explicit BaseProblem(const ProblemOption &option = ProblemOption{});
 
   ~BaseProblem();
 
   const auto &getProblemOption() const { return option; };
-
-  const auto &getDeltaXPtr() const { return deltaXPtr; };
 
   const auto &getEdgeVectors() const { return edges; };
 
@@ -88,7 +75,5 @@ class BaseProblem {
   void eraseVertex(int ID);
 
   void solve();
-
-  void solveLM();
 };
 }  // namespace MegBA

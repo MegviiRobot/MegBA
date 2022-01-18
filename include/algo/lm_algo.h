@@ -12,7 +12,7 @@ namespace MegBA {
 template <typename T>
 class LMAlgo : public BaseAlgo<T> {
  public:
-  explicit LMAlgo(const AlgoOption &option);
+  explicit LMAlgo(const AlgoOption &algoOption);
 
   void solveCUDA(const BaseLinearSystem<T> &baseLinearSystem,
                  const EdgeVector<T> &edges,

@@ -17,11 +17,6 @@ SchurLMLinearSystem<T>::SchurLMLinearSystem(
 
 template <typename T>
 void SchurLMLinearSystem<T>::buildIndex(const BaseProblem<T> &problem) {
-  const auto &edges = problem.getEdgeVectors().getVertexVectors();
-  this->num[0] = problem.getVerticesSets().find(CAMERA)->second.size();
-  this->num[1] = problem.getVerticesSets().find(POINT)->second.size();
-  this->dim[0] = edges[0][0]->getGradShape();
-  this->dim[1] = edges[1][0]->getGradShape();
   const auto &hessianEntrance = problem.getHessianEntrance();
   const auto worldSize = MemoryPool::getWorldSize();
   for (int i = 0; i < worldSize; ++i) {

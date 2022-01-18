@@ -18,27 +18,18 @@
 #include "problem/hessian_entrance.h"
 
 namespace MegBA {
-template <typename T>
-struct SchurLMLinearSystem;
-
 enum EdgeKind { ONE, ONE_CAMERA_ONE_POINT, TWO_CAMERA, MULTI };
-
-template <typename T> class EdgeVector;
 
 template <typename T> class BaseEdge : public std::vector<BaseVertex<T> *> {
   typedef std::vector<BaseVertex<T> *> parent;
 
   typedef Eigen::Matrix<T, Eigen::Dynamic, Eigen::Dynamic> PlainMatrix;
 
-  friend EdgeVector<T>;
-
-  BaseEdgeWrapper<T> _edge;
+  EdgeWrapper<T> _edgeWrapper;
   PlainMatrix _measurement;
   PlainMatrix _information;
 
  public:
-  virtual ~BaseEdge() = default;
-
   void appendVertex(BaseVertex<T> *vertex);
 
   bool existVertex(const BaseVertex<T> &vertex) const;
@@ -50,20 +41,24 @@ template <typename T> class BaseEdge : public std::vector<BaseVertex<T> *> {
     _measurement = std::forward<PlainMatrix>(measurement);
   }
 
-  JVD<T> const &getMeasurement() const { return _edge.getMeasurement(); }
-
   template <typename PlainMatrix>
   void setInformation(PlainMatrix &&information) {
     _information = std::forward<PlainMatrix>(information);
   }
 
+  const PlainMatrix &_getMeasurement() const { return _measurement; }
+
+  const PlainMatrix &_getInformation() const { return _information; }
+
+  void bindEdgeVector(const EdgeVector<T> *ev) { _edgeWrapper.bindEdgeVector(ev); }
+
  protected:
-  const BaseEdgeWrapper<T> &getVertices() { return _edge; }
+  const EdgeWrapper<T> &getVertices() { return _edgeWrapper; }
+
+  JVD<T> const &getMeasurement() const { return _edgeWrapper.getMeasurement(); }
 };
 
 template <typename T> class EdgeVector {
-  friend BaseProblem<T>;
-
   const ProblemOption &option;
   // kind -> worldSize
   struct PositionContainer {

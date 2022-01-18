@@ -9,7 +9,9 @@
 
 namespace MegBA {
 template <typename T>
-LMAlgo<T>::LMAlgo(const AlgoOption &option) : BaseAlgo<T>(option) {}
+LMAlgo<T>::LMAlgo(const AlgoOption &algoOption) : BaseAlgo<T>{algoOption} {
+  this->algoStatus.algoStatusLM.region = algoOption.algoOptionLM.initialRegion;
+}
 
 template class LMAlgo<double>;
 template class LMAlgo<float>;

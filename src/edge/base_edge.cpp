@@ -74,9 +74,9 @@ template <typename T> bool EdgeVector<T>::tryPushBack(BaseEdge<T> *edge) {
       edges[i].setGradShapeAndOffset(accumulated_grad_shape, offset[i]);
     }
 
-    const auto &measurement = edge->_measurement;
+    const auto &measurement = edge->_getMeasurement();
     jetMeasurement.resize(measurement.rows(), measurement.cols());
-    const auto &information = edge->_information;
+    const auto &information = edge->_getInformation();
     jetInformation.resize(information.rows(), information.cols());
   } else if (nameHash != hash_of_input_edge) {
     return false;
@@ -86,12 +86,12 @@ template <typename T> bool EdgeVector<T>::tryPushBack(BaseEdge<T> *edge) {
     edges[i].push_back(edge->operator[](i));
   edgesPtr.push_back(edge);
 
-  const auto &measurement = edge->_measurement;
+  const auto &measurement = edge->_getMeasurement();
   for (int i = 0; i < measurement.size(); ++i) {
     jetMeasurement(i).appendJet(measurement(i));
   }
 
-  const auto &information = edge->_information;
+  const auto &information = edge->_getInformation();
   for (int i = 0; i < information.size(); ++i) {
     jetInformation(i).appendJet(information(i));
   }
@@ -152,7 +152,7 @@ template <typename T> void EdgeVector<T>::deallocateResource() {
 }
 
 template <typename T> JVD<T> EdgeVector<T>::forward() const {
-  edgesPtr[0]->_edge.bindEdgeVector(this);
+  edgesPtr[0]->bindEdgeVector(this);
   return edgesPtr[0]->forward();
 }
 

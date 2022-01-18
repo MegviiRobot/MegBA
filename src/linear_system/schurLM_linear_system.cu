@@ -853,10 +853,9 @@ void SchurLMLinearSystem<T>::solve() const {
 template <typename T>
 void SchurLMLinearSystem<T>::applyUpdate(T *xPtr) const {
   const auto &cublasHandle = HandleManager::getCUBLASHandle();
-  const int hessianShape = this->getHessianShape();
   const T one = 1.;
   cudaSetDevice(0);
-  Wrapper::cublasGaxpy::call(cublasHandle[0], hessianShape, &one,
+  Wrapper::cublasGaxpy::call(cublasHandle[0], this->getHessianShape(), &one,
                              this->deltaXPtr[0], 1, xPtr, 1);
 }
 

@@ -13,7 +13,7 @@
 namespace MegBA {
 struct AlgoStatus {
   struct AlgoStatusLM {
-    double region{1e3};
+    double region;
     bool recoverDiag{false};
   } algoStatusLM;
 };

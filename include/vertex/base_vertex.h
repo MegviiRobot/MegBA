@@ -14,10 +14,6 @@
 #include "common.h"
 
 namespace MegBA {
-template <typename T> class BaseVertexWrapper;
-
-template <typename T> class BaseEdgeWrapper;
-
 template <typename T>
 using JVD = Eigen::Matrix<JetVector<T>, Eigen::Dynamic, Eigen::Dynamic>;
 
@@ -28,8 +24,6 @@ enum VertexKind { CAMERA = 0, POINT = 1, NONE = 2 };
 
 template <typename T> struct BaseVertex {
   BaseVertex() = default;
-
-  virtual ~BaseVertex() = default;
 
   template <typename Estimation> void setEstimation(Estimation &&estimation) {
     _estimation = std::forward<Estimation>(estimation);
@@ -188,15 +182,17 @@ template <typename T> class VertexVector : public std::vector<BaseVertex<T> *> {
   const auto &getJVObservation() const { return _jvObservation; }
 };
 
-template <typename T> class BaseVertexWrapper {
-  friend BaseEdgeWrapper<T>;
+template <typename T> class EdgeWrapper;
 
-  void bindJVEstimation(const JVD<T> &JVEstimation) {
-    _jvEstimation = &JVEstimation;
+template <typename T> class VertexWrapper {
+  friend EdgeWrapper<T>;
+
+  void bindJVEstimation(const JVD<T> &jvEstimation) {
+    _jvEstimation = &jvEstimation;
   }
 
-  void bindJVObservation(const JVD<T> &JVObservation) {
-    _jvObservation = &JVObservation;
+  void bindJVObservation(const JVD<T> &jvObservation) {
+    _jvObservation = &jvObservation;
   }
 
   JVD<T> const *_jvEstimation{nullptr};
@@ -210,23 +206,19 @@ template <typename T> class BaseVertexWrapper {
 };
 
 template <typename T>
-class BaseEdgeWrapper : public std::vector<BaseVertexWrapper<T>> {
-  typedef std::vector<BaseVertexWrapper<T>> parent;
-
-  friend BaseEdge<T>;
-
-  friend EdgeVector<T>;
-
+class EdgeWrapper : public std::vector<VertexWrapper<T>> {
+  typedef std::vector<VertexWrapper<T>> parent;
   JVD<T> const *_jvMeasurement{nullptr};
 
+ public:
   JVD<T> const &getMeasurement() const { return *_jvMeasurement; }
 
-  void bindEdgeVector(const EdgeVector<T> *EV) {
-    _jvMeasurement = &EV->getMeasurement();
-    parent::resize(EV->getVertexVectors().size());
+  void bindEdgeVector(const EdgeVector<T> *ev) {
+    _jvMeasurement = &ev->getMeasurement();
+    parent::resize(ev->getVertexVectors().size());
     for (int i = 0; i < parent::size(); ++i) {
-      (*this)[i].bindJVEstimation(EV->getEstimation(i));
-      (*this)[i].bindJVObservation(EV->getObservation(i));
+      (*this)[i].bindJVEstimation(ev->getEstimation(i));
+      (*this)[i].bindJVObservation(ev->getObservation(i));
     }
   }
 };

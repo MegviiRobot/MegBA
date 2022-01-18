@@ -10,7 +10,6 @@
 #include <iostream>
 #include "algo/algo_dispatcher.h"
 #include "solver/solver_dispatcher.h"
-#include "linear_system/schurLM_linear_system.h"
 #include "linear_system/linear_system_dispatcher.h"
 #include "macro.h"
 
@@ -181,20 +180,10 @@ template <typename T> void BaseProblem<T>::deallocateResource() {
   }
 }
 
-template <typename T> unsigned int BaseProblem<T>::getHessianShape() const {
-  unsigned int gradShape = 0;
-  for (const auto &vertexSetPair : verticesSets) {
-    const auto &vertexSet = vertexSetPair.second;
-    BaseVertex<T> const *vertexPtr = *vertexSet.begin();
-    gradShape += vertexSet.size() * vertexPtr->getGradShape();
-  }
-  return gradShape;
-}
-
-template <typename T> void BaseProblem<T>::prepareUpdateData() {
+template <typename T> void BaseProblem<T>::allocateResource() {
   switch (option.device) {
   case Device::CUDA:
-    prepareUpdateDataCUDA();
+    allocateResourceCUDA();
     break;
   default:
     throw std::runtime_error("Not Implemented.");
@@ -202,8 +191,11 @@ template <typename T> void BaseProblem<T>::prepareUpdateData() {
 }
 
 template <typename T> void BaseProblem<T>::buildIndex() {
-  hessianShape = getHessianShape();
-  prepareUpdateData();
+  linearSystem->num[0] = verticesSets.find(CAMERA)->second.size();
+  linearSystem->num[1] = verticesSets.find(POINT)->second.size();
+  linearSystem->dim[0] = (*(verticesSets.find(CAMERA)->second.begin()))->getGradShape();
+  linearSystem->dim[1] = (*(verticesSets.find(POINT)->second.begin()))->getGradShape();
+  allocateResource();
   setAbsolutePosition();
   if (option.useSchur) {
     std::vector<std::thread> threads;
@@ -227,14 +219,13 @@ template <typename T> void BaseProblem<T>::buildIndex() {
   linearSystem->buildIndex(*this);
   ASSERT_CUDA_NO_ERROR();
   edges.allocateResource();
-//  edges.buildIndex();
-//  edges.allocateResourcePost();
   ASSERT_CUDA_NO_ERROR();
   edges.fitDevice();
   ASSERT_CUDA_NO_ERROR();
 }
 
 template <typename T> void BaseProblem<T>::setAbsolutePosition() {
+  const auto hessianShape = linearSystem->getHessianShape();
   T *hxPtr = new T[hessianShape];
   std::size_t entranceBias{0};
   for (auto &setPair : verticesSets) {
@@ -266,11 +257,11 @@ template <typename T> void BaseProblem<T>::setAbsolutePosition() {
 }
 
 template <typename T> void BaseProblem<T>::writeBack() {
-  T *hxPtr = new T[hessianShape];
+  T *hxPtr = new T[linearSystem->getHessianShape()];
   std::size_t entrance_bias{0};
   if (option.useSchur) {
     cudaSetDevice(0);
-    cudaMemcpy(hxPtr, xPtr[0], hessianShape * sizeof(T),
+    cudaMemcpy(hxPtr, xPtr[0], linearSystem->getHessianShape() * sizeof(T),
                cudaMemcpyDeviceToHost);
   } else {
     // TODO(Jie Ren): implement this

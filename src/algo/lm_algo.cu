@@ -73,7 +73,9 @@ __global__ void JdxpF(const T *grad, const T *deltaX, const T *res,
 }
 
 template <typename T>
-double computeRhoDenominator(const JVD<T> &JV, const BaseLinearSystem<T> &linearSystem, const EdgeVector<T> &edges) {
+double computeRhoDenominator(const JVD<T> &JV,
+                             const BaseLinearSystem<T> &linearSystem,
+                             const EdgeVector<T> &edges) {
   T rhoDenominator{0};
   std::vector<std::vector<T *>> Jdx;
   Jdx.resize(MemoryPool::getWorldSize());
@@ -124,7 +126,7 @@ inline T linfNorm(const T *vector, const std::size_t size) {
   return std::abs(
       *thrust::max_element(thrust::device_ptr<const T>{vector},
                            thrust::device_ptr<const T>{vector + size},
-                           [] __device__ __host__ (T lhs, T rhs) {
+                           [] __device__ __host__(T lhs, T rhs) {
                              return std::abs(lhs) < std::abs(rhs);
                            }));
 }
