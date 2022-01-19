@@ -21,14 +21,11 @@ template <typename T> struct HessianEntrance {
   using BlockRowRA = std::vector<BaseVertex<T> *>;
   using BlockMatrixRA = std::vector<BlockRowRA>;
   std::array<BlockMatrixRA, 2> ra{};
-//  std::array<std::unique_ptr<int[]>, 2> csrRowPtr;
-//  std::array<std::unique_ptr<int[]>, 2> csrColInd;
   std::size_t counter{0};
   std::array<int, 2> dim{};
-  std::size_t nnzInE{};
 
   HessianEntrance() = default;
 
-  void buildRandomAccess(std::array<int *, 2> &csrRowPtr, std::array<int *, 2> &csrColInd);
+  void buildRandomAccess();
 };
 }  // namespace MegBA
