@@ -61,8 +61,9 @@ void EdgeVector<T>::update(const BaseLinearSystem<T> &linearSystem) const {
     updateDeltaXTwoVertices<T><<<grid, block>>>(
         linearSystem.deltaXPtr[i],
         positionContainers[i].absolutePosition[0],
-        positionContainers[i].absolutePosition[1], cameraDim,
-        pointDim, cameraNum, nItem, schurValueDevicePtrs[0][i], schurValueDevicePtrs[1][i]);
+        positionContainers[i].absolutePosition[1],
+        cameraDim, pointDim, cameraNum, nItem,
+        schurValueDevicePtrs[0][i], schurValueDevicePtrs[1][i]);
   }
 }
 

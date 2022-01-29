@@ -14,6 +14,8 @@ template <typename T>
 struct LMLinearSystem : public BaseLinearSystem<T> {
   std::vector<T *> deltaXPtrBackup;
 
+  std::vector<T *> gBackup;
+
   std::vector<std::array<T *, 2>> extractedDiag;
 
   virtual void processDiag(
@@ -27,6 +29,7 @@ struct LMLinearSystem : public BaseLinearSystem<T> {
   explicit LMLinearSystem(const ProblemOption &option)
       : BaseLinearSystem<T>(option),
         deltaXPtrBackup{option.deviceUsed.size()},
+        gBackup{option.deviceUsed.size()},
         extractedDiag{option.deviceUsed.size()} {}
 };
 }

@@ -40,21 +40,21 @@ __global__ void fillPtr(const T *aData, T *ainvData, const int batchSize,
 }
 
 template <typename T>
-void invert(const T *aFlat, int n, const int pointNum, T *cFlat) {
+void invert(const T *aFlat, int n, const int num, T *cFlat) {
   cublasHandle_t handle = HandleManager::getCUBLASHandle()[0];
 
   const T **a;
   T **ainv;
-  cudaMalloc(&a, pointNum * sizeof(T *));
-  cudaMalloc(&ainv, pointNum * sizeof(T *));
-  dim3 blockDim(std::min(decltype(pointNum)(256), pointNum));
-  dim3 gridDim((pointNum - 1) / blockDim.x + 1);
+  cudaMalloc(&a, num * sizeof(T *));
+  cudaMalloc(&ainv, num * sizeof(T *));
+  dim3 blockDim(std::min(decltype(num)(256), num));
+  dim3 gridDim((num - 1) / blockDim.x + 1);
 
-  fillPtr<<<gridDim, blockDim>>>(aFlat, cFlat, pointNum, n * n, a, ainv);
+  fillPtr<<<gridDim, blockDim>>>(aFlat, cFlat, num, n * n, a, ainv);
 
   int *info;
-  cudaMalloc(&info, pointNum * sizeof(int));
-  Wrapper::cublasGmatinvBatched::call(handle, n, a, n, ainv, n, info, pointNum);
+  cudaMalloc(&info, num * sizeof(int));
+  Wrapper::cublasGmatinvBatched::call(handle, n, a, n, ainv, n, info, num);
 
   cudaDeviceSynchronize();
 
@@ -64,33 +64,33 @@ void invert(const T *aFlat, int n, const int pointNum, T *cFlat) {
 }
 
 template <typename T>
-void invertDistributed(const std::vector<T *> aFlat, int n, const int pointNum,
-                       std::vector<T *> cFlat) {
+void invertDistributed(const std::vector<T *> &aFlat, int n, const int num,
+                       std::vector<T *> &cFlat) {
   const auto &handle = HandleManager::getCUBLASHandle();
   const auto worldSize = MemoryPool::getWorldSize();
 
   std::vector<const T **> a{static_cast<std::size_t>(worldSize)};
   std::vector<T **> ainv{static_cast<std::size_t>(worldSize)};
   std::vector<int *> info{static_cast<std::size_t>(worldSize)};
-  dim3 blockDim(std::min(decltype(pointNum)(256), pointNum));
-  dim3 gridDim((pointNum - 1) / blockDim.x + 1);
+  dim3 blockDim(std::min(decltype(num)(256), num));
+  dim3 gridDim((num - 1) / blockDim.x + 1);
 
   for (int i = 0; i < worldSize; ++i) {
     MemoryPool::allocateNormal(reinterpret_cast<void **>(&a[i]),
-                               pointNum * sizeof(T *), i);
+                               num * sizeof(T *), i);
     MemoryPool::allocateNormal(reinterpret_cast<void **>(&ainv[i]),
-                               pointNum * sizeof(T *), i);
+                               num * sizeof(T *), i);
     MemoryPool::allocateNormal(reinterpret_cast<void **>(&info[i]),
-                               pointNum * sizeof(int), i);
+                               num * sizeof(int), i);
   }
 
   for (int i = 0; i < worldSize; ++i) {
     cudaSetDevice(i);
-    fillPtr<<<gridDim, blockDim>>>(aFlat[i], cFlat[i], pointNum, n * n, a[i],
+    fillPtr<<<gridDim, blockDim>>>(aFlat[i], cFlat[i], num, n * n, a[i],
                                    ainv[i]);
 
     Wrapper::cublasGmatinvBatched::call(handle[i], n, a[i], n, ainv[i], n,
-                                        info[i], pointNum);
+                                        info[i], num);
   }
 
   for (int i = 0; i < worldSize; ++i) {
@@ -475,11 +475,6 @@ void schurMakeVDistributed(std::vector<T *> *SpMVbuffer, const int pointNum,
   SpMVbuffer->resize(worldSize);
   for (int i = 0; i < worldSize; ++i) {
     cudaSetDevice(i);
-    // PRINT_DMEMORY(hplCsrVal[i], hplNnz[i], T);
-    // PRINT_DMEMORY(hplCsrColInd[i], hplNnz[i], int);
-    // PRINT_DMEMORY(hplCsrRowPtr[i], hppRows + 1, int);
-    // PRINT_DCSR(hplCsrVal[i], hplCsrColInd[i], hplCsrRowPtr[i], hppRows, T);
-    // PRINT_DMEMORY(w[i], hllRows, T);
     size_t bufferSize = 0;
     cusparseSpMV_bufferSize(cusparseHandle[i], CUSPARSE_OPERATION_NON_TRANSPOSE,
                             &alpha, hpl[i], vecw[i], &beta, vecv[i],
@@ -487,11 +482,9 @@ void schurMakeVDistributed(std::vector<T *> *SpMVbuffer, const int pointNum,
                             &bufferSize);
     MemoryPool::allocateNormal(
         reinterpret_cast<void **>(&SpMVbuffer->operator[](i)), bufferSize, i);
-    // cudaMalloc(&SpMVbuffer[i], bufferSize);
     cusparseSpMV(cusparseHandle[i], CUSPARSE_OPERATION_NON_TRANSPOSE, &alpha,
                  hpl[i], vecw[i], &beta, vecv[i], cudaDataType,
                  CUSPARSE_SPMV_ALG_DEFAULT, SpMVbuffer->operator[](i));
-    // PRINT_DMEMORY(v[i], hppRows, T);
   }
 
   for (int i = 0; i < worldSize; ++i) {
@@ -509,8 +502,6 @@ void schurMakeVDistributed(std::vector<T *> *SpMVbuffer, const int pointNum,
                   comms[i], cusparseStream[i]);
   }
   ncclGroupEnd();
-  // cudaSetDevice(0);
-  // PRINT_DMEMORY(v[0], hppRows, T);
 }
 
 template <typename T>
@@ -636,8 +627,6 @@ bool SchurPCGSolverDistributed(
     MemoryPool::deallocateNormal(SpMVbuffer[i], i);
     MemoryPool::deallocateNormal(hllInvCsrVal[i], i);
   }
-  // cudaSetDevice(0);
-  // PRINT_DMEMORY(deltaX[0], 9, T);
   return PCG_success;
 }
 }  // namespace
@@ -711,8 +700,8 @@ void SchurLMLinearSystem<T>::allocateResourceCUDA() {
     cudaMalloc(&equationContainers[i].csrVal[3],
                equationContainers[i].nnz[3] * sizeof(T));  // hll
 
-    cudaMalloc(&this->g[i],
-               (this->num[0] * this->dim[0] + this->num[1] * this->dim[1]) * sizeof(T));
+    cudaMalloc(&this->g[i], this->getHessianShape() * sizeof(T));
+    cudaMalloc(&this->gBackup[i], this->getHessianShape() * sizeof(T));
   }
   for (int i = 0; i < worldSize; ++i) {
     cudaSetDevice(i);
@@ -800,6 +789,8 @@ void SchurLMLinearSystem<T>::backup() const {
     cudaSetDevice(i);
     cudaMemcpyAsync(this->deltaXPtrBackup[i], this->deltaXPtr[i],
                     hessianShape * sizeof(T), cudaMemcpyDeviceToDevice);
+    cudaMemcpyAsync(this->gBackup[i], this->g[i],
+                    hessianShape * sizeof(T), cudaMemcpyDeviceToDevice);
   }
 }
 
@@ -809,6 +800,8 @@ void SchurLMLinearSystem<T>::rollback() const {
   for (int i = 0; i < MemoryPool::getWorldSize(); ++i) {
     cudaSetDevice(i);
     cudaMemcpyAsync(this->deltaXPtr[i], this->deltaXPtrBackup[i],
+                    hessianShape * sizeof(T), cudaMemcpyDeviceToDevice);
+    cudaMemcpyAsync(this->g[i], this->gBackup[i],
                     hessianShape * sizeof(T), cudaMemcpyDeviceToDevice);
   }
 }

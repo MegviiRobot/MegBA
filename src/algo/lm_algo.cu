@@ -148,6 +148,8 @@ void LMAlgo<T>::solveCUDA(const BaseLinearSystem<T> &baseLinearSystem,
   bool stop{false};
   int k = 0;
   double v = 2.;
+  linearSystem.backup();
+  edges.backup();
   while (!stop && k < this->algoOption.algoOptionLM.maxIter) {
     k++;
     linearSystem.processDiag(this->algoStatus.algoStatusLM);
