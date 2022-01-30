@@ -20,7 +20,7 @@ template <typename T> void EdgeVector<T>::backup() const {
       cudaSetDevice(i);
       cudaMemcpyAsync(schurValueDevicePtrsOld[0][i], schurValueDevicePtrs[0][i],
                       MemoryPool::getItemNum(i) * gradShape * sizeof(T),
-                      cudaMemcpyDeviceToDevice, schurStreamLmMemcpy[i]);
+                      cudaMemcpyDeviceToDevice);
     }
   } else {
     // TODO(Jie Ren): implement this
@@ -34,7 +34,7 @@ template <typename T> void EdgeVector<T>::rollback() const {
       cudaSetDevice(i);
       cudaMemcpyAsync(schurValueDevicePtrs[0][i], schurValueDevicePtrsOld[0][i],
                       MemoryPool::getItemNum(i) * gradShape * sizeof(T),
-                      cudaMemcpyDeviceToDevice, schurStreamLmMemcpy[i]);
+                      cudaMemcpyDeviceToDevice);
     }
   } else {
     // TODO(Jie Ren): implement this
@@ -45,15 +45,12 @@ template <typename T> void EdgeVector<T>::allocateResourceCUDA() {
   if (option.useSchur) {
     const auto worldSize = MemoryPool::getWorldSize();
     const auto gradShape = getGradShape();
-    schurStreamLmMemcpy.resize(worldSize);
     std::vector<T *> valueDevicePtrs, valueDevicePtrsOld;
     valueDevicePtrs.resize(worldSize);
     valueDevicePtrsOld.resize(worldSize);
     for (int i = 0; i < worldSize; ++i) {
       const auto edgeNum = MemoryPool::getItemNum(i);
       cudaSetDevice(i);
-      cudaStreamCreateWithFlags(&schurStreamLmMemcpy[i],
-                                CU_STREAM_NON_BLOCKING);
       T *valueDevicePtr, *valueDevicePtrOld;
       const auto nItem = MemoryPool::getItemNum(i);
       cudaMalloc(&valueDevicePtr, nItem * gradShape * sizeof(T));
@@ -110,7 +107,6 @@ template <typename T> void EdgeVector<T>::deallocateResourceCUDA() {
       cudaFree(schurValueDevicePtrs[1][i]);
       cudaFree(schurValueDevicePtrsOld[0][i]);
       cudaFree(schurValueDevicePtrsOld[1][i]);
-      cudaStreamDestroy(schurStreamLmMemcpy[i]);
     }
 
     for (auto &edge : edges)

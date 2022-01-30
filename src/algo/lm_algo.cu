@@ -10,9 +10,9 @@
 #include <thrust/inner_product.h>
 #include <thrust/async/reduce.h>
 #include <iostream>
+#include <chrono>
 #include "linear_system/LM_linear_system.h"
 #include "wrapper.hpp"
-#include "macro.h"
 
 namespace MegBA {
 namespace {
@@ -99,13 +99,11 @@ double computeRhoDenominator(const JVD<T> &JV,
                                  nItem * sizeof(T), i);
       dim3 block(std::min((std::size_t)256, nItem));
       dim3 grid((nItem - 1) / block.x + 1);
-      ASSERT_CUDA_NO_ERROR();
       JdxpF<<<grid, block>>>(J.getCUDAGradPtr()[i], linearSystem.deltaXPtr[i],
                              J.getCUDAResPtr()[i],
                              positionContainer.absolutePosition[0],
                              positionContainer.absolutePosition[1], nItem,
                              cameraDim, cameraNum, pointDim, ptr);
-      ASSERT_CUDA_NO_ERROR();
       futures[i][j] = thrust::async::reduce(
           thrust::cuda::par.on(nullptr), thrust::device_ptr<T>{ptr},
           thrust::device_ptr<T>{ptr} + nItem, T(0.), thrust::plus<T>{});
@@ -135,14 +133,14 @@ template <typename T>
 void LMAlgo<T>::solveCUDA(const BaseLinearSystem<T> &baseLinearSystem,
                           const EdgeVector<T> &edges,
                           T *xPtr) {
+  auto startTimePoint = std::chrono::system_clock::now();
   const auto &linearSystem = dynamic_cast<const LMLinearSystem<T> &>(baseLinearSystem);
   JVD<T> jvBackup;
   jvBackup = edges.forward();
-  ASSERT_CUDA_NO_ERROR();
   edges.buildLinearSystem(jvBackup, linearSystem);
   double residualNorm, residualNormNew = computeResidualNorm(jvBackup);
-  std::cout << "start with error: " << residualNormNew / 2
-            << ", log error: " << std::log10(residualNormNew / 2) << std::endl;
+  std::cout << "Start with error: " << residualNormNew / 2
+            << ", log error: " << std::log10(residualNormNew / 2);
 
   MemoryPool::redistribute();
   bool stop{false};
@@ -150,6 +148,9 @@ void LMAlgo<T>::solveCUDA(const BaseLinearSystem<T> &baseLinearSystem,
   double v = 2.;
   linearSystem.backup();
   edges.backup();
+  std::cout << ", elapsed " <<
+  std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now() - startTimePoint).count() << " ms";
+  std::cout << std::endl;
   while (!stop && k < this->algoOption.algoOptionLM.maxIter) {
     k++;
     linearSystem.processDiag(this->algoStatus.algoStatusLM);
@@ -172,9 +173,8 @@ void LMAlgo<T>::solveCUDA(const BaseLinearSystem<T> &baseLinearSystem,
         jvBackup(i) = jv(i);
       }
       edges.buildLinearSystem(jv, linearSystem);
-      std::cout << k << "-th iter error: " << residualNormNew / 2
-                << ", log error: " << std::log10(residualNormNew / 2)
-                << std::endl;
+      std::cout << "Iter " << k << " error: " << residualNormNew / 2
+                << ", log error: " << std::log10(residualNormNew / 2);
       linearSystem.backup();
       edges.backup();
       linearSystem.applyUpdate(xPtr);
@@ -189,6 +189,7 @@ void LMAlgo<T>::solveCUDA(const BaseLinearSystem<T> &baseLinearSystem,
           linfNorm(linearSystem.g[0], linearSystem.getHessianShape());
       stop = norm <= this->algoOption.algoOptionLM.epsilon1;
     } else {
+      std::cout << "Iter " << k << " failed";
       linearSystem.rollback();
       edges.rollback();
       residualNormNew = residualNorm;
@@ -196,6 +197,9 @@ void LMAlgo<T>::solveCUDA(const BaseLinearSystem<T> &baseLinearSystem,
       v *= 2;
       this->algoStatus.algoStatusLM.recoverDiag = true;
     }
+    std::cout << ", elapsed " <<
+        std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now() - startTimePoint).count() << " ms";
+    std::cout << std::endl;
   }
 }
 

@@ -77,7 +77,6 @@ template <typename T> class EdgeVector {
   unsigned int pointVertexNum{0};
   JVD<T> jetMeasurement;
   JVD<T> jetInformation;
-  std::vector<cudaStream_t> schurStreamLmMemcpy{};
   EdgeKind edgeKind{};
 
   void decideEdgeKind();

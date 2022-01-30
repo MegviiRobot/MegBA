@@ -43,11 +43,6 @@ updateDeltaXTwoVertices(const T *deltaX, const int *absolutePositionCamera,
 
     template <typename T>
 void EdgeVector<T>::update(const BaseLinearSystem<T> &linearSystem) const {
-  for (int i = 0; i < MemoryPool::getWorldSize(); ++i) {
-    cudaSetDevice(i);
-    cudaStreamSynchronize(schurStreamLmMemcpy[i]);
-  }
-
   const auto cameraDim = linearSystem.dim[0];
   const auto cameraNum = linearSystem.num[0];
   const auto pointDim = linearSystem.dim[1];
