@@ -9,7 +9,7 @@
 #include <thrust/device_ptr.h>
 #include <thrust/reduce.h>
 #include <thrust/inner_product.h>
-#include <Eigen/Sparse>
+#include "Eigen/Sparse"
 #include "macro.h"
 #include "edge/base_edge.h"
 #include "wrapper.hpp"
