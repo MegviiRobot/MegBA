@@ -13,18 +13,20 @@
 namespace MegBA {
 template <typename T>
 struct BaseLinearSystem {
+  BaseLinearSystem() = delete;
+
+  virtual ~BaseLinearSystem();
+
   static std::unique_ptr<BaseLinearSystem<T>> dispatch(const BaseProblem<T> *problem);
 
-  const SolverOption &solverOption;
+  const ProblemOption &problemOption;
   std::vector<T *> deltaXPtr;
   std::vector<T *> g;
 
   std::array<int, 2> num{};
   std::array<int, 2> dim{};
 
-  std::size_t getHessianShape() const {
-    return dim[0] * num[0] + dim[1] * num[1];
-  }
+  std::size_t getHessianShape() const;
 
   virtual void solve() const = 0;
 
@@ -33,6 +35,11 @@ struct BaseLinearSystem {
   virtual void applyUpdate(T *xPtr) const = 0;
 
  protected:
-  explicit BaseLinearSystem(const ProblemOption &option);
+  explicit BaseLinearSystem(const ProblemOption &problemOption);
+
+ private:
+  void freeCPU();
+
+  void freeCUDA();
 };
 }

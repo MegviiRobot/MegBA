@@ -1,6 +1,6 @@
 add_library(base_problem SHARED base_problem.cpp)
-target_link_libraries(base_problem base_algo base_linear_system)
-target_link_libraries(base_problem lm_algo schurLM_linear_system)
+target_link_libraries(base_problem base_algo)
 cuda_add_library(base_problem_CUDA SHARED base_problem.cu)
 
 target_link_libraries(base_problem base_problem_CUDA resource)
+target_link_libraries(base_problem lm_algo base_linear_system)

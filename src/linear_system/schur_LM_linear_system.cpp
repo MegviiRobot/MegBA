@@ -5,7 +5,7 @@
 *
 **/
 
-#include "linear_system/schurLM_linear_system.h"
+#include "linear_system/schur_LM_linear_system.h"
 #include <omp.h>
 #include <thread>
 
@@ -43,11 +43,10 @@ void internalBuildSpIndex(int *csrRowPtr, int *csrColInd, std::size_t *nnz,
 }
 }
 
-template <typename T>
-SchurLMLinearSystem<T>::SchurLMLinearSystem(
-    const ProblemOption &option)
-    : LMLinearSystem<T>{option},
-      equationContainers{option.deviceUsed.size()} {}
+//template <typename T>
+//SchurLMLinearSystem<T>::SchurLMLinearSystem(
+//    const ProblemOption &option)
+//    : SchurLinearSystem<T>(option), LMLinearSystem<T>{option} {}
 
 template <typename T>
 void SchurLMLinearSystem<T>::buildIndex(const BaseProblem<T> &problem) {
@@ -56,7 +55,7 @@ void SchurLMLinearSystem<T>::buildIndex(const BaseProblem<T> &problem) {
   std::vector<std::thread> threads;
 
   for (int i = 0; i < worldSize; ++i) {
-    auto &containerLocal = equationContainers[i];
+    auto &containerLocal = this->equationContainers[i];
     const auto &entranceLocal = hessianEntrance[i];
     for (int j = 0; j < 2; ++j) {
       containerLocal.csrRowPtr[j] = (int *)malloc(
@@ -75,8 +74,8 @@ void SchurLMLinearSystem<T>::buildIndex(const BaseProblem<T> &problem) {
   }
 
   for (int i = 0; i < worldSize; ++i) {
-    equationContainers[i].nnz[2] = this->num[0] * this->dim[0] * this->dim[0];
-    equationContainers[i].nnz[3] = this->num[1] * this->dim[1] * this->dim[1];
+    this->equationContainers[i].nnz[2] = this->num[0] * this->dim[0] * this->dim[0];
+    this->equationContainers[i].nnz[3] = this->num[1] * this->dim[1] * this->dim[1];
   }
   allocateResourceCUDA();
 }

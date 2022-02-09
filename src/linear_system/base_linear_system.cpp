@@ -6,14 +6,14 @@
 **/
 
 #include "linear_system/base_linear_system.h"
-#include "linear_system/schurLM_linear_system.h"
+#include "linear_system/schur_LM_linear_system.h"
 
 namespace MegBA {
 template <typename T>
-BaseLinearSystem<T>::BaseLinearSystem(const ProblemOption &option)
-    : solverOption{option.solverOption},
-      deltaXPtr{option.deviceUsed.size()},
-      g{option.deviceUsed.size()} {}
+BaseLinearSystem<T>::BaseLinearSystem(const ProblemOption &problemOption)
+    : problemOption{problemOption},
+      deltaXPtr{problemOption.deviceUsed.size()},
+      g{problemOption.deviceUsed.size()} {}
 
 template <typename T>
 std::unique_ptr<BaseLinearSystem<T>> BaseLinearSystem<T>::dispatch(
@@ -28,6 +28,27 @@ std::unique_ptr<BaseLinearSystem<T>> BaseLinearSystem<T>::dispatch(
   } else {
     throw std::runtime_error("Not implemented");
   }
+}
+
+template <typename T>
+std::size_t BaseLinearSystem<T>::getHessianShape() const {
+  return dim[0] * num[0] + dim[1] * num[1];
+}
+
+template <typename T>
+BaseLinearSystem<T>::~BaseLinearSystem() {
+  switch (problemOption.device) {
+    case CUDA:
+      freeCUDA();
+      break;
+    case CPU:
+      freeCPU();
+      break;
+  }
+}
+template <typename T>
+void BaseLinearSystem<T>::freeCPU() {
+  // TODO (Jie): implement this
 }
 
 template class BaseLinearSystem<double>;

@@ -5,7 +5,7 @@
 *
 **/
 
-#include "linear_system/schurLM_linear_system.h"
+#include "linear_system/schur_LM_linear_system.h"
 #include "wrapper.hpp"
 
 namespace MegBA {
@@ -645,27 +645,27 @@ void SchurLMLinearSystem<T>::allocateResourceCUDA() {
     cudaMalloc(&this->extractedDiag[i][0], this->dim[0] * this->num[0] * sizeof(T));
     cudaMalloc(&this->extractedDiag[i][1], this->dim[1] * this->num[1] * sizeof(T));
 
-    std::array<int *, 2> csrRowPtrHost{equationContainers[i].csrRowPtr};
-    cudaMalloc(&equationContainers[i].csrRowPtr[0],
+    std::array<int *, 2> csrRowPtrHost{this->equationContainers[i].csrRowPtr};
+    cudaMalloc(&this->equationContainers[i].csrRowPtr[0],
                (this->num[0] * this->dim[0] + 1) * sizeof(int));
-    cudaMalloc(&equationContainers[i].csrRowPtr[1],
+    cudaMalloc(&this->equationContainers[i].csrRowPtr[1],
                (this->num[1] * this->dim[1] + 1) * sizeof(int));
-    cudaMemcpyAsync(equationContainers[i].csrRowPtr[0], csrRowPtrHost[0],
+    cudaMemcpyAsync(this->equationContainers[i].csrRowPtr[0], csrRowPtrHost[0],
                     (this->num[0] * this->dim[0] + 1) * sizeof(int),
                     cudaMemcpyHostToDevice);
     cudaLaunchHostFunc(nullptr, freeCallback, (void *)csrRowPtrHost[0]);
-    cudaMemcpyAsync(equationContainers[i].csrRowPtr[1], csrRowPtrHost[1],
+    cudaMemcpyAsync(this->equationContainers[i].csrRowPtr[1], csrRowPtrHost[1],
                     (this->num[1] * this->dim[1] + 1) * sizeof(int),
                     cudaMemcpyHostToDevice);
     cudaLaunchHostFunc(nullptr, freeCallback, (void *)csrRowPtrHost[1]);
 
-    std::array<int *, 2> csrColIndHost{equationContainers[i].csrColInd};
-    cudaMalloc(&equationContainers[i].csrVal[0],
-               equationContainers[i].nnz[0] * sizeof(T));  // hpl
-    cudaMalloc(&equationContainers[i].csrColInd[0],
-               equationContainers[i].nnz[0] * sizeof(int));
+    std::array<int *, 2> csrColIndHost{this->equationContainers[i].csrColInd};
+    cudaMalloc(&this->equationContainers[i].csrVal[0],
+               this->equationContainers[i].nnz[0] * sizeof(T));  // hpl
+    cudaMalloc(&this->equationContainers[i].csrColInd[0],
+               this->equationContainers[i].nnz[0] * sizeof(int));
     {
-      const std::size_t entriesInRows = equationContainers[i].nnz[0] / this->dim[1];
+      const std::size_t entriesInRows = this->equationContainers[i].nnz[0] / this->dim[1];
       dim3 block(std::min(entriesInRows, (std::size_t)512));
       dim3 grid((entriesInRows - 1) / block.x + 1);
       cudaMalloc(&compressedCsrColInd[i][0], entriesInRows * sizeof(int));
@@ -674,15 +674,15 @@ void SchurLMLinearSystem<T>::allocateResourceCUDA() {
       cudaLaunchHostFunc(nullptr, freeCallback, (void *)csrColIndHost[0]);
       broadCastCsrColInd<T>
           <<<grid, block>>>(compressedCsrColInd[i][0], this->dim[1], entriesInRows,
-                            equationContainers[i].csrColInd[0]);
+                            this->equationContainers[i].csrColInd[0]);
     }
 
-    cudaMalloc(&equationContainers[i].csrVal[1],
-               equationContainers[i].nnz[1] * sizeof(T));  // hlp
-    cudaMalloc(&equationContainers[i].csrColInd[1],
-               equationContainers[i].nnz[1] * sizeof(int));
+    cudaMalloc(&this->equationContainers[i].csrVal[1],
+               this->equationContainers[i].nnz[1] * sizeof(T));  // hlp
+    cudaMalloc(&this->equationContainers[i].csrColInd[1],
+               this->equationContainers[i].nnz[1] * sizeof(int));
     {
-      const std::size_t entriesInRows = equationContainers[i].nnz[1] / this->dim[0];
+      const std::size_t entriesInRows = this->equationContainers[i].nnz[1] / this->dim[0];
       dim3 block(std::min(entriesInRows, (std::size_t)512));
       dim3 grid((entriesInRows - 1) / block.x + 1);
       cudaMalloc(&compressedCsrColInd[i][1], entriesInRows * sizeof(int));
@@ -691,14 +691,14 @@ void SchurLMLinearSystem<T>::allocateResourceCUDA() {
       cudaLaunchHostFunc(nullptr, freeCallback, (void *)csrColIndHost[1]);
       broadCastCsrColInd<T>
           <<<grid, block>>>(compressedCsrColInd[i][1], this->dim[0], entriesInRows,
-                            equationContainers[i].csrColInd[1]);
+                            this->equationContainers[i].csrColInd[1]);
     }
 
-    cudaMalloc(&equationContainers[i].csrVal[2],
-               equationContainers[i].nnz[2] * sizeof(T));  // hpp
+    cudaMalloc(&this->equationContainers[i].csrVal[2],
+               this->equationContainers[i].nnz[2] * sizeof(T));  // hpp
 
-    cudaMalloc(&equationContainers[i].csrVal[3],
-               equationContainers[i].nnz[3] * sizeof(T));  // hll
+    cudaMalloc(&this->equationContainers[i].csrVal[3],
+               this->equationContainers[i].nnz[3] * sizeof(T));  // hll
 
     cudaMalloc(&this->g[i], this->getHessianShape() * sizeof(T));
     cudaMalloc(&this->gBackup[i], this->getHessianShape() * sizeof(T));
@@ -764,7 +764,7 @@ void SchurLMLinearSystem<T>::processDiag(
   if (lmAlgoStatus.recoverDiag) {
     for (int i = 0; i < MemoryPool::getWorldSize(); ++i) {
       cudaSetDevice(i);
-      auto &container = equationContainers[i];
+      auto &container = this->equationContainers[i];
       RecoverDiag(this->extractedDiag[i][0], T(1. / lmAlgoStatus.region), this->num[0],
                   this->dim[0], container.csrVal[2]);
       RecoverDiag(this->extractedDiag[i][1], T(1. / lmAlgoStatus.region), this->num[1],
@@ -773,7 +773,7 @@ void SchurLMLinearSystem<T>::processDiag(
   } else {
     for (int i = 0; i < MemoryPool::getWorldSize(); ++i) {
       cudaSetDevice(i);
-      auto &container = equationContainers[i];
+      auto &container = this->equationContainers[i];
       extractOldAndApplyNewDiag(T(1. / lmAlgoStatus.region), this->num[0], this->dim[0],
                                 container.csrVal[2], this->extractedDiag[i][0]);
       extractOldAndApplyNewDiag(T(1. / lmAlgoStatus.region), this->num[1], this->dim[1],
@@ -823,20 +823,20 @@ void SchurLMLinearSystem<T>::solve() const {
   std::vector<T *> deltaX{worldSize};
 
   for (int i = 0; i < worldSize; ++i) {
-    hppCsrVal[i] = equationContainers[i].csrVal[2];
-    hllCsrVal[i] = equationContainers[i].csrVal[3];
-    hplCsrVal[i] = equationContainers[i].csrVal[0];
-    hlpCsrVal[i] = equationContainers[i].csrVal[1];
-    hplCsrColInd[i] = equationContainers[i].csrColInd[0];
-    hlpCsrColInd[i] = equationContainers[i].csrColInd[1];
-    hplCsrRowPtr[i] = equationContainers[i].csrRowPtr[0];
-    hlpCsrRowPtr[i] = equationContainers[i].csrRowPtr[1];
+    hppCsrVal[i] = this->equationContainers[i].csrVal[2];
+    hllCsrVal[i] = this->equationContainers[i].csrVal[3];
+    hplCsrVal[i] = this->equationContainers[i].csrVal[0];
+    hlpCsrVal[i] = this->equationContainers[i].csrVal[1];
+    hplCsrColInd[i] = this->equationContainers[i].csrColInd[0];
+    hlpCsrColInd[i] = this->equationContainers[i].csrColInd[1];
+    hplCsrRowPtr[i] = this->equationContainers[i].csrRowPtr[0];
+    hlpCsrRowPtr[i] = this->equationContainers[i].csrRowPtr[1];
     g[i] = this->g[i];
-    hplNnz[i] = equationContainers[i].nnz[0];
+    hplNnz[i] = this->equationContainers[i].nnz[0];
     deltaX[i] = this->deltaXPtr[i];
   }
 
-  SchurPCGSolverDistributed(this->solverOption.solverOptionPCG, hppCsrVal,
+  SchurPCGSolverDistributed(this->problemOption.solverOption.solverOptionPCG, hppCsrVal,
                             hllCsrVal, hplCsrVal, hplCsrColInd, hplCsrRowPtr,
                             hlpCsrVal, hlpCsrColInd, hlpCsrRowPtr, g, this->dim[0],
                             this->num[0], this->dim[1], this->num[1], hplNnz, this->dim[0] * this->num[0],

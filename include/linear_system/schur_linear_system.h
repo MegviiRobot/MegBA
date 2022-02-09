@@ -7,12 +7,13 @@
 
 #pragma once
 #include "LM_linear_system.h"
-#include "problem/hessian_entrance.h"
 
 namespace MegBA {
 template <typename T>
-struct SchurLMLinearSystem : public LMLinearSystem<T> {
-  explicit SchurLMLinearSystem(const ProblemOption &option);
+struct SchurLinearSystem : virtual public BaseLinearSystem<T> {
+  SchurLinearSystem() = delete;
+
+  virtual ~SchurLinearSystem();
 
   struct EquationContainer {
     std::array<int *, 2> csrRowPtr{nullptr, nullptr};
@@ -23,18 +24,12 @@ struct SchurLMLinearSystem : public LMLinearSystem<T> {
 
   std::vector<EquationContainer> equationContainers;
 
-  void allocateResourceCUDA();
+ protected:
+  explicit SchurLinearSystem(const ProblemOption &option);
 
-  void processDiag(const AlgoStatus::AlgoStatusLM &lmAlgoStatus) const override;
+ private:
+  void freeCPU();
 
-  void backup() const override;
-
-  void rollback() const override;
-
-  void buildIndex(const BaseProblem<T> &problem) override;
-
-  void solve() const override;
-
-  void applyUpdate(T *xPtr) const override;
+  void freeCUDA();
 };
 }

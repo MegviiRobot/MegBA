@@ -7,11 +7,14 @@
 
 #pragma once
 #include "base_linear_system.h"
-#include "problem/hessian_entrance.h"
 
 namespace MegBA {
 template <typename T>
-struct LMLinearSystem : public BaseLinearSystem<T> {
+struct LMLinearSystem : virtual public BaseLinearSystem<T> {
+  LMLinearSystem() = delete;
+
+  virtual ~LMLinearSystem();
+
   std::vector<T *> deltaXPtrBackup;
 
   std::vector<T *> gBackup;
@@ -26,10 +29,11 @@ struct LMLinearSystem : public BaseLinearSystem<T> {
   virtual void rollback() const = 0;
 
  protected:
-  explicit LMLinearSystem(const ProblemOption &option)
-      : BaseLinearSystem<T>(option),
-        deltaXPtrBackup{option.deviceUsed.size()},
-        gBackup{option.deviceUsed.size()},
-        extractedDiag{option.deviceUsed.size()} {}
+  explicit LMLinearSystem(const ProblemOption &option);
+
+ private:
+  void freeCPU();
+
+  void freeCUDA();
 };
 }

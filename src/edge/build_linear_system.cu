@@ -14,7 +14,7 @@
 #include "edge/base_edge.h"
 #include "wrapper.hpp"
 #include "resource/handle_manager.h"
-#include "linear_system/schurLM_linear_system.h"
+#include "linear_system/schur_LM_linear_system.h"
 
 #if __CUDA_ARCH__ < 600 && defined(__CUDA_ARCH__)
 namespace {

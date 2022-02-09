@@ -10,27 +10,15 @@
 #include <vector>
 
 #include "common.h"
-#include "problem/base_problem.h"
+#include "linear_system/base_linear_system.h"
 
 namespace MegBA {
 template <typename T>
 struct BaseSolver {
- protected:
-  const BaseProblem<T> &problem;
+  const SolverOption &solverOption;
 
- public:
-  explicit BaseSolver(const BaseProblem<T> &problem) : problem(problem) {};
+  explicit BaseSolver(const SolverOption &solverOption) : solverOption(solverOption) {}
 
-  void solve() {
-    switch (problem.getProblemOption().device) {
-      case CUDA:
-        solveCUDA();
-        break;
-      default:
-        throw std::runtime_error("Not implemented");
-    }
-  };
-
-  virtual void solveCUDA() = 0;
+  virtual void solve(const BaseLinearSystem<T>& baseLinearSystem) = 0;
 };
 }  // namespace MegBA

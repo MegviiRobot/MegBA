@@ -268,7 +268,7 @@ void BaseProblem<T>::solve() {
 template <typename T>
 BaseProblem<T>::~BaseProblem(){
 
-};
+}
 
 template class BaseProblem<double>;
 template class BaseProblem<float>;

@@ -6,7 +6,7 @@
 **/
 
 #include "edge/base_edge.h"
-#include "linear_system/schurLM_linear_system.h"
+#include "linear_system/schur_LM_linear_system.h"
 
 namespace MegBA {
 namespace {
