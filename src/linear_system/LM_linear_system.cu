@@ -20,6 +20,5 @@ void LMLinearSystem<T>::freeCUDA() {
   }
 }
 
-template class LMLinearSystem<double>;
-template class LMLinearSystem<float>;
+SPECIALIZE_CLASS(LMLinearSystem);
 }

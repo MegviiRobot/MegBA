@@ -6,6 +6,10 @@
  **/
 
 #pragma once
+#define SPECIALIZE_CLASS(className) \
+template class className<double>;   \
+template class className<float>
+
 #include <Eigen/Core>
 #include <cstddef>
 #include <memory>
