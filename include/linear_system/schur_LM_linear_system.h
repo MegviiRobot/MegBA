@@ -14,8 +14,7 @@ namespace MegBA {
 template <typename T>
 struct SchurLMLinearSystem : public SchurLinearSystem<T>, public LMLinearSystem<T> {
   explicit SchurLMLinearSystem(
-      const ProblemOption &option)
-      : SchurLinearSystem<T>{option}, LMLinearSystem<T>{option}, BaseLinearSystem<T>{option} {}
+      const ProblemOption &option, std::unique_ptr<BaseSolver<T>> solver);
 
   void allocateResourceCUDA();
 

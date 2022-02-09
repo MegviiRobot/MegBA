@@ -25,7 +25,7 @@ struct SchurLinearSystem : virtual public BaseLinearSystem<T> {
   std::vector<EquationContainer> equationContainers;
 
  protected:
-  explicit SchurLinearSystem(const ProblemOption &option);
+  explicit SchurLinearSystem(const ProblemOption &option, std::unique_ptr<BaseSolver<T>> solver);
 
  private:
   void freeCPU();

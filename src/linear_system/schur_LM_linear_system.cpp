@@ -69,11 +69,20 @@ void SchurLMLinearSystem<T>::buildIndex(const BaseProblem<T> &problem) {
   }
 
   for (int i = 0; i < worldSize; ++i) {
-    this->equationContainers[i].nnz[2] = this->num[0] * this->dim[0] * this->dim[0];
-    this->equationContainers[i].nnz[3] = this->num[1] * this->dim[1] * this->dim[1];
+    this->equationContainers[i].nnz[2] =
+        this->num[0] * this->dim[0] * this->dim[0];
+    this->equationContainers[i].nnz[3] =
+        this->num[1] * this->dim[1] * this->dim[1];
   }
   allocateResourceCUDA();
 }
+
+template <typename T>
+SchurLMLinearSystem<T>::SchurLMLinearSystem(
+    const ProblemOption &option, std::unique_ptr<BaseSolver<T>> solver)
+    : SchurLinearSystem<T>{option, nullptr},
+      LMLinearSystem<T>{option, nullptr},
+      BaseLinearSystem<T>{option, std::move(solver)} {}
 
 template struct SchurLMLinearSystem<double>;
 template struct SchurLMLinearSystem<float>;

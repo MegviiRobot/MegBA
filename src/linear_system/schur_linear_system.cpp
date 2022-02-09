@@ -9,8 +9,8 @@
 
 namespace MegBA {
 template <typename T>
-SchurLinearSystem<T>::SchurLinearSystem(const ProblemOption& option)
-    : BaseLinearSystem<T>{option},
+SchurLinearSystem<T>::SchurLinearSystem(const ProblemOption& option, std::unique_ptr<BaseSolver<T>> solver)
+    : BaseLinearSystem<T>{option, std::move(solver)},
       equationContainers{option.deviceUsed.size()} {}
 
 template <typename T>

@@ -6,11 +6,7 @@
  **/
 
 #pragma once
-#include <utility>
-#include <vector>
-
 #include "common.h"
-#include "linear_system/base_linear_system.h"
 
 namespace MegBA {
 template <typename T>

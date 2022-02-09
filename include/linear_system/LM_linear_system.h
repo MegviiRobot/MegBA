@@ -29,7 +29,7 @@ struct LMLinearSystem : virtual public BaseLinearSystem<T> {
   virtual void rollback() const = 0;
 
  protected:
-  explicit LMLinearSystem(const ProblemOption &option);
+  explicit LMLinearSystem(const ProblemOption &option, std::unique_ptr<BaseSolver<T>> solver);
 
  private:
   void freeCPU();

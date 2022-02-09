@@ -18,8 +18,6 @@ struct BaseLinearSystem {
 
   virtual ~BaseLinearSystem();
 
-  static std::unique_ptr<BaseLinearSystem<T>> dispatch(const BaseProblem<T> *problem);
-
   const ProblemOption &problemOption;
   std::vector<T *> deltaXPtr;
   std::vector<T *> g;
@@ -38,7 +36,7 @@ struct BaseLinearSystem {
   virtual void applyUpdate(T *xPtr) const = 0;
 
  protected:
-  explicit BaseLinearSystem(const ProblemOption &problemOption);
+  explicit BaseLinearSystem(const ProblemOption &problemOption, std::unique_ptr<BaseSolver<T>> solver);
 
  private:
   void freeCPU();

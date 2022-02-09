@@ -9,8 +9,8 @@
 
 namespace MegBA {
 template <typename T>
-LMLinearSystem<T>::LMLinearSystem(const ProblemOption& option)
-    : BaseLinearSystem<T>{option},
+LMLinearSystem<T>::LMLinearSystem(const ProblemOption& option, std::unique_ptr<BaseSolver<T>> solver)
+    : BaseLinearSystem<T>{option, std::move(solver)},
       deltaXPtrBackup{option.deviceUsed.size()},
       gBackup{option.deviceUsed.size()},
       extractedDiag{option.deviceUsed.size()} {}

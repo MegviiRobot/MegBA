@@ -47,10 +47,13 @@ void HessianEntrance<T>::buildRandomAccess() {
 }
 
 template <typename T>
-BaseProblem<T>::BaseProblem(const ProblemOption &problemOption)
+BaseProblem<T>::BaseProblem(
+    const ProblemOption &problemOption,
+    std::unique_ptr<BaseAlgo<T>> algo,
+    std::unique_ptr<BaseLinearSystem<T>> linearSystem)
     : problemOption(problemOption),
-      algo(BaseAlgo<T>::dispatch(this)),
-      linearSystem(BaseLinearSystem<T>::dispatch(this)) {
+      algo(std::move(algo)),
+      linearSystem(std::move(linearSystem)) {
   if (problemOption.N != -1 && problemOption.nItem != -1)
     MemoryPool::resetPool(problemOption.N, problemOption.nItem, sizeof(T),
                           problemOption.deviceUsed.size());

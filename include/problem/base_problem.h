@@ -51,7 +51,9 @@ class BaseProblem {
 
   void allocateResourceCUDA();
  public:
-  explicit BaseProblem(const ProblemOption &problemOption = ProblemOption{});
+  explicit BaseProblem(const ProblemOption &problemOption,
+                       std::unique_ptr<BaseAlgo<T>> algo,
+                       std::unique_ptr<BaseLinearSystem<T>> linearSystem);
 
   ~BaseProblem();
 

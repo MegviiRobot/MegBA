@@ -8,6 +8,9 @@
 #include "geo/geo.cuh"
 #include <fstream>
 #include "macro.h"
+#include "algo/lm_algo.h"
+#include "solver/schur_pcg_solver.h"
+#include "linear_system/schur_LM_linear_system.h"
 
 template<typename T>
 class BAL_Edge : public MegBA::BaseEdge<T> {
@@ -124,7 +127,10 @@ int main(int argc, char *arcv[]) {
     option.algoOption.algoOptionLM.initialRegion = tau;
     option.algoOption.algoOptionLM.epsilon1 = epsilon1;
     option.algoOption.algoOptionLM.epsilon2 = epsilon2;
-    MegBA::BaseProblem<T> problem{option};
+    std::unique_ptr<MegBA::BaseAlgo<T>> algo{new MegBA::LMAlgo<T>{option.algoOption}};
+    std::unique_ptr<MegBA::BaseSolver<T>> solver{new MegBA::SchurPCGSolver<T>{}};
+    std::unique_ptr<MegBA::BaseLinearSystem<T>> linearSystem{new MegBA::SchurLMLinearSystem<T>{option, std::move(solver)}};
+    MegBA::BaseProblem<T> problem{option, std::move(algo), std::move(linearSystem)};
 
     std::vector<std::tuple<int, int, Eigen::Matrix<T, 2, 1>>> edge;
     std::vector<std::tuple<int, Eigen::Matrix<T, 9, 1>>> camera_vertices;

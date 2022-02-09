@@ -11,26 +11,11 @@
 
 namespace MegBA {
 template <typename T>
-BaseLinearSystem<T>::BaseLinearSystem(const ProblemOption &problemOption)
+BaseLinearSystem<T>::BaseLinearSystem(const ProblemOption &problemOption, std::unique_ptr<BaseSolver<T>> solver)
     : problemOption{problemOption},
       deltaXPtr{problemOption.deviceUsed.size()},
       g{problemOption.deviceUsed.size()},
-      solver{new SchurPCGSolver<T>} {}
-
-template <typename T>
-std::unique_ptr<BaseLinearSystem<T>> BaseLinearSystem<T>::dispatch(
-    const BaseProblem<T> *problem) {
-  const ProblemOption &option = problem->getProblemOption();
-  if (option.useSchur) {
-    switch (option.algoKind) {
-      case LM:
-        return std::unique_ptr<BaseLinearSystem<T>>{
-            new SchurLMLinearSystem<T>{option}};
-    }
-  } else {
-    throw std::runtime_error("Not implemented");
-  }
-}
+      solver{std::move(solver)} {}
 
 template <typename T>
 std::size_t BaseLinearSystem<T>::getHessianShape() const {
