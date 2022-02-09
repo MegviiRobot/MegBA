@@ -21,7 +21,7 @@
 namespace MegBA {
 template <typename T>
 class BaseProblem {
-  const ProblemOption option;
+  const ProblemOption &problemOption;
   std::unordered_map<int, BaseVertex<T> *> vertices{};
   std::unordered_map<VertexKind, std::set<BaseVertex<T> *>> verticesSets{};
   struct {
@@ -30,7 +30,7 @@ class BaseProblem {
     int workingDevice{0};
     std::vector<HessianEntrance<T>> hessianEntrance;
   } schurWorkSpace{};
-  EdgeVector<T> edges{option};
+  EdgeVector<T> edges{problemOption};
 
   std::vector<T *> xPtr{nullptr};
 
@@ -51,11 +51,11 @@ class BaseProblem {
 
   void allocateResourceCUDA();
  public:
-  explicit BaseProblem(const ProblemOption &option = ProblemOption{});
+  explicit BaseProblem(const ProblemOption &problemOption = ProblemOption{});
 
   ~BaseProblem();
 
-  const auto &getProblemOption() const { return option; };
+  const auto &getProblemOption() const { return problemOption; };
 
   const auto &getEdgeVectors() const { return edges; };
 

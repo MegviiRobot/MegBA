@@ -5,7 +5,8 @@
  *
  **/
 
-#include "solver/schur_distributed_pcg_solver.h"
+#include "solver/schur_pcg_solver.h"
+#include "linear_system/schur_LM_linear_system.h"
 #include "wrapper.hpp"
 
 namespace MegBA {
@@ -28,21 +29,21 @@ __global__ void fillPtr(const T *aData, T *ainvData, const int batchSize,
 }
 
 template <typename T>
-void invert(const T *aFlat, int n, const int pointNum, T *cFlat) {
+void invert(const T *aFlat, int n, const int num, T *cFlat) {
   cublasHandle_t handle = HandleManager::getCUBLASHandle()[0];
 
   const T **a;
   T **ainv;
-  cudaMalloc(&a, pointNum * sizeof(T *));
-  cudaMalloc(&ainv, pointNum * sizeof(T *));
-  dim3 blockDim(std::min(decltype(pointNum)(256), pointNum));
-  dim3 gridDim((pointNum - 1) / blockDim.x + 1);
+  cudaMalloc(&a, num * sizeof(T *));
+  cudaMalloc(&ainv, num * sizeof(T *));
+  dim3 blockDim(std::min(decltype(num)(256), num));
+  dim3 gridDim((num - 1) / blockDim.x + 1);
 
-  fillPtr<<<gridDim, blockDim>>>(aFlat, cFlat, pointNum, n * n, a, ainv);
+  fillPtr<<<gridDim, blockDim>>>(aFlat, cFlat, num, n * n, a, ainv);
 
   int *info;
-  cudaMalloc(&info, pointNum * sizeof(int));
-  Wrapper::cublasGmatinvBatched::call(handle, n, a, n, ainv, n, info, pointNum);
+  cudaMalloc(&info, num * sizeof(int));
+  Wrapper::cublasGmatinvBatched::call(handle, n, a, n, ainv, n, info, num);
 
   cudaDeviceSynchronize();
 
@@ -52,33 +53,33 @@ void invert(const T *aFlat, int n, const int pointNum, T *cFlat) {
 }
 
 template <typename T>
-void invertDistributed(const std::vector<T *> aFlat, int n, const int pointNum,
-                       std::vector<T *> cFlat) {
+void invertDistributed(const std::vector<T *> &aFlat, int n, const int num,
+                       std::vector<T *> &cFlat) {
   const auto &handle = HandleManager::getCUBLASHandle();
   const auto worldSize = MemoryPool::getWorldSize();
 
   std::vector<const T **> a{static_cast<std::size_t>(worldSize)};
   std::vector<T **> ainv{static_cast<std::size_t>(worldSize)};
   std::vector<int *> info{static_cast<std::size_t>(worldSize)};
-  dim3 blockDim(std::min(decltype(pointNum)(256), pointNum));
-  dim3 gridDim((pointNum - 1) / blockDim.x + 1);
+  dim3 blockDim(std::min(decltype(num)(256), num));
+  dim3 gridDim((num - 1) / blockDim.x + 1);
 
   for (int i = 0; i < worldSize; ++i) {
     MemoryPool::allocateNormal(reinterpret_cast<void **>(&a[i]),
-                               pointNum * sizeof(T *), i);
+                               num * sizeof(T *), i);
     MemoryPool::allocateNormal(reinterpret_cast<void **>(&ainv[i]),
-                               pointNum * sizeof(T *), i);
+                               num * sizeof(T *), i);
     MemoryPool::allocateNormal(reinterpret_cast<void **>(&info[i]),
-                               pointNum * sizeof(int), i);
+                               num * sizeof(int), i);
   }
 
   for (int i = 0; i < worldSize; ++i) {
     cudaSetDevice(i);
-    fillPtr<<<gridDim, blockDim>>>(aFlat[i], cFlat[i], pointNum, n * n, a[i],
+    fillPtr<<<gridDim, blockDim>>>(aFlat[i], cFlat[i], num, n * n, a[i],
                                    ainv[i]);
 
     Wrapper::cublasGmatinvBatched::call(handle[i], n, a[i], n, ainv[i], n,
-                                        info[i], pointNum);
+                                        info[i], num);
   }
 
   for (int i = 0; i < worldSize; ++i) {
@@ -128,7 +129,7 @@ bool schurPCGSolverDistributedCUDA(
     const std::vector<T *> &d_x) {
   const auto &comms = HandleManager::getNCCLComm();
   const auto worldSize = MemoryPool::getWorldSize();
-  constexpr auto cudaDataType = Wrapper::declaredDtype<T>::cuda_dtype;
+  constexpr auto cudaDataType = Wrapper::declaredDtype<T>::cudaDtype;
   const auto &cusparseHandle = HandleManager::getCUSPARSEHandle();
   const auto &cublasHandle = HandleManager::getCUBLASHandle();
   std::vector<cudaStream_t> cusparseStream, cublasStream;
@@ -423,7 +424,7 @@ void schurMakeVDistributed(std::vector<T *> *SpMVbuffer, const int pointNum,
   const auto &comms = HandleManager::getNCCLComm();
   const auto worldSize = MemoryPool::getWorldSize();
   const auto &cusparseHandle = HandleManager::getCUSPARSEHandle();
-  constexpr auto cudaDataType = Wrapper::declaredDtype<T>::cuda_dtype;
+  constexpr auto cudaDataType = Wrapper::declaredDtype<T>::cudaDtype;
 
   std::vector<T *> v, w;
   std::vector<cudaStream_t> cusparseStream;
@@ -463,11 +464,6 @@ void schurMakeVDistributed(std::vector<T *> *SpMVbuffer, const int pointNum,
   SpMVbuffer->resize(worldSize);
   for (int i = 0; i < worldSize; ++i) {
     cudaSetDevice(i);
-    // PRINT_DMEMORY(hplCsrVal[i], hplNnz[i], T);
-    // PRINT_DMEMORY(hplCsrColInd[i], hplNnz[i], int);
-    // PRINT_DMEMORY(hplCsrRowPtr[i], hppRows + 1, int);
-    // PRINT_DCSR(hplCsrVal[i], hplCsrColInd[i], hplCsrRowPtr[i], hppRows, T);
-    // PRINT_DMEMORY(w[i], hllRows, T);
     size_t bufferSize = 0;
     cusparseSpMV_bufferSize(cusparseHandle[i], CUSPARSE_OPERATION_NON_TRANSPOSE,
                             &alpha, hpl[i], vecw[i], &beta, vecv[i],
@@ -475,11 +471,9 @@ void schurMakeVDistributed(std::vector<T *> *SpMVbuffer, const int pointNum,
                             &bufferSize);
     MemoryPool::allocateNormal(
         reinterpret_cast<void **>(&SpMVbuffer->operator[](i)), bufferSize, i);
-    // cudaMalloc(&SpMVbuffer[i], bufferSize);
     cusparseSpMV(cusparseHandle[i], CUSPARSE_OPERATION_NON_TRANSPOSE, &alpha,
                  hpl[i], vecw[i], &beta, vecv[i], cudaDataType,
                  CUSPARSE_SPMV_ALG_DEFAULT, SpMVbuffer->operator[](i));
-    // PRINT_DMEMORY(v[i], hppRows, T);
   }
 
   for (int i = 0; i < worldSize; ++i) {
@@ -497,8 +491,6 @@ void schurMakeVDistributed(std::vector<T *> *SpMVbuffer, const int pointNum,
                   comms[i], cusparseStream[i]);
   }
   ncclGroupEnd();
-  // cudaSetDevice(0);
-  // PRINT_DMEMORY(v[0], hppRows, T);
 }
 
 template <typename T>
@@ -511,7 +503,7 @@ void schurSolveWDistributed(
     const std::vector<T *> &d_x) {
   const auto comms = HandleManager::getNCCLComm();
   const auto worldSize = MemoryPool::getWorldSize();
-  constexpr auto cudaDataType = Wrapper::declaredDtype<T>::cuda_dtype;
+  constexpr auto cudaDataType = Wrapper::declaredDtype<T>::cudaDtype;
 
   std::vector<T *> xc, xp, w;
   xc.resize(worldSize);
@@ -586,9 +578,9 @@ void schurSolveWDistributed(
 
 template <typename T>
 bool SchurPCGSolverDistributed(
-    const SolverOption::SolverOptionPCG &option, const std::vector<T *> &hppCsrVal,
-    const std::vector<T *> &hllCsrVal, const std::vector<T *> &hplCsrVal,
-    const std::vector<int *> &hplCsrColInd,
+    const SolverOption::SolverOptionPCG &option,
+    const std::vector<T *> &hppCsrVal, const std::vector<T *> &hllCsrVal,
+    const std::vector<T *> &hplCsrVal, const std::vector<int *> &hplCsrColInd,
     const std::vector<int *> &hplCsrRowPtr, const std::vector<T *> &hlpCsrVal,
     const std::vector<int *> &hlpCsrColInd,
     const std::vector<int *> &hlpCsrRowPtr, const std::vector<T *> &g,
@@ -624,64 +616,47 @@ bool SchurPCGSolverDistributed(
     MemoryPool::deallocateNormal(SpMVbuffer[i], i);
     MemoryPool::deallocateNormal(hllInvCsrVal[i], i);
   }
-  // cudaSetDevice(0);
-  // PRINT_DMEMORY(deltaX[0], 9, T);
   return PCG_success;
 }
 }  // namespace
 
 template <typename T>
-void SchurDistributedPCGSolver<T>::solveCUDA() {
-//  const auto worldSize = this->problem.getProblemOption().deviceUsed.size();
-//  std::vector<T *> hppCsrVal{worldSize};
-//  std::vector<T *> hllCsrVal{worldSize};
-//  std::vector<T *> hplCsrVal{worldSize};
-//  std::vector<T *> hlpCsrVal{worldSize};
-//  std::vector<int *> hplCsrColInd{worldSize};
-//  std::vector<int *> hlpCsrColInd{worldSize};
-//  std::vector<int *> hplCsrRowPtr{worldSize};
-//  std::vector<int *> hlpCsrRowPtr{worldSize};
-//  std::vector<T *> g{worldSize};
-//  int cameraDim;
-//  int cameraNum;
-//  int pointDim;
-//  int pointNum;
-//  std::vector<int> hplNnz{};
-//  hplNnz.resize(worldSize);
-//  int hppRows;
-//  int hllRows;
-//  std::vector<T *> delta_x{worldSize};
-//
-//  for (int i = 0; i < worldSize; ++i) {
-//    const auto &schurEquationContainer = this->problem.getEdgeVectors().schurEquationContainer[i];
-//    hppCsrVal[i] = schurEquationContainer.csrVal[2];
-//    hllCsrVal[i] = schurEquationContainer.csrVal[3];
-//    hplCsrVal[i] = schurEquationContainer.csrVal[0];
-//    hlpCsrVal[i] = schurEquationContainer.csrVal[1];
-//    hplCsrColInd[i] = schurEquationContainer.csrColInd[0];
-//    hlpCsrColInd[i] = schurEquationContainer.csrColInd[1];
-//    hplCsrRowPtr[i] = schurEquationContainer.csrRowPtr[0];
-//    hlpCsrRowPtr[i] = schurEquationContainer.csrRowPtr[1];
-//    g[i] = schurEquationContainer.g;
-//    cameraDim = schurEquationContainer.dim[0];
-//    cameraNum = schurEquationContainer.nnz[2] / schurEquationContainer.dim[0] /
-//                schurEquationContainer.dim[0];
-//    pointDim = schurEquationContainer.dim[1];
-//    pointNum = schurEquationContainer.nnz[3] / schurEquationContainer.dim[1] /
-//               schurEquationContainer.dim[1];
-//    hplNnz[i] = schurEquationContainer.nnz[0];
-//    hppRows = schurEquationContainer.nnz[2] / schurEquationContainer.dim[0];
-//    hllRows = schurEquationContainer.nnz[3] / schurEquationContainer.dim[1];
-//    delta_x[i] = this->problem.getDeltaXPtr()[i];
-//  }
-//
-//  SchurPCGSolverDistributed(this->problem.getProblemOption().solverOption.solverOptionPCG, hppCsrVal, hllCsrVal,
-//                            hplCsrVal, hplCsrColInd, hplCsrRowPtr, hlpCsrVal,
-//                            hlpCsrColInd, hlpCsrRowPtr, g, cameraDim, cameraNum,
-//                            pointDim, pointNum, hplNnz, hppRows, hllRows,
-//                            delta_x);
+void SchurPCGSolver<T>::solve(const BaseLinearSystem<T>& baseLinearSystem) {
+  const auto &linearSystem = dynamic_cast<const SchurLinearSystem<T> &>(baseLinearSystem);
+  const std::size_t worldSize = linearSystem.problemOption.deviceUsed.size();
+  std::vector<T *> hppCsrVal{worldSize};
+  std::vector<T *> hllCsrVal{worldSize};
+  std::vector<T *> hplCsrVal{worldSize};
+  std::vector<T *> hlpCsrVal{worldSize};
+  std::vector<int *> hplCsrColInd{worldSize};
+  std::vector<int *> hlpCsrColInd{worldSize};
+  std::vector<int *> hplCsrRowPtr{worldSize};
+  std::vector<int *> hlpCsrRowPtr{worldSize};
+  std::vector<T *> g{worldSize};
+  std::vector<int> hplNnz{};
+  hplNnz.resize(worldSize);
+  std::vector<T *> deltaX{worldSize};
+
+  for (int i = 0; i < worldSize; ++i) {
+    hppCsrVal[i] = linearSystem.equationContainers[i].csrVal[2];
+    hllCsrVal[i] = linearSystem.equationContainers[i].csrVal[3];
+    hplCsrVal[i] = linearSystem.equationContainers[i].csrVal[0];
+    hlpCsrVal[i] = linearSystem.equationContainers[i].csrVal[1];
+    hplCsrColInd[i] = linearSystem.equationContainers[i].csrColInd[0];
+    hlpCsrColInd[i] = linearSystem.equationContainers[i].csrColInd[1];
+    hplCsrRowPtr[i] = linearSystem.equationContainers[i].csrRowPtr[0];
+    hlpCsrRowPtr[i] = linearSystem.equationContainers[i].csrRowPtr[1];
+    g[i] = linearSystem.g[i];
+    hplNnz[i] = linearSystem.equationContainers[i].nnz[0];
+    deltaX[i] = linearSystem.deltaXPtr[i];
+  }
+
+  SchurPCGSolverDistributed(linearSystem.problemOption.solverOption.solverOptionPCG, hppCsrVal,
+                            hllCsrVal, hplCsrVal, hplCsrColInd, hplCsrRowPtr,
+                            hlpCsrVal, hlpCsrColInd, hlpCsrRowPtr, g, linearSystem.dim[0],
+                            linearSystem.num[0], linearSystem.dim[1], linearSystem.num[1], hplNnz, linearSystem.dim[0] * linearSystem.num[0],
+                            linearSystem.dim[1] * linearSystem.num[1], deltaX);
 }
 
-template class SchurDistributedPCGSolver<double>;
-template class SchurDistributedPCGSolver<float>;
+SPECIALIZE_CLASS(SchurPCGSolver);
 }  // namespace MegBA

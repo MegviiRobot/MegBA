@@ -43,11 +43,6 @@ void internalBuildSpIndex(int *csrRowPtr, int *csrColInd, std::size_t *nnz,
 }
 }
 
-//template <typename T>
-//SchurLMLinearSystem<T>::SchurLMLinearSystem(
-//    const ProblemOption &option)
-//    : SchurLinearSystem<T>(option), LMLinearSystem<T>{option} {}
-
 template <typename T>
 void SchurLMLinearSystem<T>::buildIndex(const BaseProblem<T> &problem) {
   const auto &hessianEntrance = problem.getHessianEntrance();

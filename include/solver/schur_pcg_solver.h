@@ -11,11 +11,7 @@
 
 namespace MegBA {
 template <typename T>
-class SchurDistributedPCGSolver : public BaseSolver<T> {
- public:
-  explicit SchurDistributedPCGSolver(const BaseProblem<T> &problem)
-      : BaseSolver<T>(problem) {};
-
-  void solveCUDA() final;
+struct SchurPCGSolver : public BaseSolver<T> {
+  void solve(const BaseLinearSystem<T>& baseLinearSystem) final;
 };
 }  // namespace MegBA

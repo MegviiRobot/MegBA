@@ -47,17 +47,18 @@ void HessianEntrance<T>::buildRandomAccess() {
 }
 
 template <typename T>
-BaseProblem<T>::BaseProblem(const ProblemOption &option)
-    : option(option),
+BaseProblem<T>::BaseProblem(const ProblemOption &problemOption)
+    : problemOption(problemOption),
       algo(BaseAlgo<T>::dispatch(this)),
       linearSystem(BaseLinearSystem<T>::dispatch(this)) {
-  if (option.N != -1 && option.nItem != -1)
-    MemoryPool::resetPool(option.N, option.nItem, sizeof(T),
-                          option.deviceUsed.size());
-  if (option.useSchur) {
-    schurWorkSpace.splitSize = option.nItem / option.deviceUsed.size() + 1;
+  if (problemOption.N != -1 && problemOption.nItem != -1)
+    MemoryPool::resetPool(problemOption.N, problemOption.nItem, sizeof(T),
+                          problemOption.deviceUsed.size());
+  if (problemOption.useSchur) {
+    schurWorkSpace.splitSize =
+        problemOption.nItem / problemOption.deviceUsed.size() + 1;
     schurWorkSpace.workingDevice = 0;
-    schurWorkSpace.hessianEntrance.resize(option.deviceUsed.size());
+    schurWorkSpace.hessianEntrance.resize(problemOption.deviceUsed.size());
     schurWorkSpace.hessianEntrance.shrink_to_fit();
   }
 }
@@ -82,8 +83,8 @@ void BaseProblem<T>::appendEdge(BaseEdge<T> *edge) {
     else
       find->second.emplace(vertex);
 
-    if (option.useSchur) {
-      for (int i = 0; i < option.deviceUsed.size(); ++i) {
+    if (problemOption.useSchur) {
+      for (int i = 0; i < problemOption.deviceUsed.size(); ++i) {
         auto &workingSchurHessianEntrance = schurWorkSpace.hessianEntrance[i];
         workingSchurHessianEntrance.dim[kind] = vertex->getGradShape();
         auto &connectionBlockMatrix = workingSchurHessianEntrance.nra[kind];
@@ -102,7 +103,7 @@ void BaseProblem<T>::appendEdge(BaseEdge<T> *edge) {
       // TODO(Jie Ren): implement this
     }
   }
-  if (option.useSchur) {
+  if (problemOption.useSchur) {
     auto &workingSchurHessianEntrance =
         schurWorkSpace.hessianEntrance[schurWorkSpace.workingDevice];
     workingSchurHessianEntrance.counter++;
@@ -148,7 +149,7 @@ void BaseProblem<T>::eraseVertex(int ID) {
 template <typename T>
 void BaseProblem<T>::deallocateResource() {
   edges.deallocateResource();
-  switch (option.device) {
+  switch (problemOption.device) {
     case Device::CUDA:
       deallocateResourceCUDA();
       break;
@@ -159,7 +160,7 @@ void BaseProblem<T>::deallocateResource() {
 
 template <typename T>
 void BaseProblem<T>::allocateResource() {
-  switch (option.device) {
+  switch (problemOption.device) {
     case Device::CUDA:
       allocateResourceCUDA();
       break;
@@ -178,7 +179,7 @@ void BaseProblem<T>::buildIndex() {
       (*(verticesSets.find(POINT)->second.begin()))->getGradShape();
   allocateResource();
   setAbsolutePosition();
-  if (option.useSchur) {
+  if (problemOption.useSchur) {
     std::vector<std::thread> threads;
     for (int i = 0; i < schurWorkSpace.hessianEntrance.size(); ++i) {
       threads.emplace_back(std::thread{[&, i = i]() {
@@ -223,7 +224,7 @@ void BaseProblem<T>::setAbsolutePosition() {
       }
     }
   }
-  if (option.useSchur) {
+  if (problemOption.useSchur) {
     for (int i = 0; i < MemoryPool::getWorldSize(); ++i) {
       cudaSetDevice(i);
       cudaMemcpyAsync(xPtr[i], hxPtr, hessianShape * sizeof(T),
@@ -239,7 +240,7 @@ template <typename T>
 void BaseProblem<T>::writeBack() {
   T *hxPtr = new T[linearSystem->getHessianShape()];
   std::size_t entrance_bias{0};
-  if (option.useSchur) {
+  if (problemOption.useSchur) {
     cudaSetDevice(0);
     cudaMemcpy(hxPtr, xPtr[0], linearSystem->getHessianShape() * sizeof(T),
                cudaMemcpyDeviceToHost);

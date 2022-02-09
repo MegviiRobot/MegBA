@@ -9,6 +9,7 @@
 #include <vector>
 #include "problem/base_problem.h"
 #include "algo/base_algo.h"
+#include "solver/base_solver.h"
 
 namespace MegBA {
 template <typename T>
@@ -26,9 +27,11 @@ struct BaseLinearSystem {
   std::array<int, 2> num{};
   std::array<int, 2> dim{};
 
+  std::unique_ptr<BaseSolver<T>> solver;
+
   std::size_t getHessianShape() const;
 
-  virtual void solve() const = 0;
+  void solve() const;
 
   virtual void buildIndex(const BaseProblem<T> &problem) = 0;
 

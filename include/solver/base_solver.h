@@ -15,10 +15,6 @@
 namespace MegBA {
 template <typename T>
 struct BaseSolver {
-  const SolverOption &solverOption;
-
-  explicit BaseSolver(const SolverOption &solverOption) : solverOption(solverOption) {}
-
   virtual void solve(const BaseLinearSystem<T>& baseLinearSystem) = 0;
 };
 }  // namespace MegBA

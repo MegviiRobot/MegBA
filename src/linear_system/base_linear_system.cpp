@@ -7,13 +7,15 @@
 
 #include "linear_system/base_linear_system.h"
 #include "linear_system/schur_LM_linear_system.h"
+#include "solver/schur_pcg_solver.h"
 
 namespace MegBA {
 template <typename T>
 BaseLinearSystem<T>::BaseLinearSystem(const ProblemOption &problemOption)
     : problemOption{problemOption},
       deltaXPtr{problemOption.deviceUsed.size()},
-      g{problemOption.deviceUsed.size()} {}
+      g{problemOption.deviceUsed.size()},
+      solver{new SchurPCGSolver<T>} {}
 
 template <typename T>
 std::unique_ptr<BaseLinearSystem<T>> BaseLinearSystem<T>::dispatch(
@@ -33,6 +35,11 @@ std::unique_ptr<BaseLinearSystem<T>> BaseLinearSystem<T>::dispatch(
 template <typename T>
 std::size_t BaseLinearSystem<T>::getHessianShape() const {
   return dim[0] * num[0] + dim[1] * num[1];
+}
+
+template <typename T>
+void BaseLinearSystem<T>::solve() const {
+  solver->solve(*this);
 }
 
 template <typename T>

@@ -27,8 +27,6 @@ struct SchurLMLinearSystem : public SchurLinearSystem<T>, public LMLinearSystem<
 
   void buildIndex(const BaseProblem<T> &problem) override;
 
-  void solve() const override;
-
   void applyUpdate(T *xPtr) const override;
 };
 }
