@@ -19,8 +19,6 @@ struct AlgoStatus {
 
 template <typename T>
 struct BaseAlgo {
-  static std::unique_ptr<BaseAlgo<T>> dispatch(const BaseProblem<T> *problem);
-
   void solve(const BaseLinearSystem<T> &baseLinearSystem,
              const EdgeVector<T> &edges, T *xPtr);
 
