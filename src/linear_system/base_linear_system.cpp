@@ -6,8 +6,7 @@
 **/
 
 #include "linear_system/base_linear_system.h"
-#include "linear_system/schur_LM_linear_system.h"
-#include "solver/schur_pcg_solver.h"
+#include "solver/base_solver.h"
 
 namespace MegBA {
 template <typename T>

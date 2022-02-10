@@ -8,7 +8,7 @@
 #include "edge/base_edge.h"
 #include <omp.h>
 #include <utility>
-#include "linear_system/schur_LM_linear_system.h"
+#include "linear_system/base_linear_system.h"
 
 namespace MegBA {
 template <typename T> void BaseEdge<T>::appendVertex(BaseVertex<T> *vertex) {

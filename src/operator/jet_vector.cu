@@ -8,7 +8,6 @@
 #include "operator/jet_vector.h"
 #include <memory>
 #include "resource/memory_pool.h"
-#include "common.h"
 
 namespace MegBA {
 template <typename T> void JetVector<T>::initAsCUDA(const JetVector<T> &f) {

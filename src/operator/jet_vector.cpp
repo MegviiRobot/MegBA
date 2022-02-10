@@ -6,7 +6,6 @@
 **/
 
 #include <iostream>
-#include "common.h"
 #include "operator/jet_vector.h"
 #include "operator/jet_vector_math_impl.h"
 #include "operator/jet_vector_math_impl.cuh"

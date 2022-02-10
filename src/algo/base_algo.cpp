@@ -6,7 +6,7 @@
 **/
 
 #include "algo/base_algo.h"
-#include "problem/base_problem.h"
+#include "edge/base_edge.h"
 
 namespace MegBA {
 template <typename T>
