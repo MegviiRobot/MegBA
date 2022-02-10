@@ -18,7 +18,8 @@ struct BaseSolver {
   virtual SolverKind solverKind() const { return BASE_SOLVER; }
 
   BaseSolver(const ProblemOption &problemOption,
-             const SolverOption &solverOption);
+             const SolverOption &solverOption)
+      : problemOption{problemOption}, solverOption{solverOption} {}
 
   virtual ~BaseSolver() = default;
 
