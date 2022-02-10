@@ -7,6 +7,7 @@
 
 #pragma once
 #include <utility>
+#include <iostream>
 #include <cassert>
 #include <functional>
 #include <vector>
@@ -162,28 +163,5 @@ template <typename T>
 std::ostream &ostreamCUDA(std::ostream &s, const JetVector<T> &z);
 
 template <typename T>
-inline std::ostream &operator<<(std::ostream &s, const JetVector<T> &z) {
-  switch (z.getDevice()) {
-  case Device::CPU: {
-    s << "[Res: "
-      << "[ ";
-    for (auto &data : z.getCPURes())
-      s << data << ", ";
-    s << "]," << std::endl;
-    for (unsigned int i = 0; i < z.getGradShape(); ++i) {
-      s << "Grad[" << i << "]: "
-        << "[ ";
-      for (auto &data : z.getCPUGrad()[i])
-        s << data << ", ";
-      s << "]," << std::endl;
-    }
-    s << "_device: " << std::to_string(z.getDevice()) << "]";
-    break;
-  }
-  case Device::CUDA: {
-    return ostreamCUDA(s, z);
-  }
-  }
-  return s;
-}
+std::ostream &operator<<(std::ostream &s, const JetVector<T> &z);
 }  // namespace MegBA

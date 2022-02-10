@@ -7,6 +7,7 @@
 
 #pragma once
 #include <vector>
+#include <memory>
 #include "common.h"
 
 namespace MegBA {

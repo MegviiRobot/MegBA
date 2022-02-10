@@ -6,7 +6,6 @@
 **/
 
 #include "algo/base_algo.h"
-#include "algo/lm_algo.h"
 #include "problem/base_problem.h"
 
 namespace MegBA {

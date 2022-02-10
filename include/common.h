@@ -10,9 +10,7 @@
 template class className<double>;   \
 template class className<float>
 
-#include <Eigen/Core>
-#include <cstddef>
-#include <memory>
+#include <cstdint>
 #include <set>
 
 namespace MegBA {
@@ -82,13 +80,10 @@ class BaseSolver;
 
 template <typename T>
 class BaseLinearSystem;
-
-template <typename T>
-using JVD = Eigen::Matrix<JetVector<T>, Eigen::Dynamic, Eigen::Dynamic>;
 }  // namespace MegBA
 
-namespace Eigen {
-namespace internal {
+//namespace Eigen {
+//namespace internal {
 // template<typename T, int Rows_, int Cols_, int Options_, int MaxRows_, int
 // MaxCols_> struct traits<Matrix<MegBA::JetVector<T>, Rows_, Cols_, Options_,
 // MaxRows_, MaxCols_> >
@@ -129,7 +124,7 @@ namespace internal {
 //     packet_access_bit | row_major_bit, Alignment = actual_alignment
 //   };
 // };
-
+//
 // template<typename T, int Rows_, int Cols_, int Options_, int MaxRows_, int
 // MaxCols_, int MapOptions, typename StrideType> struct traits<Map<const
 // Matrix<MegBA::JetVector<T>, Rows_, Cols_, Options_, MaxRows_, MaxCols_>,
@@ -248,5 +243,5 @@ namespace internal {
 // protected:
 //   StrideType m_stride;
 // };
-}  // namespace internal
-}  // namespace Eigen
+//}  // namespace internal
+//}  // namespace Eigen

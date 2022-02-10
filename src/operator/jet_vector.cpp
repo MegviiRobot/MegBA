@@ -5,6 +5,7 @@
 *
 **/
 
+#include <iostream>
 #include "common.h"
 #include "operator/jet_vector.h"
 #include "operator/jet_vector_math_impl.h"
@@ -451,3 +452,29 @@ template <typename T> JetVector<T> JetVector<T>::scalarDivThis(T f) const {
 template class JetVector<float>;
 template class JetVector<double>;
 }  // namespace MegBA
+
+template <typename T>
+std::ostream &operator<<(std::ostream &s, const MegBA::JetVector<T> &z) {
+  switch (z.getDevice()) {
+    case MegBA::Device::CPU: {
+      s << "[Res: "
+        << "[ ";
+      for (auto &data : z.getCPURes())
+        s << data << ", ";
+      s << "]," << std::endl;
+      for (unsigned int i = 0; i < z.getGradShape(); ++i) {
+        s << "Grad[" << i << "]: "
+          << "[ ";
+        for (auto &data : z.getCPUGrad()[i])
+          s << data << ", ";
+        s << "]," << std::endl;
+      }
+      s << "_device: " << std::to_string(z.getDevice()) << "]";
+      break;
+    }
+    case MegBA::Device::CUDA: {
+      return ostreamCUDA(s, z);
+    }
+  }
+  return s;
+}
