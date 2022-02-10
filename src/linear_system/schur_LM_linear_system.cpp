@@ -8,6 +8,9 @@
 #include "linear_system/schur_LM_linear_system.h"
 #include <omp.h>
 #include <thread>
+#include "resource/memory_pool.h"
+#include "problem/base_problem.h"
+#include "solver/base_solver.h"
 
 namespace MegBA {
 namespace {

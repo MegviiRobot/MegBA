@@ -10,13 +10,6 @@
 #include "common.h"
 
 namespace MegBA {
-struct AlgoStatus {
-  struct AlgoStatusLM {
-    double region;
-    bool recoverDiag{false};
-  } algoStatusLM;
-};
-
 template <typename T>
 struct BaseAlgo {
   virtual AlgoKind algoKind() const { return BASE_ALGO; }

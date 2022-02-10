@@ -6,6 +6,8 @@
 **/
 
 #include "linear_system/schur_LM_linear_system.h"
+#include "resource/memory_pool.h"
+#include "resource/handle_manager.h"
 #include "wrapper.hpp"
 
 namespace MegBA {

@@ -15,6 +15,5 @@ LMAlgo<T>::LMAlgo(const ProblemOption &problemOption,
   this->algoStatus.algoStatusLM.region = algoOption.algoOptionLM.initialRegion;
 }
 
-template class LMAlgo<double>;
-template class LMAlgo<float>;
+SPECIALIZE_CLASS(LMAlgo);
 }

@@ -52,6 +52,13 @@ struct ProblemOption {
   SolverKind solverKind{PCG};
 };
 
+struct AlgoStatus {
+  struct AlgoStatusLM {
+    double region;
+    bool recoverDiag{false};
+  } algoStatusLM;
+};
+
 template <typename T>
 class JetVector;
 

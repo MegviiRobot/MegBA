@@ -7,9 +7,7 @@
 
 #pragma once
 #include <vector>
-#include "problem/base_problem.h"
-#include "algo/base_algo.h"
-#include "solver/base_solver.h"
+#include "common.h"
 
 namespace MegBA {
 template <typename T>

@@ -27,6 +27,5 @@ void BaseAlgo<T>::solve(const BaseLinearSystem<T> &baseLinearSystem,
   }
 }
 
-template class BaseAlgo<double>;
-template class BaseAlgo<float>;
+SPECIALIZE_CLASS(BaseAlgo);
 }

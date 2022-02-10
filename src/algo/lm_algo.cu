@@ -12,6 +12,10 @@
 #include <iostream>
 #include <chrono>
 #include "linear_system/LM_linear_system.h"
+#include "resource/handle_manager.h"
+#include "resource/memory_pool.h"
+#include "operator/jet_vector.h"
+#include "edge/base_edge.h"
 #include "wrapper.hpp"
 
 namespace MegBA {
@@ -203,6 +207,5 @@ void LMAlgo<T>::solveCUDA(const BaseLinearSystem<T> &baseLinearSystem,
   }
 }
 
-template class LMAlgo<double>;
-template class LMAlgo<float>;
+SPECIALIZE_CLASS(LMAlgo);
 }
