@@ -18,9 +18,11 @@ template class className<float>
 namespace MegBA {
 enum Device { CPU, CUDA };
 
-enum AlgoKind { LM };
+enum AlgoKind { BASE_ALGO, LM };
 
-enum SolverKind { PCG };
+enum LinearSystemKind { BASE_LINEAR_SYSTEM, SCHUR };
+
+enum SolverKind { BASE_SOLVER, PCG };
 
 struct SolverOption{
   struct SolverOptionPCG {
@@ -31,14 +33,12 @@ struct SolverOption{
 };
 
 struct AlgoOption {
-  const Device &device;
   struct AlgoOptionLM {
     int maxIter{20};
     double initialRegion{1e3};
     double epsilon1{1};
     double epsilon2{1e-10};
   } algoOptionLM;
-  explicit AlgoOption(const Device &device) : device(device) {}
 };
 
 struct ProblemOption {
@@ -48,9 +48,8 @@ struct ProblemOption {
   int N{-1};
   int64_t nItem{-1};
   AlgoKind algoKind{LM};
+  LinearSystemKind linearSystemKind{SCHUR};
   SolverKind solverKind{PCG};
-  AlgoOption algoOption{device};
-  SolverOption solverOption{};
 };
 
 template <typename T>

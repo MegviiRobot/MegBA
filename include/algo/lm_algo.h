@@ -11,10 +11,12 @@
 namespace MegBA {
 template <typename T>
 struct LMAlgo : public BaseAlgo<T> {
-  explicit LMAlgo(const AlgoOption &algoOption);
+  AlgoKind algoKind() const override { return LM; }
+
+  explicit LMAlgo(const ProblemOption &problemOption,
+                  const AlgoOption &algoOption);
 
   void solveCUDA(const BaseLinearSystem<T> &baseLinearSystem,
-                 const EdgeVector<T> &edges,
-                 T *xPtr) override;
+                 const EdgeVector<T> &edges, T *xPtr) override;
 };
 }

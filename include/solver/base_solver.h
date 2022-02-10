@@ -11,6 +11,20 @@
 namespace MegBA {
 template <typename T>
 struct BaseSolver {
-  virtual void solve(const BaseLinearSystem<T>& baseLinearSystem) = 0;
+  virtual LinearSystemKind linearSystemKind() const {
+    return BASE_LINEAR_SYSTEM;
+  }
+
+  virtual SolverKind solverKind() const { return BASE_SOLVER; }
+
+  BaseSolver(const ProblemOption &problemOption,
+             const SolverOption &solverOption);
+
+  virtual ~BaseSolver() = default;
+
+  virtual void solve(const BaseLinearSystem<T> &baseLinearSystem) = 0;
+
+  const ProblemOption &problemOption;
+  const SolverOption &solverOption;
 };
 }  // namespace MegBA

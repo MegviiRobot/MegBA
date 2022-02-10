@@ -651,7 +651,7 @@ void SchurPCGSolver<T>::solve(const BaseLinearSystem<T>& baseLinearSystem) {
     deltaX[i] = linearSystem.deltaXPtr[i];
   }
 
-  SchurPCGSolverDistributed(linearSystem.problemOption.solverOption.solverOptionPCG, hppCsrVal,
+  SchurPCGSolverDistributed(this->solverOption.solverOptionPCG, hppCsrVal,
                             hllCsrVal, hplCsrVal, hplCsrColInd, hplCsrRowPtr,
                             hlpCsrVal, hlpCsrColInd, hlpCsrRowPtr, g, linearSystem.dim[0],
                             linearSystem.num[0], linearSystem.dim[1], linearSystem.num[1], hplNnz, linearSystem.dim[0] * linearSystem.num[0],

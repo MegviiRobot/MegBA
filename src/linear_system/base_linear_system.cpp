@@ -11,11 +11,17 @@
 
 namespace MegBA {
 template <typename T>
-BaseLinearSystem<T>::BaseLinearSystem(const ProblemOption &problemOption, std::unique_ptr<BaseSolver<T>> solver)
+BaseLinearSystem<T>::BaseLinearSystem(const ProblemOption &problemOption,
+                                      std::unique_ptr<BaseSolver<T>> solver)
     : problemOption{problemOption},
       deltaXPtr{problemOption.deviceUsed.size()},
       g{problemOption.deviceUsed.size()},
-      solver{std::move(solver)} {}
+      solver{std::move(solver)} {
+  if (this->solver->linearSystemKind() != problemOption.linearSystemKind &&
+      this->solver->solverKind() != problemOption.solverKind) {
+    throw std::runtime_error("Wrong solver type");
+  }
+}
 
 template <typename T>
 std::size_t BaseLinearSystem<T>::getHessianShape() const {
@@ -43,6 +49,5 @@ void BaseLinearSystem<T>::freeCPU() {
   // TODO (Jie): implement this
 }
 
-template class BaseLinearSystem<double>;
-template class BaseLinearSystem<float>;
+SPECIALIZE_CLASS(BaseLinearSystem);
 }

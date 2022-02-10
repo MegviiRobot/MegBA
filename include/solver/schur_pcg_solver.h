@@ -7,11 +7,15 @@
 
 #pragma once
 #include "edge/base_edge.h"
-#include "solver/base_solver.h"
+#include "pcg_solver.h"
+#include "schur_solver.h"
 
 namespace MegBA {
 template <typename T>
-struct SchurPCGSolver : public BaseSolver<T> {
-  void solve(const BaseLinearSystem<T>& baseLinearSystem) final;
+struct SchurPCGSolver : public PCGSolver<T>, public SchurSolver<T> {
+  SchurPCGSolver(const ProblemOption &problemOption,
+                 const SolverOption &solverOption);
+
+  void solve(const BaseLinearSystem<T> &baseLinearSystem) final;
 };
 }  // namespace MegBA

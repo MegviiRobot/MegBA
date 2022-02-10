@@ -19,17 +19,21 @@ struct AlgoStatus {
 
 template <typename T>
 struct BaseAlgo {
+  virtual AlgoKind algoKind() const { return BASE_ALGO; }
+
   void solve(const BaseLinearSystem<T> &baseLinearSystem,
              const EdgeVector<T> &edges, T *xPtr);
 
-  virtual void solveCUDA(
-      const BaseLinearSystem<T> &baseLinearSystem,
-      const EdgeVector<T> &edges, T *xPtr) = 0;
+  virtual void solveCUDA(const BaseLinearSystem<T> &baseLinearSystem,
+                         const EdgeVector<T> &edges, T *xPtr) = 0;
 
  protected:
-  explicit BaseAlgo(const AlgoOption &algoOption);
+  explicit BaseAlgo(const ProblemOption &problemOption,
+                    const AlgoOption &algoOption);
 
+  const ProblemOption &problemOption;
   const AlgoOption &algoOption;
+
   AlgoStatus algoStatus{};
 };
 }

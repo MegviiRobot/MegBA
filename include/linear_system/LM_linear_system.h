@@ -11,6 +11,8 @@
 namespace MegBA {
 template <typename T>
 struct LMLinearSystem : virtual public BaseLinearSystem<T> {
+  AlgoKind algoKind() const override { return LM; }
+
   LMLinearSystem() = delete;
 
   virtual ~LMLinearSystem();

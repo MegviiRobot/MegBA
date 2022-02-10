@@ -14,6 +14,12 @@
 namespace MegBA {
 template <typename T>
 struct BaseLinearSystem {
+  virtual AlgoKind algoKind() const { return BASE_ALGO; }
+
+  virtual LinearSystemKind linearSystemKind() const {
+    return BASE_LINEAR_SYSTEM;
+  }
+
   BaseLinearSystem() = delete;
 
   virtual ~BaseLinearSystem();
@@ -36,7 +42,8 @@ struct BaseLinearSystem {
   virtual void applyUpdate(T *xPtr) const = 0;
 
  protected:
-  explicit BaseLinearSystem(const ProblemOption &problemOption, std::unique_ptr<BaseSolver<T>> solver);
+  explicit BaseLinearSystem(const ProblemOption &problemOption,
+                            std::unique_ptr<BaseSolver<T>> solver);
 
  private:
   void freeCPU();

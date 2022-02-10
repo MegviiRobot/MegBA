@@ -64,6 +64,14 @@ BaseProblem<T>::BaseProblem(
     schurWorkSpace.hessianEntrance.resize(problemOption.deviceUsed.size());
     schurWorkSpace.hessianEntrance.shrink_to_fit();
   }
+  if (this->algo->algoKind() != problemOption.algoKind) {
+    throw std::runtime_error("Wrong algo type");
+  }
+  if (this->linearSystem->algoKind() != problemOption.algoKind &&
+      this->linearSystem->linearSystemKind() !=
+          problemOption.linearSystemKind) {
+    throw std::runtime_error("Wrong linear system type");
+  }
 }
 
 template <typename T>

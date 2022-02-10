@@ -11,12 +11,14 @@
 
 namespace MegBA {
 template <typename T>
-BaseAlgo<T>::BaseAlgo(const AlgoOption &algoOption) : algoOption{algoOption} {}
+BaseAlgo<T>::BaseAlgo(const ProblemOption &problemOption, const AlgoOption &algoOption)
+    : problemOption{problemOption},
+      algoOption{algoOption} { }
 
 template <typename T>
 void BaseAlgo<T>::solve(const BaseLinearSystem<T> &baseLinearSystem,
                         const EdgeVector<T> &edges, T *xPtr) {
-  switch (algoOption.device) {
+  switch (problemOption.device) {
     case CUDA:
       solveCUDA(baseLinearSystem, edges, xPtr);
       break;

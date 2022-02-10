@@ -11,6 +11,8 @@
 namespace MegBA {
 template <typename T>
 struct SchurLinearSystem : virtual public BaseLinearSystem<T> {
+  LinearSystemKind linearSystemKind() const override { return SCHUR; }
+
   SchurLinearSystem() = delete;
 
   virtual ~SchurLinearSystem();

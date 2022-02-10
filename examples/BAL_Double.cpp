@@ -114,23 +114,25 @@ int main(int argc, char *arcv[]) {
     fin >> num_points;
     fin >> num_observations;
 
-    MegBA::ProblemOption option{};
-    option.nItem = num_observations;
-    option.N = 12;
+    MegBA::ProblemOption problemOption{};
+    problemOption.nItem = num_observations;
+    problemOption.N = 12;
     for (int i = 0; i < worldSize; ++i) {
-      option.deviceUsed.insert(i);
+      problemOption.deviceUsed.insert(i);
     }
-    option.solverOption.solverOptionPCG.maxIter = solver_max_iter;
-    option.solverOption.solverOptionPCG.tol = solver_tol;
-    option.solverOption.solverOptionPCG.refuseRatio = solver_refuse_ratio;
-    option.algoOption.algoOptionLM.maxIter = iter;
-    option.algoOption.algoOptionLM.initialRegion = tau;
-    option.algoOption.algoOptionLM.epsilon1 = epsilon1;
-    option.algoOption.algoOptionLM.epsilon2 = epsilon2;
-    std::unique_ptr<MegBA::BaseAlgo<T>> algo{new MegBA::LMAlgo<T>{option.algoOption}};
-    std::unique_ptr<MegBA::BaseSolver<T>> solver{new MegBA::SchurPCGSolver<T>{}};
-    std::unique_ptr<MegBA::BaseLinearSystem<T>> linearSystem{new MegBA::SchurLMLinearSystem<T>{option, std::move(solver)}};
-    MegBA::BaseProblem<T> problem{option, std::move(algo), std::move(linearSystem)};
+    MegBA::SolverOption solverOption{};
+    solverOption.solverOptionPCG.maxIter = solver_max_iter;
+    solverOption.solverOptionPCG.tol = solver_tol;
+    solverOption.solverOptionPCG.refuseRatio = solver_refuse_ratio;
+    MegBA::AlgoOption algoOption{};
+    algoOption.algoOptionLM.maxIter = iter;
+    algoOption.algoOptionLM.initialRegion = tau;
+    algoOption.algoOptionLM.epsilon1 = epsilon1;
+    algoOption.algoOptionLM.epsilon2 = epsilon2;
+    std::unique_ptr<MegBA::BaseAlgo<T>> algo{new MegBA::LMAlgo<T>{problemOption, algoOption}};
+    std::unique_ptr<MegBA::BaseSolver<T>> solver{new MegBA::SchurPCGSolver<T>{problemOption, solverOption}};
+    std::unique_ptr<MegBA::BaseLinearSystem<T>> linearSystem{new MegBA::SchurLMLinearSystem<T>{problemOption, std::move(solver)}};
+    MegBA::BaseProblem<T> problem{problemOption, std::move(algo), std::move(linearSystem)};
 
     std::vector<std::tuple<int, int, Eigen::Matrix<T, 2, 1>>> edge;
     std::vector<std::tuple<int, Eigen::Matrix<T, 9, 1>>> camera_vertices;
