@@ -20,8 +20,8 @@ struct assign_op<MegBA::JetVector<MegBA_t>, MegBA::JetVector<MegBA_t>> {
       DstScalar &a, const SrcScalar &b) {
     a = b;
   }
-  EIGEN_DEVICE_FUNC static EIGEN_STRONG_INLINE void assignCoeff(DstScalar &a,
-                                                                SrcScalar &&b) {
+  EIGEN_DEVICE_FUNC static EIGEN_STRONG_INLINE void assignCoeff(
+      DstScalar &a, SrcScalar &&b) {
     a = std::move(b);
   }
 
