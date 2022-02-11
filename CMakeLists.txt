@@ -6,6 +6,9 @@ set(CMAKE_CXX_STANDARD 14)
 
 #find_package(OpenMP)
 
+find_package(Eigen3 REQUIRED)
+include_directories(${EIGEN3_INCLUDE_DIR})
+
 # CUDA
 find_package(CUDA QUIET)
 IF(CUDA_FOUND)
@@ -47,6 +50,5 @@ find_package(Thrust REQUIRED CONFIG)
 thrust_create_target(Thrust)
 
 include_directories(include)
-include_directories(thirdparty)
 add_subdirectory(src)
 add_subdirectory(examples)

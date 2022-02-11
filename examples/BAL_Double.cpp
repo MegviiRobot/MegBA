@@ -26,7 +26,7 @@ public:
         ASSERT_CUDA_NO_ERROR();
         const auto &obs_uv = this->getMeasurement();
         ASSERT_CUDA_NO_ERROR();
-        auto &&R = MegBA::geo::AngleAxisToRotationKernelMatrix(angle_axisd);
+        auto R = MegBA::geo::AngleAxisToRotationKernelMatrix(angle_axisd);
         ASSERT_CUDA_NO_ERROR();
         Eigen::Matrix<MegBA::JetVector<T>, 3, 1> re_projection = R * point_xyz + t;
         ASSERT_CUDA_NO_ERROR();
