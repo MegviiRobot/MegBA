@@ -123,9 +123,6 @@ class MapBase<Map<const Matrix<MegBA::JetVector<MegBA_t>, MatrixArgs...>,
   typedef const Scalar *PointerType;
 
   using Base::derived;
-  //    using Base::RowsAtCompileTime;
-  //    using Base::ColsAtCompileTime;
-  //    using Base::SizeAtCompileTime;
   using Base::MaxRowsAtCompileTime;
   using Base::MaxColsAtCompileTime;
   using Base::MaxSizeAtCompileTime;
@@ -310,9 +307,6 @@ class MapBase<
   typedef const Scalar *PointerType;
 
   using Base::derived;
-  //    using Base::RowsAtCompileTime;
-  //    using Base::ColsAtCompileTime;
-  //    using Base::SizeAtCompileTime;
   using Base::MaxRowsAtCompileTime;
   using Base::MaxColsAtCompileTime;
   using Base::MaxSizeAtCompileTime;
@@ -492,9 +486,6 @@ class MapBase<Block<const Matrix<MegBA::JetVector<MegBA_t>, MatrixArgs...>,
   typedef const Scalar *PointerType;
 
   using Base::derived;
-  //    using Base::RowsAtCompileTime;
-  //    using Base::ColsAtCompileTime;
-  //    using Base::SizeAtCompileTime;
   using Base::MaxRowsAtCompileTime;
   using Base::MaxColsAtCompileTime;
   using Base::MaxSizeAtCompileTime;

@@ -32,14 +32,14 @@ JetVector_add_JetVector_Kernel(const unsigned int N, const unsigned int nItem,
   /*
                  * 1D block and grid
    */
-  unsigned int grid_thread_rank = threadIdx.x + blockDim.x * blockIdx.x;
-  if (grid_thread_rank >= nItem)
+  unsigned int tid = threadIdx.x + blockDim.x * blockIdx.x;
+  if (tid >= nItem)
     return;
   for (unsigned int i = 0; i < N; ++i)
-    out_grad[grid_thread_rank + i * nItem] =
-        g_grad[grid_thread_rank + i * nItem] +
-        f_grad[grid_thread_rank + i * nItem];
-  out_res[grid_thread_rank] = f_res[grid_thread_rank] + g_res[grid_thread_rank];
+    out_grad[tid + i * nItem] =
+        g_grad[tid + i * nItem] +
+        f_grad[tid + i * nItem];
+  out_res[tid] = f_res[tid] + g_res[tid];
 }
 
 template <typename T>
@@ -50,13 +50,13 @@ Jet_PVector_add_JetVector_Kernel(const unsigned int nItem, const T *f_res,
   /*
                  * 1D block and grid
    */
-  unsigned int grid_thread_rank = threadIdx.x + blockDim.x * blockIdx.x;
-  if (grid_thread_rank >= nItem)
+  unsigned int tid = threadIdx.x + blockDim.x * blockIdx.x;
+  if (tid >= nItem)
     return;
 
-  out_grad[grid_thread_rank + f_grad_position * nItem] += 1;
+  out_grad[tid + f_grad_position * nItem] += 1;
 
-  out_res[grid_thread_rank] = f_res[grid_thread_rank] + g_res[grid_thread_rank];
+  out_res[tid] = f_res[tid] + g_res[tid];
 }
 
 template <typename T>
@@ -66,14 +66,14 @@ __global__ void Jet_PVector_add_Jet_PVector_Kernel(
   /*
                  * 1D block and grid
    */
-  unsigned int grid_thread_rank = threadIdx.x + blockDim.x * blockIdx.x;
-  if (grid_thread_rank >= nItem)
+  unsigned int tid = threadIdx.x + blockDim.x * blockIdx.x;
+  if (tid >= nItem)
     return;
 
-  out_grad[grid_thread_rank + f_grad_position * nItem] = 1;
-  out_grad[grid_thread_rank + g_grad_position * nItem] += 1;
+  out_grad[tid + f_grad_position * nItem] = 1;
+  out_grad[tid + g_grad_position * nItem] += 1;
 
-  out_res[grid_thread_rank] = f_res[grid_thread_rank] + g_res[grid_thread_rank];
+  out_res[tid] = f_res[tid] + g_res[tid];
 }
 
 template <typename T>
@@ -132,11 +132,11 @@ Jet_PVector_add_Scalar_Vector_Kernel(const unsigned int nItem, const T *f_res,
   /*
                  * 1D block and grid
    */
-  unsigned int grid_thread_rank = threadIdx.x + blockDim.x * blockIdx.x;
-  if (grid_thread_rank >= nItem)
+  unsigned int tid = threadIdx.x + blockDim.x * blockIdx.x;
+  if (tid >= nItem)
     return;
-  out_grad[grid_thread_rank + f_grad_position * nItem] = 1;
-  out_res[grid_thread_rank] = f_res[grid_thread_rank] + g_res[grid_thread_rank];
+  out_grad[tid + f_grad_position * nItem] = 1;
+  out_res[tid] = f_res[tid] + g_res[tid];
 }
 
 template <typename T>
@@ -146,10 +146,10 @@ __global__ void JetVector_add_Scalar_Vector_Kernel(const unsigned int nItem,
   /*
                  * 1D block and grid
    */
-  unsigned int grid_thread_rank = threadIdx.x + blockDim.x * blockIdx.x;
-  if (grid_thread_rank >= nItem)
+  unsigned int tid = threadIdx.x + blockDim.x * blockIdx.x;
+  if (tid >= nItem)
     return;
-  out_res[grid_thread_rank] = f_res[grid_thread_rank] + g_res[grid_thread_rank];
+  out_res[tid] = f_res[tid] + g_res[tid];
 }
 template <typename T>
 void JetVector_add_Scalar_Vector_CUDA(const MegBA::JetVector<T> &f,
@@ -186,10 +186,10 @@ Scalar_Vector_add_Scalar_Vector_Kernel(const unsigned int nItem, const T *f_res,
   /*
                  * 1D block and grid
    */
-  unsigned int grid_thread_rank = threadIdx.x + blockDim.x * blockIdx.x;
-  if (grid_thread_rank >= nItem)
+  unsigned int tid = threadIdx.x + blockDim.x * blockIdx.x;
+  if (tid >= nItem)
     return;
-  out_res[grid_thread_rank] = f_res[grid_thread_rank] + g_res[grid_thread_rank];
+  out_res[tid] = f_res[tid] + g_res[tid];
 }
 template <typename T>
 void Scalar_Vector_add_Scalar_Vector_CUDA(const MegBA::JetVector<T> &f,
@@ -241,16 +241,16 @@ Jet_PVector_minus_JetVector_Kernel(const unsigned int N,
   /*
                  * 1D block and grid
    */
-  unsigned int grid_thread_rank = threadIdx.x + blockDim.x * blockIdx.x;
-  if (grid_thread_rank >= nItem)
+  unsigned int tid = threadIdx.x + blockDim.x * blockIdx.x;
+  if (tid >= nItem)
     return;
   for (unsigned int i = 0; i < N; ++i)
-    out_grad[grid_thread_rank + i * nItem] =
-        -g_grad[grid_thread_rank + i * nItem];
+    out_grad[tid + i * nItem] =
+        -g_grad[tid + i * nItem];
 
-  out_grad[grid_thread_rank + f_grad_position * nItem] += 1;
+  out_grad[tid + f_grad_position * nItem] += 1;
 
-  out_res[grid_thread_rank] = f_res[grid_thread_rank] - g_res[grid_thread_rank];
+  out_res[tid] = f_res[tid] - g_res[tid];
 }
 
 template <typename T>
@@ -260,12 +260,12 @@ __global__ void Jet_PVector_minus_Jet_PVector_Kernel(
   /*
                  * 1D block and grid
    */
-  unsigned int grid_thread_rank = threadIdx.x + blockDim.x * blockIdx.x;
-  if (grid_thread_rank >= nItem)
+  unsigned int tid = threadIdx.x + blockDim.x * blockIdx.x;
+  if (tid >= nItem)
     return;
-  out_grad[grid_thread_rank + f_grad_position * nItem] = 1;
-  out_grad[grid_thread_rank + g_grad_position * nItem] -= 1;
-  out_res[grid_thread_rank] = f_res[grid_thread_rank] - g_res[grid_thread_rank];
+  out_grad[tid + f_grad_position * nItem] = 1;
+  out_grad[tid + g_grad_position * nItem] -= 1;
+  out_res[tid] = f_res[tid] - g_res[tid];
 }
 
 template <typename T>
@@ -276,11 +276,11 @@ JetVector_minus_Jet_PVector_Kernel(const unsigned int nItem, const T *f_res,
   /*
                  * 1D block and grid
    */
-  unsigned int grid_thread_rank = threadIdx.x + blockDim.x * blockIdx.x;
-  if (grid_thread_rank >= nItem)
+  unsigned int tid = threadIdx.x + blockDim.x * blockIdx.x;
+  if (tid >= nItem)
     return;
-  out_grad[grid_thread_rank + g_grad_position * nItem] -= 1;
-  out_res[grid_thread_rank] = f_res[grid_thread_rank] - g_res[grid_thread_rank];
+  out_grad[tid + g_grad_position * nItem] -= 1;
+  out_res[tid] = f_res[tid] - g_res[tid];
 }
 
 template <typename T>
@@ -290,14 +290,14 @@ __global__ void JetVector_minus_JetVector_Kernel(
   /*
                  * 1D block and grid
    */
-  unsigned int grid_thread_rank = threadIdx.x + blockDim.x * blockIdx.x;
-  if (grid_thread_rank >= nItem)
+  unsigned int tid = threadIdx.x + blockDim.x * blockIdx.x;
+  if (tid >= nItem)
     return;
   for (unsigned int i = 0; i < N; ++i)
-    out_grad[grid_thread_rank + i * nItem] =
-        f_grad[grid_thread_rank + i * nItem] -
-        g_grad[grid_thread_rank + i * nItem];
-  out_res[grid_thread_rank] = f_res[grid_thread_rank] - g_res[grid_thread_rank];
+    out_grad[tid + i * nItem] =
+        f_grad[tid + i * nItem] -
+        g_grad[tid + i * nItem];
+  out_res[tid] = f_res[tid] - g_res[tid];
 }
 
 template <typename T>
@@ -354,11 +354,11 @@ __global__ void Jet_PVector_minus_Scalar_Vector_Kernel(
   /*
                  * 1D block and grid
    */
-  unsigned int grid_thread_rank = threadIdx.x + blockDim.x * blockIdx.x;
-  if (grid_thread_rank >= nItem)
+  unsigned int tid = threadIdx.x + blockDim.x * blockIdx.x;
+  if (tid >= nItem)
     return;
-  out_grad[grid_thread_rank + f_grad_position * nItem] = 1;
-  out_res[grid_thread_rank] = f_res[grid_thread_rank] - g_res[grid_thread_rank];
+  out_grad[tid + f_grad_position * nItem] = 1;
+  out_res[tid] = f_res[tid] - g_res[tid];
 }
 
 template <typename T>
@@ -368,10 +368,10 @@ JetVector_minus_Scalar_Vector_Kernel(const unsigned int nItem, const T *f_res,
   /*
                  * 1D block and grid
    */
-  unsigned int grid_thread_rank = threadIdx.x + blockDim.x * blockIdx.x;
-  if (grid_thread_rank >= nItem)
+  unsigned int tid = threadIdx.x + blockDim.x * blockIdx.x;
+  if (tid >= nItem)
     return;
-  out_res[grid_thread_rank] = f_res[grid_thread_rank] - g_res[grid_thread_rank];
+  out_res[tid] = f_res[tid] - g_res[tid];
 }
 template <typename T>
 void JetVector_minus_Scalar_Vector_CUDA(const MegBA::JetVector<T> &f,
@@ -410,11 +410,11 @@ Scalar_Vector_minus_PJetVector_Kernel(const unsigned int nItem, const T *f_res,
   /*
                  * 1D block and grid
    */
-  unsigned int grid_thread_rank = threadIdx.x + blockDim.x * blockIdx.x;
-  if (grid_thread_rank >= nItem)
+  unsigned int tid = threadIdx.x + blockDim.x * blockIdx.x;
+  if (tid >= nItem)
     return;
-  out_grad[grid_thread_rank + f_grad_position * nItem] = -1;
-  out_res[grid_thread_rank] = f_res[grid_thread_rank] - g_res[grid_thread_rank];
+  out_grad[tid + f_grad_position * nItem] = -1;
+  out_res[tid] = f_res[tid] - g_res[tid];
 }
 
 template <typename T>
@@ -424,13 +424,13 @@ __global__ void Scalar_Vector_minus_JetVector_Kernel(
   /*
                  * 1D block and grid
    */
-  unsigned int grid_thread_rank = threadIdx.x + blockDim.x * blockIdx.x;
-  if (grid_thread_rank >= nItem)
+  unsigned int tid = threadIdx.x + blockDim.x * blockIdx.x;
+  if (tid >= nItem)
     return;
   for (unsigned int i = 0; i < N; ++i)
-    out_grad[grid_thread_rank + i * nItem] =
-        -g_grad[grid_thread_rank + i * nItem];
-  out_res[grid_thread_rank] = f_res[grid_thread_rank] - g_res[grid_thread_rank];
+    out_grad[tid + i * nItem] =
+        -g_grad[tid + i * nItem];
+  out_res[tid] = f_res[tid] - g_res[tid];
 }
 template <typename T>
 void Scalar_Vector_minus_JetVector_CUDA(const MegBA::JetVector<T> &f,
@@ -464,10 +464,10 @@ __global__ void Scalar_Vector_minus_Scalar_Vector_Kernel(
   /*
                  * 1D block and grid
    */
-  unsigned int grid_thread_rank = threadIdx.x + blockDim.x * blockIdx.x;
-  if (grid_thread_rank >= nItem)
+  unsigned int tid = threadIdx.x + blockDim.x * blockIdx.x;
+  if (tid >= nItem)
     return;
-  out_res[grid_thread_rank] = f_res[grid_thread_rank] - g_res[grid_thread_rank];
+  out_res[tid] = f_res[tid] - g_res[tid];
 }
 template <typename T>
 void Scalar_Vector_minus_Scalar_Vector_CUDA(const MegBA::JetVector<T> &f,
@@ -518,16 +518,16 @@ __global__ void JetVector_multiplies_JetVector_Kernel(
   /*
                  * 1D block and grid
    */
-  unsigned int grid_thread_rank = threadIdx.x + blockDim.x * blockIdx.x;
-  if (grid_thread_rank >= nItem)
+  unsigned int tid = threadIdx.x + blockDim.x * blockIdx.x;
+  if (tid >= nItem)
     return;
-  T f_res_local = f_res[grid_thread_rank];
-  T g_res_local = g_res[grid_thread_rank];
+  T f_res_local = f_res[tid];
+  T g_res_local = g_res[tid];
   for (unsigned int i = 0; i < N; ++i)
-    out_grad[grid_thread_rank + i * nItem] =
-        f_res_local * g_grad[grid_thread_rank + i * nItem] +
-        g_res_local * f_grad[grid_thread_rank + i * nItem];
-  out_res[grid_thread_rank] = f_res_local * g_res_local;
+    out_grad[tid + i * nItem] =
+        f_res_local * g_grad[tid + i * nItem] +
+        g_res_local * f_grad[tid + i * nItem];
+  out_res[tid] = f_res_local * g_res_local;
 }
 
 template <typename T>
@@ -537,15 +537,15 @@ __global__ void Jet_PVector_multiplies_Jet_PVector_Kernel(
   /*
                  * 1D block and grid
    */
-  unsigned int grid_thread_rank = threadIdx.x + blockDim.x * blockIdx.x;
-  if (grid_thread_rank >= nItem)
+  unsigned int tid = threadIdx.x + blockDim.x * blockIdx.x;
+  if (tid >= nItem)
     return;
-  T f_res_local = f_res[grid_thread_rank];
-  T g_res_local = g_res[grid_thread_rank];
-  out_grad[grid_thread_rank + f_grad_position * nItem] = g_res_local;
-  out_grad[grid_thread_rank + g_grad_position * nItem] += f_res_local;
+  T f_res_local = f_res[tid];
+  T g_res_local = g_res[tid];
+  out_grad[tid + f_grad_position * nItem] = g_res_local;
+  out_grad[tid + g_grad_position * nItem] += f_res_local;
 
-  out_res[grid_thread_rank] = f_res_local * g_res_local;
+  out_res[tid] = f_res_local * g_res_local;
 }
 
 template <typename T>
@@ -556,16 +556,16 @@ __global__ void Jet_PVector_multiplies_JetVector_Kernel(
   /*
                  * 1D block and grid
    */
-  unsigned int grid_thread_rank = threadIdx.x + blockDim.x * blockIdx.x;
-  if (grid_thread_rank >= nItem)
+  unsigned int tid = threadIdx.x + blockDim.x * blockIdx.x;
+  if (tid >= nItem)
     return;
-  T f_res_local = f_res[grid_thread_rank];
-  T g_res_local = g_res[grid_thread_rank];
+  T f_res_local = f_res[tid];
+  T g_res_local = g_res[tid];
   for (unsigned int i = 0; i < N; ++i)
-    out_grad[grid_thread_rank + i * nItem] =
-        f_res_local * g_grad[grid_thread_rank + i * nItem];
-  out_grad[grid_thread_rank + f_grad_position * nItem] += g_res_local;
-  out_res[grid_thread_rank] = f_res_local * g_res_local;
+    out_grad[tid + i * nItem] =
+        f_res_local * g_grad[tid + i * nItem];
+  out_grad[tid + f_grad_position * nItem] += g_res_local;
+  out_res[tid] = f_res_local * g_res_local;
 }
 
 template <typename T>
@@ -621,13 +621,13 @@ __global__ void Jet_PVector_multiplies_Scalar_Vector_Kernel(
   /*
                  * 1D block and grid
    */
-  unsigned int grid_thread_rank = threadIdx.x + blockDim.x * blockIdx.x;
-  if (grid_thread_rank >= nItem)
+  unsigned int tid = threadIdx.x + blockDim.x * blockIdx.x;
+  if (tid >= nItem)
     return;
-  T f_res_local = f_res[grid_thread_rank];
-  T g_res_local = g_res[grid_thread_rank];
-  out_grad[grid_thread_rank + f_grad_position * nItem] = g_res_local;
-  out_res[grid_thread_rank] = f_res_local * g_res_local;
+  T f_res_local = f_res[tid];
+  T g_res_local = g_res[tid];
+  out_grad[tid + f_grad_position * nItem] = g_res_local;
+  out_res[tid] = f_res_local * g_res_local;
 }
 
 template <typename T>
@@ -637,15 +637,15 @@ __global__ void JetVector_multiplies_Scalar_Vector_Kernel(
   /*
                  * 1D block and grid
    */
-  unsigned int grid_thread_rank = threadIdx.x + blockDim.x * blockIdx.x;
-  if (grid_thread_rank >= nItem)
+  unsigned int tid = threadIdx.x + blockDim.x * blockIdx.x;
+  if (tid >= nItem)
     return;
-  T f_res_local = f_res[grid_thread_rank];
-  T g_res_local = g_res[grid_thread_rank];
+  T f_res_local = f_res[tid];
+  T g_res_local = g_res[tid];
   for (unsigned int i = 0; i < N; ++i)
-    out_grad[grid_thread_rank + i * nItem] =
-        g_res_local * f_grad[grid_thread_rank + i * nItem];
-  out_res[grid_thread_rank] = f_res_local * g_res_local;
+    out_grad[tid + i * nItem] =
+        g_res_local * f_grad[tid + i * nItem];
+  out_res[tid] = f_res_local * g_res_local;
 }
 
 template <typename T>
@@ -681,10 +681,10 @@ __global__ void Scalar_Vector_multiplies_Scalar_Vector_Kernel(
   /*
                  * 1D block and grid
    */
-  unsigned int grid_thread_rank = threadIdx.x + blockDim.x * blockIdx.x;
-  if (grid_thread_rank >= nItem)
+  unsigned int tid = threadIdx.x + blockDim.x * blockIdx.x;
+  if (tid >= nItem)
     return;
-  out_res[grid_thread_rank] = f_res[grid_thread_rank] * g_res[grid_thread_rank];
+  out_res[tid] = f_res[tid] * g_res[tid];
 }
 template <typename T>
 void Scalar_Vector_multiplies_Scalar_Vector_CUDA(const MegBA::JetVector<T> &f,
@@ -737,19 +737,19 @@ __global__ void Jet_PVector_divides_Jet_PVector_Kernel(
   /*
                  * 1D block and grid
    */
-  unsigned int grid_thread_rank = threadIdx.x + blockDim.x * blockIdx.x;
-  if (grid_thread_rank >= nItem)
+  unsigned int tid = threadIdx.x + blockDim.x * blockIdx.x;
+  if (tid >= nItem)
     return;
-  T f_res_local = f_res[grid_thread_rank];
-  T g_res_local = g_res[grid_thread_rank];
+  T f_res_local = f_res[tid];
+  T g_res_local = g_res[tid];
   T g_res_inv_local = T(1) / g_res_local;
   T f_res_div_g_res_local = f_res_local * g_res_inv_local;
   bool same_position = f_grad_position == g_grad_position;
-  out_grad[grid_thread_rank + f_grad_position * nItem] =
+  out_grad[tid + f_grad_position * nItem] =
       (1 - f_res_div_g_res_local * same_position) * g_res_inv_local;
-  out_grad[grid_thread_rank + g_grad_position * nItem] +=
+  out_grad[tid + g_grad_position * nItem] +=
       (same_position - f_res_div_g_res_local) * g_res_inv_local;
-  out_res[grid_thread_rank] = f_res_div_g_res_local;
+  out_res[tid] = f_res_div_g_res_local;
 }
 
 template <typename T>
@@ -761,19 +761,19 @@ Jet_PVector_divides_JetVector_Kernel(const unsigned int N,
   /*
                  * 1D block and grid
    */
-  unsigned int grid_thread_rank = threadIdx.x + blockDim.x * blockIdx.x;
-  if (grid_thread_rank >= nItem)
+  unsigned int tid = threadIdx.x + blockDim.x * blockIdx.x;
+  if (tid >= nItem)
     return;
-  T f_res_local = f_res[grid_thread_rank];
-  T g_res_local = g_res[grid_thread_rank];
+  T f_res_local = f_res[tid];
+  T g_res_local = g_res[tid];
   T g_res_inv_local = T(1) / g_res_local;
   T f_res_div_g_res_local = f_res_local * g_res_inv_local;
   for (unsigned int i = 0; i < N; ++i)
-    out_grad[grid_thread_rank + i * nItem] =
-        -f_res_div_g_res_local * g_grad[grid_thread_rank + i * nItem] *
+    out_grad[tid + i * nItem] =
+        -f_res_div_g_res_local * g_grad[tid + i * nItem] *
         g_res_inv_local;
-  out_grad[grid_thread_rank + f_grad_position * nItem] += g_res_inv_local;
-  out_res[grid_thread_rank] = f_res_div_g_res_local;
+  out_grad[tid + f_grad_position * nItem] += g_res_inv_local;
+  out_res[tid] = f_res_div_g_res_local;
 }
 
 template <typename T>
@@ -784,19 +784,19 @@ __global__ void JetVector_divides_Jet_PVector_Kernel(
   /*
                  * 1D block and grid
    */
-  unsigned int grid_thread_rank = threadIdx.x + blockDim.x * blockIdx.x;
-  if (grid_thread_rank >= nItem)
+  unsigned int tid = threadIdx.x + blockDim.x * blockIdx.x;
+  if (tid >= nItem)
     return;
-  T f_res_local = f_res[grid_thread_rank];
-  T g_res_local = g_res[grid_thread_rank];
+  T f_res_local = f_res[tid];
+  T g_res_local = g_res[tid];
   T g_res_inv_local = T(1) / g_res_local;
   T f_res_div_g_res_local = f_res_local * g_res_inv_local;
   for (unsigned int i = 0; i < N; ++i)
-    out_grad[grid_thread_rank + i * nItem] =
-        f_grad[grid_thread_rank + i * nItem] * g_res_inv_local;
-  out_grad[grid_thread_rank + g_grad_position * nItem] +=
+    out_grad[tid + i * nItem] =
+        f_grad[tid + i * nItem] * g_res_inv_local;
+  out_grad[tid + g_grad_position * nItem] +=
       -f_res_div_g_res_local * g_res_inv_local;
-  out_res[grid_thread_rank] = f_res_div_g_res_local;
+  out_res[tid] = f_res_div_g_res_local;
 }
 
 template <typename T>
@@ -806,19 +806,19 @@ __global__ void JetVector_divides_JetVector_Kernel(
   /*
                  * 1D block and grid
    */
-  unsigned int grid_thread_rank = threadIdx.x + blockDim.x * blockIdx.x;
-  if (grid_thread_rank >= nItem)
+  unsigned int tid = threadIdx.x + blockDim.x * blockIdx.x;
+  if (tid >= nItem)
     return;
-  T f_res_local = f_res[grid_thread_rank];
-  T g_res_local = g_res[grid_thread_rank];
+  T f_res_local = f_res[tid];
+  T g_res_local = g_res[tid];
   T g_res_inv_local = T(1) / g_res_local;
   T f_res_div_g_res_local = f_res_local * g_res_inv_local;
   for (unsigned int i = 0; i < N; ++i)
-    out_grad[grid_thread_rank + i * nItem] =
-        (f_grad[grid_thread_rank + i * nItem] -
-         f_res_div_g_res_local * g_grad[grid_thread_rank + i * nItem]) *
+    out_grad[tid + i * nItem] =
+        (f_grad[tid + i * nItem] -
+         f_res_div_g_res_local * g_grad[tid + i * nItem]) *
         g_res_inv_local;
-  out_res[grid_thread_rank] = f_res_div_g_res_local;
+  out_res[tid] = f_res_div_g_res_local;
 }
 template <typename T>
 void JetVector_divides_JetVector_CUDA(const MegBA::JetVector<T> &f,
@@ -871,12 +871,12 @@ __global__ void Jet_PVector_divides_Scalar_Vector_Kernel(
   /*
                  * 1D block and grid
    */
-  unsigned int grid_thread_rank = threadIdx.x + blockDim.x * blockIdx.x;
-  if (grid_thread_rank >= nItem)
+  unsigned int tid = threadIdx.x + blockDim.x * blockIdx.x;
+  if (tid >= nItem)
     return;
-  T g_res_inv_local = T(1) / g_res[grid_thread_rank];
-  out_grad[grid_thread_rank + f_grad_position * nItem] = g_res_inv_local;
-  out_res[grid_thread_rank] = f_res[grid_thread_rank] * g_res_inv_local;
+  T g_res_inv_local = T(1) / g_res[tid];
+  out_grad[tid + f_grad_position * nItem] = g_res_inv_local;
+  out_res[tid] = f_res[tid] * g_res_inv_local;
 }
 
 template <typename T>
@@ -886,14 +886,14 @@ __global__ void JetVector_divides_Scalar_Vector_Kernel(
   /*
                  * 1D block and grid
    */
-  unsigned int grid_thread_rank = threadIdx.x + blockDim.x * blockIdx.x;
-  if (grid_thread_rank >= nItem)
+  unsigned int tid = threadIdx.x + blockDim.x * blockIdx.x;
+  if (tid >= nItem)
     return;
-  T g_res_inv_local = T(1) / g_res[grid_thread_rank];
+  T g_res_inv_local = T(1) / g_res[tid];
   for (unsigned int i = 0; i < N; ++i)
-    out_grad[grid_thread_rank + i * nItem] =
-        f_grad[grid_thread_rank + i * nItem] * g_res_inv_local;
-  out_res[grid_thread_rank] = f_res[grid_thread_rank] * g_res_inv_local;
+    out_grad[tid + i * nItem] =
+        f_grad[tid + i * nItem] * g_res_inv_local;
+  out_res[tid] = f_res[tid] * g_res_inv_local;
 }
 
 template <typename T>
@@ -929,10 +929,10 @@ __global__ void Scalar_Vector_divides_Scalar_Vector_Kernel(
   /*
                  * 1D block and grid
    */
-  unsigned int grid_thread_rank = threadIdx.x + blockDim.x * blockIdx.x;
-  if (grid_thread_rank >= nItem)
+  unsigned int tid = threadIdx.x + blockDim.x * blockIdx.x;
+  if (tid >= nItem)
     return;
-  out_res[grid_thread_rank] = f_res[grid_thread_rank] / g_res[grid_thread_rank];
+  out_res[tid] = f_res[tid] / g_res[tid];
 }
 template <typename T>
 void Scalar_Vector_divides_Scalar_Vector_CUDA(const MegBA::JetVector<T> &f,
@@ -957,16 +957,16 @@ __global__ void Scalar_Vector_divides_Jet_PVector_Kernel(
   /*
                  * 1D block and grid
    */
-  unsigned int grid_thread_rank = threadIdx.x + blockDim.x * blockIdx.x;
-  if (grid_thread_rank >= nItem)
+  unsigned int tid = threadIdx.x + blockDim.x * blockIdx.x;
+  if (tid >= nItem)
     return;
-  T f_res_local = f_res[grid_thread_rank];
-  T g_res_local = g_res[grid_thread_rank];
+  T f_res_local = f_res[tid];
+  T g_res_local = g_res[tid];
   T g_res_inv_local = T(1) / g_res_local;
   T f_res_div_g_res_local = f_res_local * g_res_inv_local;
-  out_grad[grid_thread_rank + g_grad_position * nItem] =
+  out_grad[tid + g_grad_position * nItem] =
       -f_res_div_g_res_local * g_res_inv_local;
-  out_res[grid_thread_rank] = f_res_div_g_res_local;
+  out_res[tid] = f_res_div_g_res_local;
 }
 
 template <typename T>
@@ -976,18 +976,18 @@ __global__ void Scalar_Vector_divides_JetVector_Kernel(
   /*
                  * 1D block and grid
    */
-  unsigned int grid_thread_rank = threadIdx.x + blockDim.x * blockIdx.x;
-  if (grid_thread_rank >= nItem)
+  unsigned int tid = threadIdx.x + blockDim.x * blockIdx.x;
+  if (tid >= nItem)
     return;
-  T f_res_local = f_res[grid_thread_rank];
-  T g_res_local = g_res[grid_thread_rank];
+  T f_res_local = f_res[tid];
+  T g_res_local = g_res[tid];
   T g_res_inv_local = T(1) / g_res_local;
   T f_res_div_g_res_local = f_res_local * g_res_inv_local;
   for (unsigned int i = 0; i < N; ++i)
-    out_grad[grid_thread_rank + i * nItem] =
-        -f_res_div_g_res_local * g_grad[grid_thread_rank + i * nItem] *
+    out_grad[tid + i * nItem] =
+        -f_res_div_g_res_local * g_grad[tid + i * nItem] *
         g_res_inv_local;
-  out_res[grid_thread_rank] = f_res_div_g_res_local;
+  out_res[tid] = f_res_div_g_res_local;
 }
 
 template <typename T>
@@ -1051,12 +1051,12 @@ JetVector_add_Scalar_Kernel(const unsigned int N, const unsigned int nItem,
   /*
                  * 1D block and grid
    */
-  unsigned int grid_thread_rank = threadIdx.x + blockDim.x * blockIdx.x;
-  if (grid_thread_rank >= nItem)
+  unsigned int tid = threadIdx.x + blockDim.x * blockIdx.x;
+  if (tid >= nItem)
     return;
   for (unsigned int i = 0; i < N; ++i)
-    out_grad[grid_thread_rank + i * nItem] = f_grad[grid_thread_rank + i * nItem];
-  out_res[grid_thread_rank] = f_res[grid_thread_rank] + g;
+    out_grad[tid + i * nItem] = f_grad[tid + i * nItem];
+  out_res[tid] = f_res[tid] + g;
 }
 
 template <typename T>
@@ -1088,12 +1088,12 @@ JetVector_minus_Scalar_Kernel(const unsigned int N, const unsigned int nItem,
   /*
                  * 1D block and grid
    */
-  unsigned int grid_thread_rank = threadIdx.x + blockDim.x * blockIdx.x;
-  if (grid_thread_rank >= nItem)
+  unsigned int tid = threadIdx.x + blockDim.x * blockIdx.x;
+  if (tid >= nItem)
     return;
   for (unsigned int i = 0; i < N; ++i)
-    out_grad[grid_thread_rank + i * nItem] = f_grad[grid_thread_rank + i * nItem];
-  out_res[grid_thread_rank] = f_res[grid_thread_rank] - g;
+    out_grad[tid + i * nItem] = f_grad[tid + i * nItem];
+  out_res[tid] = f_res[tid] - g;
 }
 template <typename T>
 void jetVectorSubScalarCUDA(const MegBA::JetVector<T> &f, T g,
@@ -1125,13 +1125,13 @@ __global__ void JetVector_multiplies_Scalar_Kernel(const unsigned int N,
   /*
                  * 1D block and grid
    */
-  unsigned int grid_thread_rank = threadIdx.x + blockDim.x * blockIdx.x;
-  if (grid_thread_rank >= nItem)
+  unsigned int tid = threadIdx.x + blockDim.x * blockIdx.x;
+  if (tid >= nItem)
     return;
   for (unsigned int i = 0; i < N; ++i)
-    out_grad[grid_thread_rank + i * nItem] =
-        f_grad[grid_thread_rank + i * nItem] * g;
-  out_res[grid_thread_rank] = f_res[grid_thread_rank] * g;
+    out_grad[tid + i * nItem] =
+        f_grad[tid + i * nItem] * g;
+  out_res[tid] = f_res[tid] * g;
 }
 template <typename T>
 void jetVectorMulScalarCUDA(const MegBA::JetVector<T> &f, T g,
@@ -1162,21 +1162,20 @@ Scalar_minus_JetVector_Kernel(const unsigned int N, const unsigned int nItem,
   /*
                  * 1D block and grid
    */
-  unsigned int grid_thread_rank = threadIdx.x + blockDim.x * blockIdx.x;
-  if (grid_thread_rank >= nItem)
+  unsigned int tid = threadIdx.x + blockDim.x * blockIdx.x;
+  if (tid >= nItem)
     return;
   for (unsigned int i = 0; i < N; ++i)
-    out_grad[grid_thread_rank + i * nItem] =
-        -g_grad[grid_thread_rank + i * nItem];
-  out_res[grid_thread_rank] = f - g_res[grid_thread_rank];
+    out_grad[tid + i * nItem] =
+        -g_grad[tid + i * nItem];
+  out_res[tid] = f - g_res[tid];
 }
 template <typename T>
 void scalarSubJetVectorCUDA(T f, const JetVector<T> &g, JetVector<T> *out) {
   for (int i = 0; i < MemoryPool::getWorldSize(); ++i) {
     cudaSetDevice(i);
     unsigned int nItem = out->getItemNum(i);
-    dim3 blockDim;
-    dim3 gridDim;
+    
     std::array<dim3, 2> gridAndDim = fitGridAndBlock(nItem);
     Scalar_minus_JetVector_Kernel<T><<<gridAndDim[0], gridAndDim[1]>>>(
         g.getGradShape(), nItem, f, g.getCUDAResPtr()[i], g.getCUDAGradPtr()[i],
@@ -1199,24 +1198,23 @@ Scalar_divides_JetVector_Kernel(const unsigned int N, const unsigned int nItem,
   /*
                  * 1D block and grid
    */
-  unsigned int grid_thread_rank = threadIdx.x + blockDim.x * blockIdx.x;
-  if (grid_thread_rank >= nItem)
+  unsigned int tid = threadIdx.x + blockDim.x * blockIdx.x;
+  if (tid >= nItem)
     return;
-  T g_res_inv_local = T(1) / g_res[grid_thread_rank];
+  T g_res_inv_local = T(1) / g_res[tid];
   T g_res_inv_times_f_local = f * g_res_inv_local;
   for (unsigned int i = 0; i < N; ++i)
-    out_grad[grid_thread_rank + i * nItem] =
-        -g_grad[grid_thread_rank + i * nItem] * g_res_inv_local *
+    out_grad[tid + i * nItem] =
+        -g_grad[tid + i * nItem] * g_res_inv_local *
         g_res_inv_times_f_local;
-  out_res[grid_thread_rank] = g_res_inv_times_f_local;
+  out_res[tid] = g_res_inv_times_f_local;
 }
 template <typename T>
 void scalarDivJetVectorCUDA(T f, const JetVector<T> &g, JetVector<T> *out) {
   for (int i = 0; i < MemoryPool::getWorldSize(); ++i) {
     cudaSetDevice(i);
     unsigned int nItem = out->getItemNum(i);
-    dim3 blockDim;
-    dim3 gridDim;
+    
     std::array<dim3, 2> gridAndDim = fitGridAndBlock(nItem);
     Scalar_divides_JetVector_Kernel<T><<<gridAndDim[0], gridAndDim[1]>>>(
         g.getGradShape(), nItem, f, g.getCUDAResPtr()[i], g.getCUDAGradPtr()[i],
@@ -1238,15 +1236,15 @@ __global__ void abs_JetVector_Kernel(const unsigned int N,
   /*
                  * 1D block and grid
    */
-  unsigned int grid_thread_rank = threadIdx.x + blockDim.x * blockIdx.x;
-  if (grid_thread_rank >= nItem)
+  unsigned int tid = threadIdx.x + blockDim.x * blockIdx.x;
+  if (tid >= nItem)
     return;
-  T f_res_local = f_res[grid_thread_rank];
+  T f_res_local = f_res[tid];
   int mask_local = static_cast<int>(f_res_local > 0) * 2 - 1;
   for (unsigned int i = 0; i < N; ++i)
-    out_grad[grid_thread_rank + i * nItem] =
-        mask_local * f_grad[grid_thread_rank + i * nItem];
-  out_res[grid_thread_rank] = mask_local * f_res_local;
+    out_grad[tid + i * nItem] =
+        mask_local * f_grad[tid + i * nItem];
+  out_res[tid] = mask_local * f_res_local;
 }
 template <typename T>
 void absJetVectorCUDA(const MegBA::JetVector<T> &f,
@@ -1274,14 +1272,14 @@ __global__ void cos_JetVector_Kernel(const unsigned int N,
   /*
                  * 1D block and grid
    */
-  unsigned int grid_thread_rank = threadIdx.x + blockDim.x * blockIdx.x;
-  if (grid_thread_rank >= nItem)
+  unsigned int tid = threadIdx.x + blockDim.x * blockIdx.x;
+  if (tid >= nItem)
     return;
-  T f_res_local = f_res[grid_thread_rank];
+  T f_res_local = f_res[tid];
   for (unsigned int i = 0; i < N; ++i)
-    out_grad[grid_thread_rank + i * nItem] =
-        -f_grad[grid_thread_rank + i * nItem] * std::sin(f_res_local);
-  out_res[grid_thread_rank] = std::cos(f_res_local);
+    out_grad[tid + i * nItem] =
+        -f_grad[tid + i * nItem] * std::sin(f_res_local);
+  out_res[tid] = std::cos(f_res_local);
 }
 template <typename T>
 void cosJetVectorCUDA(const MegBA::JetVector<T> &f,
@@ -1309,14 +1307,14 @@ __global__ void sin_JetVector_Kernel(const unsigned int N,
   /*
                  * 1D block and grid
    */
-  unsigned int grid_thread_rank = threadIdx.x + blockDim.x * blockIdx.x;
-  if (grid_thread_rank >= nItem)
+  unsigned int tid = threadIdx.x + blockDim.x * blockIdx.x;
+  if (tid >= nItem)
     return;
-  T f_res_local = f_res[grid_thread_rank];
+  T f_res_local = f_res[tid];
   for (unsigned int i = 0; i < N; ++i)
-    out_grad[grid_thread_rank + i * nItem] =
-        f_grad[grid_thread_rank + i * nItem] * std::cos(f_res_local);
-  out_res[grid_thread_rank] = std::sin(f_res_local);
+    out_grad[tid + i * nItem] =
+        f_grad[tid + i * nItem] * std::cos(f_res_local);
+  out_res[tid] = std::sin(f_res_local);
 }
 template <typename T>
 void sinJetVectorCUDA(const MegBA::JetVector<T> &f,
@@ -1345,15 +1343,15 @@ __global__ void sqrt_JetVector_Kernel(const unsigned int N,
   /*
                  * 1D block and grid
    */
-  unsigned int grid_thread_rank = threadIdx.x + blockDim.x * blockIdx.x;
-  if (grid_thread_rank >= nItem)
+  unsigned int tid = threadIdx.x + blockDim.x * blockIdx.x;
+  if (tid >= nItem)
     return;
-  T f_res_sqrt_local = std::sqrt(f_res[grid_thread_rank]);
+  T f_res_sqrt_local = std::sqrt(f_res[tid]);
   T f_res_sqrt_half_inv_local = T(0.5) / f_res_sqrt_local;
   for (unsigned int i = 0; i < N; ++i)
-    out_grad[grid_thread_rank + i * nItem] =
-        f_grad[grid_thread_rank + i * nItem] * f_res_sqrt_half_inv_local;
-  out_res[grid_thread_rank] = f_res_sqrt_local;
+    out_grad[tid + i * nItem] =
+        f_grad[tid + i * nItem] * f_res_sqrt_half_inv_local;
+  out_res[tid] = f_res_sqrt_local;
 }
 template <typename T>
 void sqrtJetVectorCUDA(const MegBA::JetVector<T> &f,
