@@ -68,7 +68,7 @@ Under doc/  (Coming soon...)
 Please check here for [MegBA's future plan](https://docs.google.com/document/d/1fHYuw_qRFHrBcGSeQ8Ld4y2wK9oxF0am3xA9r6veUwM/edit?usp=sharing).
 
 If you are interested in MegBA and want to collaborate, you can:
-* Apply for an Internship at Megvii Research 3D, please send your resume to ur@megvii.com, with your expected starting date. (subject: 3D组CUDA实习生-Name) Unfortunately, now we are only able to host interns with work authorization in China. 
+* Sorry, we can no longer host Interns.
 * As an external collaborator (coding), just fork this repo and send PRs. We will review your PR carefully (and merge it into MegBA).
 * As an algorithm/novelty contributor, please send an email to MegBA@googlegroups.com.
 * Any new feature request, you can send an email to MegBA@googlegroups.com as well. *Note that it is not guaranteed the requested feature will be added or added soon*
