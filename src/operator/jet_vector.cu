@@ -13,7 +13,7 @@ namespace MegBA {
 template <typename T> void JetVector<T>::initAsCUDA(const JetVector<T> &f) {
   const auto worldSize = MemoryPool::getWorldSize();
   std::vector<void *> valueDevicePtr, gradDeviceptr;
-  MemoryPool::allocateJetVector(&valueDevicePtr, &gradDeviceptr, _N, _nItem, sizeof(T));
+  MemoryPool::allocateJetVector(valueDevicePtr, gradDeviceptr, _N, _nItem, sizeof(T));
   _gradDevicePtr.clear();
   _valueDevicePtr.clear();
   _gradDevicePtr.resize(worldSize);
@@ -74,7 +74,7 @@ template <typename T> void JetVector<T>::CPU2CUDA(const JetVector<T> &f) {
   if (_gradPosition == -1 && _N != 0) {
     // gradPosition == -1 and N != 0, it would be a normal JV
     std::vector<void *> valueDevicePtr{}, gradDevicePtr{};
-    MemoryPool::allocateJetVector(&valueDevicePtr, &gradDevicePtr, _N, _nItem, sizeof(T));
+    MemoryPool::allocateJetVector(valueDevicePtr, gradDevicePtr, _N, _nItem, sizeof(T));
     // _gradDevicePtr must be nullptr
     _gradDevicePtr.clear();
     _gradDevicePtr.reserve(worldSize);
@@ -122,7 +122,7 @@ template <typename T> void JetVector<T>::CUDA2CUDA(const JetVector<T> &f) {
   const auto worldSize = MemoryPool::getWorldSize();
   if (_valueDevicePtr.empty()) {
     std::vector<void *> valueDevicePtr{}, gradDevicePtr{};
-    MemoryPool::allocateJetVector(&valueDevicePtr, &gradDevicePtr, _N, _nItem, sizeof(T));
+    MemoryPool::allocateJetVector(valueDevicePtr, gradDevicePtr, _N, _nItem, sizeof(T));
     _gradDevicePtr.clear();
     _valueDevicePtr.clear();
     _gradDevicePtr.reserve(worldSize);

@@ -36,7 +36,7 @@ EdgeVector<T>::EdgeVector(const ProblemOption &option)
     : option{option} {
 }
 
-template <typename T> bool EdgeVector<T>::tryPushBack(BaseEdge<T> *edge) {
+template <typename T> bool EdgeVector<T>::tryPushBack(BaseEdge<T> &edge) {
   /*
    * Try to push the coming edge into the back of the EdgeVector, return true if
    * success, false if failed.
@@ -44,7 +44,7 @@ template <typename T> bool EdgeVector<T>::tryPushBack(BaseEdge<T> *edge) {
 
   // Check whether the EdgeVector is empty. If empty, init.
   const std::size_t hash_of_input_edge = typeid(edge).hash_code();
-  const auto vertex_num_in_edge = edge->size();
+  const auto vertex_num_in_edge = edge.size();
   if (edges.empty()) {
     nameHash = hash_of_input_edge;
     edges.resize(vertex_num_in_edge);
@@ -54,44 +54,44 @@ template <typename T> bool EdgeVector<T>::tryPushBack(BaseEdge<T> *edge) {
     bool same_vertex = true;
     for (int i = 0; i < vertex_num_in_edge; ++i) {
       offset[i] = accumulated_grad_shape;
-      accumulated_grad_shape += edge->operator[](i)->getGradShape();
+      accumulated_grad_shape += edge[i]->getGradShape();
       if (same_vertex) {
-        cameraVertexNum += edge->operator[](i)->fixed ? 0 : 1;
-        same_vertex &= edge->operator[](i)->kind() ==
-                       edge->operator[](i == vertex_num_in_edge - 1 ? i : i + 1)->kind();
+        cameraVertexNum += edge[i]->fixed ? 0 : 1;
+        same_vertex &= edge[i]->kind() ==
+                       edge[i == vertex_num_in_edge - 1 ? i : i + 1]->kind();
       } else {
-        pointVertexNum += edge->operator[](i)->fixed ? 0 : 1;
-        assert(edge->operator[](i)->kind() ==
-               edge->operator[](i == vertex_num_in_edge - 1 ? i : i + 1)->kind());
+        pointVertexNum += edge[i]->fixed ? 0 : 1;
+        assert(edge[i]->kind() ==
+               edge[i == vertex_num_in_edge - 1 ? i : i + 1]->kind());
       }
     }
     for (int i = 0; i < vertex_num_in_edge; ++i) {
-      const auto &estimation = edge->operator[](i)->getEstimation();
-      const auto &observation = edge->operator[](i)->getObservation();
+      const auto &estimation = edge[i]->getEstimation();
+      const auto &observation = edge[i]->getObservation();
       edges[i].resizeJVEstimation(estimation.rows(), estimation.cols());
       edges[i].resizeJVObservation(observation.rows(), observation.cols());
-      edges[i].fixed = edge->operator[](i)->fixed;
+      edges[i].fixed = edge[i]->fixed;
       edges[i].setGradShapeAndOffset(accumulated_grad_shape, offset[i]);
     }
 
-    const auto &measurement = edge->_getMeasurement();
+    const auto &measurement = edge._getMeasurement();
     jetMeasurement.resize(measurement.rows(), measurement.cols());
-    const auto &information = edge->_getInformation();
+    const auto &information = edge._getInformation();
     jetInformation.resize(information.rows(), information.cols());
   } else if (nameHash != hash_of_input_edge) {
     return false;
   }
 
   for (int i = 0; i < vertex_num_in_edge; ++i)
-    edges[i].push_back(edge->operator[](i));
-  edgesPtr.push_back(edge);
+    edges[i].push_back(edge[i]);
+  edgesPtr.push_back(&edge);
 
-  const auto &measurement = edge->_getMeasurement();
+  const auto &measurement = edge._getMeasurement();
   for (int i = 0; i < measurement.size(); ++i) {
     jetMeasurement(i).appendJet(measurement(i));
   }
 
-  const auto &information = edge->_getInformation();
+  const auto &information = edge._getInformation();
   for (int i = 0; i < information.size(); ++i) {
     jetInformation(i).appendJet(information(i));
   }

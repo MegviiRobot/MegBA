@@ -413,7 +413,7 @@ bool schurPCGSolverDistributedCUDA(
 }
 
 template <typename T>
-void schurMakeVDistributed(std::vector<T *> *SpMVbuffer, const int pointNum,
+void schurMakeVDistributed(std::vector<T *> &SpMVbuffer, const int pointNum,
                            const int pointDim, const std::vector<int> &hplNnz,
                            const int hppRows, const int hllRows,
                            const std::vector<T *> &hplCsrVal,
@@ -461,7 +461,7 @@ void schurMakeVDistributed(std::vector<T *> *SpMVbuffer, const int pointNum,
 
   T alpha{-1.0}, beta = T(1. / worldSize);
 
-  SpMVbuffer->resize(worldSize);
+  SpMVbuffer.resize(worldSize);
   for (int i = 0; i < worldSize; ++i) {
     cudaSetDevice(i);
     size_t bufferSize = 0;
@@ -470,10 +470,10 @@ void schurMakeVDistributed(std::vector<T *> *SpMVbuffer, const int pointNum,
                             cudaDataType, CUSPARSE_SPMV_ALG_DEFAULT,
                             &bufferSize);
     MemoryPool::allocateNormal(
-        reinterpret_cast<void **>(&SpMVbuffer->operator[](i)), bufferSize, i);
+        reinterpret_cast<void **>(&SpMVbuffer[i]), bufferSize, i);
     cusparseSpMV(cusparseHandle[i], CUSPARSE_OPERATION_NON_TRANSPOSE, &alpha,
                  hpl[i], vecw[i], &beta, vecv[i], cudaDataType,
-                 CUSPARSE_SPMV_ALG_DEFAULT, SpMVbuffer->operator[](i));
+                 CUSPARSE_SPMV_ALG_DEFAULT, SpMVbuffer[i]);
   }
 
   for (int i = 0; i < worldSize; ++i) {
@@ -600,7 +600,7 @@ bool SchurPCGSolverDistributed(
   }
   invertDistributed(hllCsrVal, pointDim, pointNum, hllInvCsrVal);
 
-  schurMakeVDistributed(&SpMVbuffer, pointNum, pointDim, hplNnz, hppRows,
+  schurMakeVDistributed(SpMVbuffer, pointNum, pointDim, hplNnz, hppRows,
                         hllRows, hplCsrVal, hplCsrColInd, hplCsrRowPtr,
                         hllInvCsrVal, g);
   bool PCG_success = schurPCGSolverDistributedCUDA(

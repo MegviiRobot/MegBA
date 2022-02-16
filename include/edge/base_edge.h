@@ -121,7 +121,7 @@ template <typename T> class EdgeVector {
 
   const auto &getPositionContainers() const { return positionContainers; }
 
-  bool tryPushBack(BaseEdge<T> *edge);
+  bool tryPushBack(BaseEdge<T> &edge);
 
   void eraseVertex(const BaseVertex<T> &vertex);
 

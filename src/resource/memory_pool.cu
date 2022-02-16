@@ -49,14 +49,14 @@ void MemoryPool::resetPool(const ProblemOption *problemOption, std::int8_t sizeo
   HandleManager::createCUSPARSEHandle();
 }
 
-void MemoryPool::allocateJetVector(std::vector<void *> *valueDevicePtr,
-                                   std::vector<void *> *gradDevicePtr, std::size_t N,
+void MemoryPool::allocateJetVector(std::vector<void *> &valueDevicePtr,
+                                   std::vector<void *> &gradDevicePtr, std::size_t N,
                                    std::size_t nItem, std::int8_t sizeofType) {
   const auto worldSize = getWorldSize();
-  valueDevicePtr->clear();
-  valueDevicePtr->resize(worldSize);
-  gradDevicePtr->clear();
-  gradDevicePtr->resize(worldSize);
+  valueDevicePtr.clear();
+  valueDevicePtr.resize(worldSize);
+  gradDevicePtr.clear();
+  gradDevicePtr.resize(worldSize);
 //  assert((N == _N || N == 0) && nItem == _nItem && sizeofType == _sizeofType);
   for (auto offset : memOffsetCounter)
     if (offset != 0)
@@ -67,11 +67,11 @@ void MemoryPool::allocateJetVector(std::vector<void *> *valueDevicePtr,
       cudaSetDevice(_problemOption->deviceUsed[i]);
       Ptr ptr{nullptr};
       cudaMalloc(&ptr.address, (_problemOption->N + 1) * nItem * _sizeofType);
-      gradDevicePtr->operator[](i) = ptr.address;
+      gradDevicePtr[i] = ptr.address;
       ptr.number += _problemOption->N * nItem * _sizeofType;
-      valueDevicePtr->operator[](i) = ptr.address;
+      valueDevicePtr[i] = ptr.address;
     }
-    managedRecorder.insert(*gradDevicePtr);
+    managedRecorder.insert(gradDevicePtr);
   } else {
     std::vector<void *> back = std::move(_ptr.back());
     _ptr.pop_back();
@@ -79,9 +79,9 @@ void MemoryPool::allocateJetVector(std::vector<void *> *valueDevicePtr,
       const auto nItem = getItemNum(i);
       cudaSetDevice(_problemOption->deviceUsed[i]);
       Ptr ptr{back[i]};
-      gradDevicePtr->operator[](i) = ptr.address;
+      gradDevicePtr[i] = ptr.address;
       ptr.number += _problemOption->N * nItem * _sizeofType;
-      valueDevicePtr->operator[](i) = ptr.address;
+      valueDevicePtr[i] = ptr.address;
     }
   }
   _ptrInUseCounter++;

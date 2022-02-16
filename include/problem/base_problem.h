@@ -67,7 +67,7 @@ class BaseProblem {
 
   void appendVertex(int ID, BaseVertex<T> *vertex);
 
-  void appendEdge(BaseEdge<T> *edge);
+  void appendEdge(BaseEdge<T> &edge);
 
   BaseVertex<T> &getVertex(int ID);
 

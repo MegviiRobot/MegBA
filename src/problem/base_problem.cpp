@@ -79,13 +79,13 @@ void BaseProblem<T>::appendVertex(int ID, BaseVertex<T> *vertex) {
 }
 
 template <typename T>
-void BaseProblem<T>::appendEdge(BaseEdge<T> *edge) {
+void BaseProblem<T>::appendEdge(BaseEdge<T> &edge) {
   bool success = edges.tryPushBack(edge);
   if (!success) {
     edges.tryPushBack(edge);
   }
-  for (int vertex_idx = edge->size() - 1; vertex_idx >= 0; --vertex_idx) {
-    auto vertex = edge->operator[](vertex_idx);
+  for (int vertex_idx = edge.size() - 1; vertex_idx >= 0; --vertex_idx) {
+    auto vertex = edge[vertex_idx];
     auto kind = vertex->kind();
     auto find = verticesSets.find(kind);
     if (find == verticesSets.end())
@@ -106,7 +106,7 @@ void BaseProblem<T>::appendEdge(BaseEdge<T> *edge) {
                   .first;
         }
         if (i == schurWorkSpace.workingDevice) {
-          connectionFind->second.emplace(edge->operator[](1 ^ vertex_idx));
+          connectionFind->second.emplace(edge[1 ^ vertex_idx]);
         }
       }
     } else {

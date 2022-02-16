@@ -177,7 +177,7 @@ int main(int argc, char *arcv[]) {
     edge_ptr->appendVertex(&problem.getVertex(std::get<0>(edge[j])));
     edge_ptr->appendVertex(&problem.getVertex(std::get<1>(edge[j])));
     edge_ptr->setMeasurement(std::get<2>(std::move(edge[j])));
-    problem.appendEdge(edge_ptr);
+    problem.appendEdge(*edge_ptr);
   }
   problem.solve();
 }
