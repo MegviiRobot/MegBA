@@ -48,7 +48,7 @@ endif()
 # Thrust
 find_package(Thrust REQUIRED CONFIG)
 thrust_create_target(Thrust)
-
+include_directories(thirdparty)
 include_directories(include)
 add_subdirectory(src)
 add_subdirectory(examples)

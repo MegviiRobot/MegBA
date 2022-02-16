@@ -11,6 +11,7 @@
 #include "algo/lm_algo.h"
 #include "solver/schur_pcg_solver.h"
 #include "linear_system/schur_LM_linear_system.h"
+#include "argparse/include/argparse/argparse.hpp"
 
 template<typename T>
 class BAL_Edge : public MegBA::BaseEdge<T> {
@@ -57,42 +58,86 @@ bool readVector(std::istream& is, Eigen::DenseBase<Derived>& b) {
 }
 }
 
-int main(int argc, char *arcv[]) {
+int main(int argc, char *argv[]) {
   std::string name;
   int iter, solver_max_iter, worldSize;
   double solver_tol, solver_refuse_ratio, tau, epsilon1, epsilon2;
   std::string out_path;
 
-  if (argc != 10) {
-    throw std::runtime_error("not enough parameters");
-  } else {
-    for (int i = 1; i < argc; ++i) {
-      std::string key;
-      int idx{0};
-      while (arcv[i][idx] != '=') key += arcv[i][idx++];
-      idx++;
-      char *p{&arcv[i][idx]};
-      if (key == "--world_size") worldSize = atoi(p);
-      if (key == "--name") name = p;
-      if (key == "--iter") iter = atoi(p);
-      if (key == "--solver_tol") solver_tol = atof(p);
-      if (key == "--solver_refuse_ratio") solver_refuse_ratio = atof(p);
-      if (key == "--solver_max_iter") solver_max_iter = atoi(p);
-      if (key == "--tau") tau = atof(p);
-      if (key == "--epsilon1") epsilon1 = atof(p);
-      if (key == "--epsilon2") epsilon2 = atof(p);
-    }
+  argparse::ArgumentParser program("BAL_Double");
+
+  program.add_argument("--world_size")
+      .help("World size")
+      .default_value(1)
+      .action([](const std::string& value) { return std::stoi(value); });
+
+  program.add_argument("--path")
+      .help("Path to your dataset")
+      .action([](const std::string& value) { return value; });
+
+  program.add_argument("--max_iter")
+      .help("LM solve iteration")
+      .default_value(20)
+      .action([](const std::string& value) { return std::stoi(value); });
+
+  program.add_argument("--solver_max_iter")
+      .help("Linear solver iteration")
+      .default_value(50)
+      .action([](const std::string& value) { return std::stoi(value); });
+
+  program.add_argument("--solver_tol")
+      .help("The tolerance of the linear solver")
+      .default_value(10.)
+      .action([](const std::string& value) { return std::stod(value); });
+
+  program.add_argument("--solver_refuse_ratio")
+      .help("The refuse ratio of the linear solver")
+      .default_value(1.)
+      .action([](const std::string& value) { return std::stod(value); });
+
+  program.add_argument("--tau")
+      .help("Initial trust region")
+      .default_value(1.)
+      .action([](const std::string& value) { return std::stod(value); });
+
+  program.add_argument("--epsilon1")
+      .help("Parameter of LM")
+      .default_value(1.)
+      .action([](const std::string& value) { return std::stod(value); });
+
+  program.add_argument("--epsilon2")
+      .help("Parameter of LM")
+      .default_value(1e-10)
+      .action([](const std::string& value) { return std::stod(value); });
+
+  try {
+    program.parse_args(argc, argv);
   }
+  catch (const std::runtime_error& err) {
+    std::cout << err.what() << std::endl;
+    std::cout << program;
+    exit(0);
+  }
+
+  worldSize = program.get<int>("--world_size");
+  name = program.get<std::string>("--path");
+  iter = program.get<int>("--max_iter");
+  solver_tol = program.get<double>("--solver_tol");
+  solver_refuse_ratio = program.get<double>("--solver_refuse_ratio");
+  solver_max_iter = program.get<int>("--solver_max_iter");
+  tau = program.get<double>("--tau");
+  epsilon1 = program.get<double>("--epsilon1");
+  epsilon2 = program.get<double>("--epsilon2");
+
   std::cout << "solving " << name << ", world_size: " << worldSize
-            << ", solver iter: " << iter << ", solver_tol: " << solver_tol
+            << ", max iter: " << iter << ", solver_tol: " << solver_tol
             << ", solver_refuse_ratio: " << solver_refuse_ratio
             << ", solver_max_iter: " << solver_max_iter << ", tau: " << tau
             << ", epsilon1: " << epsilon1 << ", epsilon2: " << epsilon2
             << std::endl;
   typedef float T;
 
-  std::string path{"../../"};
-  std::ifstream fin(path.append("/dataset/" + name));
+  std::ifstream fin(name);
 
   int num_cameras = 0, num_points = 0, num_observations = 0;
   fin >> num_cameras;
