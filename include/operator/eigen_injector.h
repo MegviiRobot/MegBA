@@ -10,6 +10,17 @@
 
 namespace Eigen {
 namespace internal {
+template<typename MegBA_t>
+struct scalar_constant_op<MegBA::JetVector<MegBA_t>> {
+  using Scalar = MegBA::JetVector<MegBA_t>;
+  EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE scalar_constant_op(const scalar_constant_op& other) : m_other(other.m_other) { }
+  EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE scalar_constant_op(const Scalar& other) : m_other(other) { }
+  EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE const Scalar &operator() () const { return m_other; }
+  template<typename PacketType>
+  EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE const PacketType packetOp() const { return internal::pset1<PacketType>(m_other); }
+  const Scalar &m_other;
+};
+
 template <typename MegBA_t>
 struct assign_op<MegBA::JetVector<MegBA_t>, MegBA::JetVector<MegBA_t>> {
   using DstScalar = MegBA::JetVector<MegBA_t>;
