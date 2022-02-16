@@ -70,8 +70,8 @@ template <typename T> struct PointVertex : public BaseVertex<T> {
   VertexKind kind() final { return POINT; }
 };
 
-template <typename T> class VertexVector : public std::vector<BaseVertex<T> *> {
-  typedef std::vector<BaseVertex<T> *> parent;
+template <typename T> class VertexVector {
+  std::vector<BaseVertex<T> *> m_data;
   std::map<const BaseVertex<T> *, std::size_t> _vertexCounter;
   JVD<T> _jvEstimation;
   JVD<T> _jvObservation;
@@ -82,6 +82,10 @@ template <typename T> class VertexVector : public std::vector<BaseVertex<T> *> {
 
  public:
   bool fixed;
+
+  std::size_t size() { return m_data.size(); }
+  BaseVertex<T> * &operator[](std::size_t n) { return m_data[n]; }
+  BaseVertex<T> * const &operator[](std::size_t n) const { return m_data[n]; }
 
   void CPU() {
     for (int i = 0; i < _estimationRows * _estimationCols; ++i) {
@@ -106,7 +110,7 @@ template <typename T> class VertexVector : public std::vector<BaseVertex<T> *> {
     else
       find->second--;
 
-    parent::erase(parent::begin() + idx);
+    m_data.erase(m_data.begin() + idx);
   }
 
   bool existVertex(const BaseVertex<T> *vertex) const {
@@ -140,7 +144,7 @@ template <typename T> class VertexVector : public std::vector<BaseVertex<T> *> {
   }
 
   void push_back(BaseVertex<T> *vertex) {
-    parent::push_back(vertex);
+    m_data.push_back(vertex);
 
     auto find = _vertexCounter.find(vertex);
     if (find == _vertexCounter.end())
@@ -196,17 +200,20 @@ template <typename T> class VertexWrapper {
 };
 
 template <typename T>
-class EdgeWrapper : public std::vector<VertexWrapper<T>> {
-  typedef std::vector<VertexWrapper<T>> parent;
+class EdgeWrapper {
+  std::vector<VertexWrapper<T>> m_data;
   JVD<T> const *_jvMeasurement{nullptr};
 
  public:
+  VertexWrapper<T> &operator[](std::size_t n) { return m_data[n]; }
+  VertexWrapper<T> const &operator[](std::size_t n) const { return m_data[n]; }
+
   JVD<T> const &getMeasurement() const { return *_jvMeasurement; }
 
   void bindEdgeVector(const EdgeVector<T> *ev) {
     _jvMeasurement = &ev->getMeasurement();
-    parent::resize(ev->getVertexVectors().size());
-    for (int i = 0; i < parent::size(); ++i) {
+    m_data.resize(ev->getVertexVectors().size());
+    for (int i = 0; i < m_data.size(); ++i) {
       (*this)[i].bindJVEstimation(ev->getEstimation(i));
       (*this)[i].bindJVObservation(ev->getObservation(i));
     }

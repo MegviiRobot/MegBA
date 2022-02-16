@@ -20,16 +20,19 @@
 namespace MegBA {
 enum EdgeKind { ONE, ONE_CAMERA_ONE_POINT, TWO_CAMERA, MULTI };
 
-template <typename T> class BaseEdge : public std::vector<BaseVertex<T> *> {
-  typedef std::vector<BaseVertex<T> *> parent;
-
+template <typename T> class BaseEdge {
   typedef Eigen::Matrix<T, Eigen::Dynamic, Eigen::Dynamic> PlainMatrix;
 
+  std::vector<BaseVertex<T> *> m_data;
   EdgeWrapper<T> _edgeWrapper;
   PlainMatrix _measurement;
   PlainMatrix _information;
 
  public:
+  std::size_t size() { return m_data.size(); }
+  BaseVertex<T> * &operator[](std::size_t n) { return m_data[n]; }
+  BaseVertex<T> * const &operator[](std::size_t n) const { return m_data[n]; }
+
   void appendVertex(BaseVertex<T> *vertex);
 
   bool existVertex(const BaseVertex<T> &vertex) const;

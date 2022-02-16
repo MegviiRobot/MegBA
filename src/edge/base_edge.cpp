@@ -12,12 +12,12 @@
 
 namespace MegBA {
 template <typename T> void BaseEdge<T>::appendVertex(BaseVertex<T> *vertex) {
-  parent::push_back(vertex);
+  m_data.push_back(vertex);
 }
 
 template <typename T>
 bool BaseEdge<T>::existVertex(const BaseVertex<T> &vertex) const {
-  return std::find(parent::begin(), parent::end(), &vertex) != parent::end();
+  return std::find(m_data.begin(), m_data.end(), &vertex) != m_data.end();
 }
 
 template <typename T> void EdgeVector<T>::decideEdgeKind() {
