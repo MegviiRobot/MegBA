@@ -154,11 +154,7 @@ template <typename T> void JetVector<T>::clear() {
       _gradHostVec.clear();
       break;
     case Device::CUDA:
-      cudaStreamSynchronize(nullptr);
-      std::vector<void *> ptrs{_gradDevicePtr.begin(), _gradDevicePtr.end()};
-      MemoryPool::deallocateJetVector(&ptrs);
-      _valueDevicePtr.clear();
-      _gradDevicePtr.clear();
+      clearCUDA();
       break;
     }
   }
@@ -450,6 +446,9 @@ template <typename T> JetVector<T> JetVector<T>::scalarDivThis(T f) const {
 
 template class JetVector<float>;
 template class JetVector<double>;
+
+template <typename T>
+std::ostream &ostreamCUDA(std::ostream &s, const JetVector<T> &z);
 }  // namespace MegBA
 
 template <typename T>
@@ -472,7 +471,7 @@ std::ostream &operator<<(std::ostream &s, const MegBA::JetVector<T> &z) {
       break;
     }
     case MegBA::Device::CUDA: {
-      return ostreamCUDA(s, z);
+      return MegBA::ostreamCUDA(s, z);
     }
   }
   return s;

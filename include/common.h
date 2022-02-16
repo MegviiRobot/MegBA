@@ -11,7 +11,7 @@ template class className<double>;   \
 template class className<float>
 
 #include <cstdint>
-#include <set>
+#include <vector>
 
 namespace MegBA {
 enum Device { CPU, CUDA };
@@ -42,7 +42,7 @@ struct AlgoOption {
 struct ProblemOption {
   bool useSchur{true};
   Device device{Device::CUDA};
-  std::set<int> deviceUsed{};
+  std::vector<int> deviceUsed{};
   int N{-1};
   int64_t nItem{-1};
   AlgoKind algoKind{LM};

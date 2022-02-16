@@ -101,16 +101,17 @@ template <typename T> void EdgeVector<T>::allocateResourceCUDA() {
 
 template <typename T> void EdgeVector<T>::deallocateResourceCUDA() {
   if (option.useSchur) {
+    for (auto &edge : edges)
+      edge.CPU();
     for (int i = 0; i < MemoryPool::getWorldSize(); ++i) {
       cudaSetDevice(i);
       cudaFree(schurValueDevicePtrs[0][i]);
-      cudaFree(schurValueDevicePtrs[1][i]);
       cudaFree(schurValueDevicePtrsOld[0][i]);
-      cudaFree(schurValueDevicePtrsOld[1][i]);
+      for (auto p : positionContainers[i].relativePosition)
+        cudaFree(p);
+      for (auto p : positionContainers[i].absolutePosition)
+        cudaFree(p);
     }
-
-    for (auto &edge : edges)
-      edge.CPU();
   } else {
     // TODO(Jie Ren): implement this
   }

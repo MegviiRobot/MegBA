@@ -141,12 +141,12 @@ void LMAlgo<T>::solveCUDA(const BaseLinearSystem<T> &baseLinearSystem,
   const auto &linearSystem = dynamic_cast<const LMLinearSystem<T> &>(baseLinearSystem);
   JVD<T> jvBackup;
   jvBackup = edges.forward();
+  MemoryPool::redistribute();
   edges.buildLinearSystem(jvBackup, linearSystem);
   double residualNorm, residualNormNew = computeResidualNorm(jvBackup);
   std::cout << "Start with error: " << residualNormNew / 2
             << ", log error: " << std::log10(residualNormNew / 2);
 
-  MemoryPool::redistribute();
   bool stop{false};
   int k = 0;
   double v = 2.;
@@ -173,9 +173,7 @@ void LMAlgo<T>::solveCUDA(const BaseLinearSystem<T> &baseLinearSystem,
     residualNormNew = computeResidualNorm(jv);
     double rho = -(residualNorm - residualNormNew) / rhoDenominator;
     if (residualNorm > residualNormNew) {
-      for (int i = 0; i < jv.size(); ++i) {
-        jvBackup(i) = jv(i);
-      }
+      jvBackup = jv;
       edges.buildLinearSystem(jv, linearSystem);
       std::cout << "Iter " << k << " error: " << residualNormNew / 2
                 << ", log error: " << std::log10(residualNormNew / 2);
@@ -205,6 +203,7 @@ void LMAlgo<T>::solveCUDA(const BaseLinearSystem<T> &baseLinearSystem,
         std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now() - startTimePoint).count() << " ms";
     std::cout << std::endl;
   }
+  std::cout << "Finished" << std::endl;
 }
 
 SPECIALIZE_CLASS(LMAlgo);

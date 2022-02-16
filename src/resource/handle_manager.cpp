@@ -11,12 +11,8 @@
 
 namespace MegBA {
 void HandleManager::createNCCLComm() {
-  std::vector<int> devs;
-  devs.resize(MemoryPool::getWorldSize());
   comms.resize(MemoryPool::getWorldSize());
-  for (int i = 0; i < MemoryPool::getWorldSize(); ++i)
-    devs[i] = i;
-  ncclCommInitAll(comms.data(), MemoryPool::getWorldSize(), devs.data());
+  ncclCommInitAll(comms.data(), MemoryPool::getWorldSize(), MemoryPool::getWorld().data());
 }
 
 const std::vector<ncclComm_t> &HandleManager::getNCCLComm() { return comms; }
@@ -28,7 +24,6 @@ void HandleManager::destroyNCCLComm() {
 }
 
 void HandleManager::createCUBLASHandle() {
-  std::unique_lock<std::mutex> lock{mutex};
   assert(cublasHandle.empty());
   cublasHandle.resize(MemoryPool::getWorldSize());
   for (int i = 0; i < MemoryPool::getWorldSize(); ++i) {
@@ -38,13 +33,11 @@ void HandleManager::createCUBLASHandle() {
 }
 
 const std::vector<cublasHandle_t> &HandleManager::getCUBLASHandle() {
-  std::unique_lock<std::mutex> lock{mutex};
   assert(!cublasHandle.empty());
   return cublasHandle;
 }
 
 void HandleManager::destroyCUBLASHandle() {
-  std::unique_lock<std::mutex> lock{mutex};
   for (int i = 0; i < cublasHandle.size(); ++i) {
     cudaSetDevice(i);
     cublasDestroy_v2(cublasHandle[i]);
@@ -53,7 +46,6 @@ void HandleManager::destroyCUBLASHandle() {
 }
 
 void HandleManager::createCUSPARSEHandle() {
-  std::unique_lock<std::mutex> lock{mutex};
   assert(cusparseHandle.empty());
   cusparseHandle.resize(MemoryPool::getWorldSize());
   for (int i = 0; i < MemoryPool::getWorldSize(); ++i) {
@@ -63,13 +55,11 @@ void HandleManager::createCUSPARSEHandle() {
 }
 
 const std::vector<cusparseHandle_t> &HandleManager::getCUSPARSEHandle() {
-  std::unique_lock<std::mutex> lock{mutex};
   assert(!cusparseHandle.empty());
   return cusparseHandle;
 }
 
 void HandleManager::destroyCUSPARSEHandle() {
-  std::unique_lock<std::mutex> lock{mutex};
   for (int i = 0; i < cusparseHandle.size(); ++i) {
     cudaSetDevice(i);
     cusparseDestroy(cusparseHandle[i]);
@@ -80,5 +70,4 @@ void HandleManager::destroyCUSPARSEHandle() {
 std::vector<ncclComm_t> HandleManager::comms{};
 std::vector<cublasHandle_t> HandleManager::cublasHandle{};
 std::vector<cusparseHandle_t> HandleManager::cusparseHandle{};
-std::mutex HandleManager::mutex{};
 }  // namespace MegBA

@@ -59,7 +59,7 @@ template <typename T> class JetVector {
         _device{f._device}, _gradHostVec{std::move(f._gradHostVec)},
         _gradDevicePtr{std::move(f._gradDevicePtr)},
         _valueHostVec{std::move(f._valueHostVec)},
-        _valueDevicePtr{std::move(f._valueDevicePtr)}, _gradPosition{std::move(f._gradPosition)},
+        _valueDevicePtr{std::move(f._valueDevicePtr)}, _gradPosition{f._gradPosition},
         _pureScalarFlag{f._pureScalarFlag},
         _pureScalar{f._pureScalar} {
     f._N = 0;
@@ -78,6 +78,7 @@ template <typename T> class JetVector {
   void appendJet(T a, int n);
   void appendJet(T a);
   void clear();
+  void clearCUDA();
 
   static const JetVector<T> &getInitTemplate(const JetVector<T> &f,
                                              const JetVector<T> &g) {
@@ -156,9 +157,6 @@ template <typename T> class JetVector {
   JetVector<T> scalarSubThis(T g) const;
   JetVector<T> scalarDivThis(T g) const;
 };
-
-template <typename T>
-std::ostream &ostreamCUDA(std::ostream &s, const JetVector<T> &z);
 }  // namespace MegBA
 
 template <typename T>

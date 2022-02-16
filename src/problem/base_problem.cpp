@@ -55,8 +55,7 @@ BaseProblem<T>::BaseProblem(
       algo(std::move(algo)),
       linearSystem(std::move(linearSystem)) {
   if (problemOption.N != -1 && problemOption.nItem != -1)
-    MemoryPool::resetPool(problemOption.N, problemOption.nItem, sizeof(T),
-                          problemOption.deviceUsed.size());
+    MemoryPool::resetPool(&problemOption, sizeof(T));
   if (problemOption.useSchur) {
     schurWorkSpace.splitSize =
         problemOption.nItem / problemOption.deviceUsed.size() + 1;
@@ -278,8 +277,13 @@ void BaseProblem<T>::solve() {
 }
 
 template <typename T>
-BaseProblem<T>::~BaseProblem(){
-
+BaseProblem<T>::~BaseProblem() {
+  auto problemOptionBackup = new ProblemOption{problemOption};
+  deallocateResource();
+  MemoryPool::destruct();
+  HandleManager::destroyNCCLComm();
+  HandleManager::destroyCUBLASHandle();
+  HandleManager::destroyCUSPARSEHandle();
 }
 
 template class BaseProblem<double>;

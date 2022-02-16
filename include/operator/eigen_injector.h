@@ -21,6 +21,17 @@ struct scalar_constant_op<MegBA::JetVector<MegBA_t>> {
   const Scalar &m_other;
 };
 
+template<typename MegBA_t>
+struct scalar_constant_op<const MegBA::JetVector<MegBA_t>> {
+  using Scalar = const MegBA::JetVector<MegBA_t>;
+  EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE scalar_constant_op(const scalar_constant_op& other) : m_other(other.m_other) { }
+  EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE scalar_constant_op(const Scalar& other) : m_other(other) { }
+  EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE const Scalar &operator() () const { return m_other; }
+  template<typename PacketType>
+  EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE const PacketType packetOp() const { return internal::pset1<PacketType>(m_other); }
+  const Scalar &m_other;
+};
+
 template <typename MegBA_t>
 struct assign_op<MegBA::JetVector<MegBA_t>, MegBA::JetVector<MegBA_t>> {
   using DstScalar = MegBA::JetVector<MegBA_t>;
@@ -102,6 +113,11 @@ struct is_lvalue<const Block<
     const Map<const Matrix<MegBA::JetVector<MegBA_t>, MatrixArgs...>,
               MapOptions, StrideType>,
     BlockRows, BlockCols, InnerPanel>> {
+  enum { value = true };
+};
+
+template <typename MegBA_t, typename NullaryOp, int... MatrixArgs>
+struct is_lvalue<CwiseNullaryOp<NullaryOp, const Matrix<MegBA::JetVector<MegBA_t>, MatrixArgs...>>> {
   enum { value = true };
 };
 }

@@ -161,7 +161,7 @@ int main(int argc, char *arcv[]) {
     option.nItem = num_observations;
     option.N = 12;
     for (int i = 0; i < worldSize; ++i) {
-      option.deviceUsed.insert(i);
+      option.deviceUsed.push_back(i);
     }
     option.solverOption.solverOptionPCG.maxIter = solver_max_iter;
     option.solverOption.solverOptionPCG.tol = solver_tol;

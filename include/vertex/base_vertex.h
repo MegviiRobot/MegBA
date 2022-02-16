@@ -84,23 +84,20 @@ template <typename T> class VertexVector : public std::vector<BaseVertex<T> *> {
   bool fixed;
 
   void CPU() {
-    for (int i = 0; i < _estimationRows; ++i)
-      for (int j = 0; j < _estimationCols; ++j)
-        _jvEstimation(i, j).CPU();
+    for (int i = 0; i < _estimationRows * _estimationCols; ++i) {
+      _jvEstimation(i).CPU();
+    }
 
-    for (int i = 0; i < _observationRows; ++i)
-      for (int j = 0; j < _observationCols; ++j)
-        _jvObservation(i, j).CPU();
+    for (int i = 0; i < _observationRows * _observationCols; ++i)
+      _jvObservation(i).CPU();
   }
 
   void erase(std::size_t idx) {
-    for (int i = 0; i < _estimationRows; ++i)
-      for (int j = 0; j < _estimationCols; ++j)
-        _jvEstimation(i, j).erase(idx);
+    for (int i = 0; i < _estimationRows * _estimationCols; ++i)
+      _jvEstimation(i).erase(idx);
 
-    for (int i = 0; i < _observationRows; ++i)
-      for (int j = 0; j < _observationCols; ++j)
-        _jvObservation(i, j).erase(idx);
+    for (int i = 0; i < _observationRows * _observationCols; ++i)
+      _jvObservation(i).erase(idx);
 
     auto vertex = (*this)[idx];
     auto find = _vertexCounter.find(vertex);
@@ -126,16 +123,13 @@ template <typename T> class VertexVector : public std::vector<BaseVertex<T> *> {
     _observationRows = rows;
     _observationCols = cols;
     _jvObservation.resize(rows, cols);
-    for (int i = 0; i < rows; ++i) {
-      for (int j = 0; j < cols; ++j) {
-        _jvObservation(i, j).set_Grad_Shape(0);
-      }
+    for (int i = 0; i < rows * cols; ++i) {
+      _jvObservation(i).set_Grad_Shape(0);
     }
   }
 
   void setGradShapeAndOffset(unsigned int N, unsigned int offset) {
-    if (fixed)
-      offset = -_estimationRows * _estimationCols - 1;
+    if (fixed) offset = -_estimationRows * _estimationCols - 1;
     for (int i = 0; i < _estimationRows; ++i) {
       for (int j = 0; j < _estimationCols; ++j) {
         _jvEstimation(i, j).set_Grad_Shape(fixed ? 0 : N);
@@ -155,17 +149,13 @@ template <typename T> class VertexVector : public std::vector<BaseVertex<T> *> {
       find->second++;
 
     const auto &estimation = vertex->getEstimation();
-    for (int i = 0; i < _estimationRows; ++i) {
-      for (int j = 0; j < _estimationCols; ++j) {
-        _jvEstimation(i, j).appendJet(estimation(i, j));
-      }
+    for (int i = 0; i < _estimationRows * _estimationCols; ++i) {
+      _jvEstimation(i).appendJet(estimation(i));
     }
 
     const auto &observation = vertex->getObservation();
-    for (int i = 0; i < _observationRows; ++i) {
-      for (int j = 0; j < _observationCols; ++j) {
-        _jvObservation(i, j).appendJet(observation(i, j));
-      }
+    for (int i = 0; i < _observationRows * _observationCols; ++i) {
+      _jvObservation(i).appendJet(observation(i));
     }
   }
 
