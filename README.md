@@ -12,6 +12,9 @@ Experiments show that MegBA can out-perform state-of-the-art BA libraries (i.e.,
 ## Version
 
 * 2021/12/06 Beta version released! It corresponds to this [paper](https://arxiv.org/abs/2112.01349)
+* 2022/02/18 Stable version released! We have reconstructed MegBA and fixed some existing bugs, e.g., incorrect rollback in the LM reject step, which will make MegBA have a better convergence performance.
+
+## Todo
 
 - [x] General version code release (~~Expected Dec 31 2021~~)
 - [ ] analytical differential module (TBD)
