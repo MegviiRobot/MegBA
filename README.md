@@ -10,10 +10,16 @@ Experiments show that MegBA can out-perform state-of-the-art BA libraries (i.e.,
 
 
 ## Version
+
 * 2021/12/06 Beta version released! It corresponds to this [paper](https://arxiv.org/abs/2112.01349)
-* General version code release (Expected Dec 31 2021)
-* memory-efficient version with implicit Hessian (TBD)
-* analytical differential module, IMU factor, prior factor (TBD)
+* 2022/02/18 Stable version released! We have reconstructed MegBA and fixed some existing bugs, e.g., incorrect rollback in the LM reject step, which will make MegBA have a better convergence performance.
+
+## Todo
+
+- [x] General version code release (~~Expected Dec 31 2021~~)
+- [ ] analytical differential module (TBD)
+- [ ] memory-efficient version with implicit Hessian (TBD)
+- [ ] IMU factor, prior factor (TBD)
 
 Paper: https://arxiv.org/abs/2112.01349 (updated version)
 
@@ -21,18 +27,23 @@ Paper: https://arxiv.org/abs/2112.01349 (updated version)
 ## Quickstart
 
 Dependencies:
+
 - C++14
 - CMake (>= 3.15)
 - CUDA Toolkit (with thrust) https://developer.nvidia.com/cuda-downloads
-- [Eigen](https://eigen.tuxfamily.org/index.php?title=Main_Page) (MegBA Beta depends on a modified version of Eigen under third_party/. Eigen-free version will be provided in the general release.)
+- [Eigen](https://eigen.tuxfamily.org/index.php?title=Main_Page)
+- [ArgParse](https://github.com/JieRen98/argparse)
 - NCCL (if you need Distributed features) https://developer.nvidia.com/nccl/nccl-download
 
 You can also easily install all dependencies with script: [script](https://drive.google.com/file/d/154whcVH2VcJCYnTSlnfo_tbIIaQvSax3/view?usp=sharing)
 
 
 Demo with BAL dataset:
+
 * Download any pre.txt.bz2 file from BAL Dataset: https://grail.cs.washington.edu/projects/bal/ and uncompressed.
+
 * Compile
+
   ```bash
   mkdir build
   cd build
@@ -41,13 +52,15 @@ Demo with BAL dataset:
   ```
 
 * Run the demo (Venice-1778)
+
   ```bash
   cd examples
-  ./BAL_Double --name=Venice --worldSize=2 --iter=100 --solver_tol=1e-1 --solver_refuse_ratio=1 --solver_max_iter=100 --tau=1e4 --epsilon1=1 --epsilon2=1e-10
+  ./BAL_Double --path=/path/to/your/dataset --world_size=2 --max_iter=100 --solver_tol=1e-1 --solver_refuse_ratio=1 --solver_max_iter=100 --tau=1e4 --epsilon1=1 --epsilon2=1e-10
   ```
-  - worldSize: number of GPUs available
-  - iter: the maximal number of LM iteration
-  - epsilon: threshold in LM
+
+  - world_size: number of GPUs available
+  - max_iter: the maximal number of LM iteration
+  - epsilon1 & epsilon2: threshold in LM
   - solver_tol: tolerance of solver (distributed PCG solver)
   - solver_refuse_ratio: early stop for the solver
   - solver_max_iter: the maximal iteration of solver
@@ -55,26 +68,31 @@ Demo with BAL dataset:
 
 
 ## Notes for the practitioners
+
 * Currently, MegBA implements automatic differentiation only for generalizability. Please consider implementing your own analytical differentiation module.
 * If you use devices without modern inter-device communication (i.e., NVLinks..), you might find the data transfer is the bottleneck.
 * Empirically, we found it is necessary to customize the LM trust-region strategies and tune its hyper-parameters to further boost the performance. 
 
 
 ## Documentation
+
 Under doc/  (Coming soon...)
 
 
 ## Collaborate with Us
+
 Please check here for [MegBA's future plan](https://docs.google.com/document/d/1fHYuw_qRFHrBcGSeQ8Ld4y2wK9oxF0am3xA9r6veUwM/edit?usp=sharing).
 
 If you are interested in MegBA and want to collaborate, you can:
-* Apply for an Internship at Megvii Research 3D, please send your resume to ur@megvii.com, with your expected starting date. (subject: 3D组CUDA实习生-Name) Unfortunately, now we are only able to host interns with work authorization in China. 
+
+* Sorry, we can no longer host Interns.
 * As an external collaborator (coding), just fork this repo and send PRs. We will review your PR carefully (and merge it into MegBA).
 * As an algorithm/novelty contributor, please send an email to MegBA@googlegroups.com.
 * Any new feature request, you can send an email to MegBA@googlegroups.com as well. *Note that it is not guaranteed the requested feature will be added or added soon*
 
 
 Contact Information:
+
 * Jie Ren jieren9806@gmail.com
 * Wenteng Liang wenteng_liang@163.com
 * Ran Yan yanran@megvii.com
@@ -82,7 +100,9 @@ Contact Information:
 * Xiao Liu liuxiao@foxmail.com
 
 ## BibTeX Citation
+
 If you find MegBA useful for your project, please consider citing:
+
 ```
 @misc{2021megba,
   title={MegBA: A High-Performance and Distributed Library for Large-Scale Bundle Adjustment}, 
@@ -97,5 +117,5 @@ If you find MegBA useful for your project, please consider citing:
 
 
 ## License
-MegBA is licensed under the Apache License, Version 2.0.
 
+MegBA is licensed under the Apache License, Version 2.0.
