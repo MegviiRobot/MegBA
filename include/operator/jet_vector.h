@@ -7,6 +7,7 @@
 
 #pragma once
 #include <utility>
+#include <iostream>
 #include <cassert>
 #include <functional>
 #include <vector>
@@ -24,9 +25,9 @@ template <typename T> class JetVector {
   void CUDA2CUDA(const JetVector<T> &f);
   void CUDA2CPU(const JetVector<T> &f);
 
-  unsigned int _N = 0;
-  unsigned int _nItem = 0;
-  Device _device = Device::CPU;
+  unsigned int _N{0};
+  unsigned int _nItem{0};
+  Device _device{Device::CPU};
   std::vector<std::vector<T>> _gradHostVec{};
   std::vector<T *> _gradDevicePtr{};
   std::vector<T> _valueHostVec{};
@@ -41,28 +42,26 @@ template <typename T> class JetVector {
   explicit JetVector(T scalar) : _pureScalarFlag(true), _pureScalar(scalar) {}
 
   JetVector(const JetVector<T> &f)
-      : _N(f._N), _nItem(f._nItem), _device(f._device),
-        _valueHostVec(f._valueHostVec),
-        _gradHostVec(f._gradHostVec) {
+      : _N{f._N}, _nItem{f._nItem}, _device{f._device},
+        _valueHostVec{f._valueHostVec},
+        _gradHostVec{f._gradHostVec} {
     switch (_device) {
-    case Device::CPU: {
-      break;
-    }
-    case Device::CUDA: {
-      CUDA2CUDA(f);
-      break;
-    }
+      case Device::CPU:
+        break;
+      case Device::CUDA:
+        CUDA2CUDA(f);
+        break;
     }
   }
 
   JetVector(JetVector<T> &&f) noexcept
-      : _N(std::move(f._N)), _nItem(std::move(f._nItem)),
-        _device(std::move(f._device)), _gradHostVec(std::move(f._gradHostVec)),
-        _gradDevicePtr(std::move(f._gradDevicePtr)),
-        _valueHostVec(std::move(f._valueHostVec)),
-        _valueDevicePtr(std::move(f._valueDevicePtr)), _gradPosition(std::move(f._gradPosition)),
-        _pureScalarFlag(std::move(f._pureScalarFlag)),
-        _pureScalar(std::move((f._pureScalar))) {
+      : _N{f._N}, _nItem{f._nItem},
+        _device{f._device}, _gradHostVec{std::move(f._gradHostVec)},
+        _gradDevicePtr{std::move(f._gradDevicePtr)},
+        _valueHostVec{std::move(f._valueHostVec)},
+        _valueDevicePtr{std::move(f._valueDevicePtr)}, _gradPosition{f._gradPosition},
+        _pureScalarFlag{f._pureScalarFlag},
+        _pureScalar{f._pureScalar} {
     f._N = 0;
     f._nItem = 0;
     f._gradPosition = -1;
@@ -79,6 +78,7 @@ template <typename T> class JetVector {
   void appendJet(T a, int n);
   void appendJet(T a);
   void clear();
+  void clearCUDA();
 
   static const JetVector<T> &getInitTemplate(const JetVector<T> &f,
                                              const JetVector<T> &g) {
@@ -108,15 +108,8 @@ template <typename T> class JetVector {
   const std::vector<T> &getCPURes() const { return _valueHostVec; }
   std::vector<T> &getCPURes() { return _valueHostVec; }
 
-  // TODO(Jie Ren): change to vector
   const std::vector<T *> &getCUDAGradPtr() const { return _gradDevicePtr; }
   const std::vector<T *> &getCUDAResPtr() const { return _valueDevicePtr; }
-
-  // TODO(Jie Ren): input a array vector
-  void bindValueDevicePtr(T *valueDevicePtr) {
-    _valueDevicePtr.resize(MemoryPool::getWorldSize());
-    _valueDevicePtr[0] = valueDevicePtr;
-  }
 
   void bindValueDevicePtr(std::vector<T *> &&valueDevicePtr) {
     _valueDevicePtr = std::move(valueDevicePtr); }
@@ -164,33 +157,9 @@ template <typename T> class JetVector {
   JetVector<T> scalarSubThis(T g) const;
   JetVector<T> scalarDivThis(T g) const;
 };
-
-template <typename T>
-std::ostream &ostreamCUDA(std::ostream &s, const JetVector<T> &z);
-
-template <typename T>
-inline std::ostream &operator<<(std::ostream &s, const JetVector<T> &z) {
-  switch (z.getDevice()) {
-  case Device::CPU: {
-    s << "[Res: "
-      << "[ ";
-    for (auto &data : z.getCPURes())
-      s << data << ", ";
-    s << "]," << std::endl;
-    for (unsigned int i = 0; i < z.getGradShape(); ++i) {
-      s << "Grad[" << i << "]: "
-        << "[ ";
-      for (auto &data : z.getCPUGrad()[i])
-        s << data << ", ";
-      s << "]," << std::endl;
-    }
-    s << "_device: " << std::to_string(z.getDevice()) << "]";
-    break;
-  }
-  case Device::CUDA: {
-    return ostreamCUDA(s, z);
-  }
-  }
-  return s;
-}
 }  // namespace MegBA
+
+template <typename T>
+std::ostream &operator<<(std::ostream &s, const MegBA::JetVector<T> &z);
+
+#include "eigen_injector.h"

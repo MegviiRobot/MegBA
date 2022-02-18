@@ -8,13 +8,12 @@
 #include "operator/jet_vector.h"
 #include <memory>
 #include "resource/memory_pool.h"
-#include "common.h"
 
 namespace MegBA {
 template <typename T> void JetVector<T>::initAsCUDA(const JetVector<T> &f) {
   const auto worldSize = MemoryPool::getWorldSize();
   std::vector<void *> valueDevicePtr, gradDeviceptr;
-  MemoryPool::allocateJetVector(&valueDevicePtr, &gradDeviceptr, _N, _nItem, sizeof(T));
+  MemoryPool::allocateJetVector(valueDevicePtr, gradDeviceptr, _N, _nItem, sizeof(T));
   _gradDevicePtr.clear();
   _valueDevicePtr.clear();
   _gradDevicePtr.resize(worldSize);
@@ -72,22 +71,10 @@ template <typename T> void JetVector<T>::CUDA2CPU(const JetVector<T> &f) {
 template <typename T> void JetVector<T>::CPU2CUDA(const JetVector<T> &f) {
   const auto worldSize = MemoryPool::getWorldSize();
   // if _valueDevicePtr != nullptr if binded
-  if (_valueDevicePtr.empty()) {
-    if (_pureScalarFlag) {
-      _valueDevicePtr.resize(worldSize);
-      std::size_t startIdx{0};
-      for (int i = 0; i < worldSize; ++i) {
-        cudaSetDevice(i);
-        cudaMalloc(&_valueDevicePtr[i], _nItem * sizeof(T));
-        std::size_t nItem{getItemNum(i)};
-        cudaMemcpyAsync(_valueDevicePtr[i], &f._valueHostVec[startIdx], nItem * sizeof(T),
-                        cudaMemcpyHostToDevice);
-        startIdx += nItem;
-      }
-      return;
-    }
+  if (_gradPosition == -1 && _N != 0) {
+    // gradPosition == -1 and N != 0, it would be a normal JV
     std::vector<void *> valueDevicePtr{}, gradDevicePtr{};
-    MemoryPool::allocateJetVector(&valueDevicePtr, &gradDevicePtr, _N, _nItem, sizeof(T));
+    MemoryPool::allocateJetVector(valueDevicePtr, gradDevicePtr, _N, _nItem, sizeof(T));
     // _gradDevicePtr must be nullptr
     _gradDevicePtr.clear();
     _gradDevicePtr.reserve(worldSize);
@@ -103,22 +90,31 @@ template <typename T> void JetVector<T>::CPU2CUDA(const JetVector<T> &f) {
     for (int i = 0; i < worldSize; ++i) {
       cudaSetDevice(i);
       std::size_t nItem{getItemNum(i)};
-      cudaMemcpyAsync(_valueDevicePtr[i], &f._valueHostVec[startIdx], nItem * sizeof(T),
-                      cudaMemcpyHostToDevice);
       for (unsigned int j = 0; j < _N; ++j)
         cudaMemcpyAsync(&_gradDevicePtr[i][j * nItem], &f._gradHostVec[j][startIdx],
                         nItem * sizeof(T), cudaMemcpyHostToDevice);
       startIdx += nItem;
     }
-  } else {
-    std::size_t startIdx{0};
-    for (int i = 0; i < worldSize; ++i) {
-      cudaSetDevice(i);
-      std::size_t nItem{getItemNum(i)};
-      cudaMemcpyAsync(_valueDevicePtr[i], &f._valueHostVec[startIdx], nItem * sizeof(T),
-                      cudaMemcpyHostToDevice);
-      startIdx += nItem;
+  } else if (_N == 0) {
+    if (_pureScalarFlag) {
+      return;
+    } else {
+      // grad == 0 and non-pureScalar, it would be PVector
+      _valueDevicePtr.resize(worldSize);
+      for (int i = 0; i < worldSize; ++i) {
+        cudaSetDevice(i);
+        cudaMalloc(&_valueDevicePtr[i], getItemNum(i) * sizeof(T));
+      }
     }
+  }
+
+  std::size_t startIdx{0};
+  for (int i = 0; i < worldSize; ++i) {
+    cudaSetDevice(i);
+    std::size_t nItem{getItemNum(i)};
+    cudaMemcpyAsync(_valueDevicePtr[i], &f._valueHostVec[startIdx], nItem * sizeof(T),
+                    cudaMemcpyHostToDevice);
+    startIdx += nItem;
   }
 }
 
@@ -126,7 +122,7 @@ template <typename T> void JetVector<T>::CUDA2CUDA(const JetVector<T> &f) {
   const auto worldSize = MemoryPool::getWorldSize();
   if (_valueDevicePtr.empty()) {
     std::vector<void *> valueDevicePtr{}, gradDevicePtr{};
-    MemoryPool::allocateJetVector(&valueDevicePtr, &gradDevicePtr, _N, _nItem, sizeof(T));
+    MemoryPool::allocateJetVector(valueDevicePtr, gradDevicePtr, _N, _nItem, sizeof(T));
     _gradDevicePtr.clear();
     _valueDevicePtr.clear();
     _gradDevicePtr.reserve(worldSize);
@@ -144,6 +140,27 @@ template <typename T> void JetVector<T>::CUDA2CUDA(const JetVector<T> &f) {
     cudaMemcpyAsync(_gradDevicePtr[i], f._gradDevicePtr[i], _N * nItem * sizeof(T),
                     cudaMemcpyDeviceToDevice);
   }
+}
+
+template <typename T>
+void JetVector<T>::clearCUDA() {
+  cudaStreamSynchronize(nullptr);
+  if (_gradPosition == -1 && _N != 0) {
+    std::vector<void *> ptrs{_gradDevicePtr.begin(), _gradDevicePtr.end()};
+    MemoryPool::deallocateJetVector(ptrs);
+  } else if (_gradPosition == -1 && _N == 0) {
+    if (!_pureScalarFlag) {
+      const auto &world = MemoryPool::getWorld();
+      for (int i = 0; i < world.size(); ++i) {
+        cudaSetDevice(world[i]);
+        cudaFree(_valueDevicePtr[i]);
+      }
+    }
+  } else {
+    ;
+  }
+  _valueDevicePtr.clear();
+  _gradDevicePtr.clear();
 }
 
 template <typename T>

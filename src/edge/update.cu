@@ -6,6 +6,7 @@
 **/
 
 #include "edge/base_edge.h"
+#include "linear_system/base_linear_system.h"
 
 namespace MegBA {
 namespace {
@@ -41,16 +42,10 @@ updateDeltaXTwoVertices(const T *deltaX, const int *absolutePositionCamera,
 }  // namespace
 
     template <typename T>
-void EdgeVector<T>::updateSchur(const std::vector<T *> &deltaXPtr) {
-  for (int i = 0; i < MemoryPool::getWorldSize(); ++i) {
-    cudaSetDevice(i);
-    cudaStreamSynchronize(schurStreamLmMemcpy[i]);
-  }
-
-  const auto cameraDim = edges[0][0]->getGradShape();
-  const auto cameraNum =
-      verticesSetPtr->find(edges[0][0]->kind())->second.size();
-  const auto pointDim = edges[1][0]->getGradShape();
+void EdgeVector<T>::update(const BaseLinearSystem<T> &linearSystem) const {
+  const auto cameraDim = linearSystem.dim[0];
+  const auto cameraNum = linearSystem.num[0];
+  const auto pointDim = linearSystem.dim[1];
 
   // TODO(Jie Ren): merge into method 'solve_Linear'
   for (int i = 0; i < MemoryPool::getWorldSize(); ++i) {
@@ -59,10 +54,11 @@ void EdgeVector<T>::updateSchur(const std::vector<T *> &deltaXPtr) {
     dim3 block(std::min((decltype(nItem))256, nItem));
     dim3 grid((nItem - 1) / block.x + 1);
     updateDeltaXTwoVertices<T><<<grid, block>>>(
-        deltaXPtr[i],
-        schurPositionAndRelationContainer[i].absolutePositionCamera,
-        schurPositionAndRelationContainer[i].absolutePositionPoint, cameraDim,
-        pointDim, cameraNum, nItem, schurValueDevicePtrs[0][i], schurValueDevicePtrs[1][i]);
+        linearSystem.deltaXPtr[i],
+        positionContainers[i].absolutePosition[0],
+        positionContainers[i].absolutePosition[1],
+        cameraDim, pointDim, cameraNum, nItem,
+        schurValueDevicePtrs[0][i], schurValueDevicePtrs[1][i]);
   }
 }
 
@@ -77,7 +73,7 @@ template <typename T> void EdgeVector<T>::bindCUDAGradPtrs() {
     const auto worldSize = MemoryPool::getWorldSize();
     for (int i = 0; i < vertexVector[0]->getEstimation().size(); ++i) {
       // bind _valueDevicePtr for CUDA
-      if (_option.useSchur) {
+      if (option.useSchur) {
         std::vector<T *> valueDevicePtrs;
         valueDevicePtrs.resize(worldSize);
         for (int k = 0; k < worldSize; ++k) {

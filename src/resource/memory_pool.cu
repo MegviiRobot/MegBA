@@ -7,6 +7,7 @@
 
 #include "resource/memory_pool.h"
 #include <unordered_map>
+#include <set>
 #include <stack>
 #include "resource/handle_manager.h"
 
@@ -33,16 +34,13 @@ std::vector<std::size_t> memOverflowedCounter{};
 
 std::vector<std::size_t> memOverflowedPeak{};
 
+std::set<std::vector<void *>> managedRecorder{};
 }  // namespace
 
-void MemoryPool::resetPool(int N, std::size_t nItem, std::int8_t sizeofType,
-                           int worldSize) {
+void MemoryPool::resetPool(const ProblemOption *problemOption, std::int8_t sizeofType) {
   // TODO(Jie Ren): maybe destroy only once
-  std::unique_lock<std::mutex> lock{_mutex};
-  _N = N;
-  _nItem = nItem;
+  _problemOption = problemOption;
   _sizeofType = sizeofType;
-  _worldSize = worldSize;
   HandleManager::destroyNCCLComm();
   HandleManager::createNCCLComm();
   HandleManager::destroyCUBLASHandle();
@@ -51,66 +49,66 @@ void MemoryPool::resetPool(int N, std::size_t nItem, std::int8_t sizeofType,
   HandleManager::createCUSPARSEHandle();
 }
 
-void MemoryPool::allocateJetVector(std::vector<void *> *valueDevicePtr,
-                                   std::vector<void *> *gradDevicePtr, std::size_t N,
+void MemoryPool::allocateJetVector(std::vector<void *> &valueDevicePtr,
+                                   std::vector<void *> &gradDevicePtr, std::size_t N,
                                    std::size_t nItem, std::int8_t sizeofType) {
-  std::unique_lock<std::mutex> lock{_mutex};
-  valueDevicePtr->clear();
-  valueDevicePtr->resize(_worldSize);
-  gradDevicePtr->clear();
-  gradDevicePtr->resize(_worldSize);
-  assert((N == _N || N == 0) && nItem == _nItem && sizeofType == _sizeofType);
+  const auto worldSize = getWorldSize();
+  valueDevicePtr.clear();
+  valueDevicePtr.resize(worldSize);
+  gradDevicePtr.clear();
+  gradDevicePtr.resize(worldSize);
+//  assert((N == _N || N == 0) && nItem == _nItem && sizeofType == _sizeofType);
   for (auto offset : memOffsetCounter)
     if (offset != 0)
       throw std::runtime_error("memory leak");
   if (_ptr.empty()) {
-    for (int i = 0; i < _worldSize; ++i) {
+    for (int i = 0; i < worldSize; ++i) {
       const auto nItem = getItemNum(i);
-      cudaSetDevice(i);
+      cudaSetDevice(_problemOption->deviceUsed[i]);
       Ptr ptr{nullptr};
-      cudaMalloc(&ptr.address, (_N + 1) * nItem * _sizeofType);
-      gradDevicePtr->operator[](i) = ptr.address;
-      ptr.number += _N * nItem * _sizeofType;
-      valueDevicePtr->operator[](i) = ptr.address;
+      cudaMalloc(&ptr.address, (_problemOption->N + 1) * nItem * _sizeofType);
+      gradDevicePtr[i] = ptr.address;
+      ptr.number += _problemOption->N * nItem * _sizeofType;
+      valueDevicePtr[i] = ptr.address;
     }
+    managedRecorder.insert(gradDevicePtr);
   } else {
     std::vector<void *> back = std::move(_ptr.back());
     _ptr.pop_back();
-    for (int i = 0; i < _worldSize; ++i) {
+    for (int i = 0; i < worldSize; ++i) {
       const auto nItem = getItemNum(i);
-      cudaSetDevice(i);
+      cudaSetDevice(_problemOption->deviceUsed[i]);
       Ptr ptr{back[i]};
-      gradDevicePtr->operator[](i) = ptr.address;
-      ptr.number += _N * nItem * _sizeofType;
-      valueDevicePtr->operator[](i) = ptr.address;
+      gradDevicePtr[i] = ptr.address;
+      ptr.number += _problemOption->N * nItem * _sizeofType;
+      valueDevicePtr[i] = ptr.address;
     }
   }
   _ptrInUseCounter++;
 }
 
-void MemoryPool::deallocateJetVector(std::vector<void *> *ptr) {
-  std::unique_lock<std::mutex> lock{_mutex};
-  _ptr.push_back(std::move(*ptr));
+void MemoryPool::deallocateJetVector(std::vector<void *> &ptr) {
+  _ptr.push_back(std::move(ptr));
   _ptrInUseCounter--;
 }
 
 void MemoryPool::allocateNormal(void **ptr, std::size_t size, int rank) {
+  const auto worldSize = getWorldSize();
   size += size % 8;
-  std::unique_lock<std::mutex> lock{_mutex};
   Ptr ptrHelper{nullptr};
 
   if (memOffsetCounter.empty()) {
-    memOffsetCounter.resize(_worldSize);
-    ptrRecorder.resize(_worldSize);
+    memOffsetCounter.resize(worldSize);
+    ptrRecorder.resize(worldSize);
     std::fill(memOffsetCounter.begin(), memOffsetCounter.end(), 0);
   }
 
   bool use_overflowed_stack{_poolSize[rank] < (memOffsetCounter[rank] + size)};
   if (use_overflowed_stack) {
     if (overflowedPtrRecorder.empty()) {
-      overflowedPtrRecorder.resize(_worldSize);
-      memOverflowedCounter.resize(_worldSize);
-      memOverflowedPeak.resize(_worldSize);
+      overflowedPtrRecorder.resize(worldSize);
+      memOverflowedCounter.resize(worldSize);
+      memOverflowedPeak.resize(worldSize);
       std::fill(memOverflowedCounter.begin(), memOverflowedCounter.end(), 0);
       std::fill(memOverflowedPeak.begin(), memOverflowedPeak.end(), 0);
     }
@@ -134,7 +132,6 @@ void MemoryPool::allocateNormal(void **ptr, std::size_t size, int rank) {
 }
 
 void MemoryPool::deallocateNormal(void *ptr, int rank) {
-  std::unique_lock<std::mutex> lock{_mutex};
   std::pair<void *, std::size_t> back;
   if (ptrRecorder[rank].top().first == ptr) {
     back = std::move(ptrRecorder[rank].top());
@@ -155,22 +152,26 @@ void MemoryPool::deallocateNormal(void *ptr, int rank) {
 }
 
 void MemoryPool::redistribute() {
+  const auto worldSize = getWorldSize();
   if (_poolSize.empty()) {
-    _poolSize.resize(_worldSize);
-    _headPtr.resize(_worldSize);
-    for (int i = 0; i < _worldSize; ++i) {
-      cudaSetDevice(i);
+    _poolSize.resize(worldSize);
+    _headPtr.resize(worldSize);
+    for (auto &item : _ptr) {
+      managedRecorder.erase(item);
+    }
+    for (int i = 0; i < worldSize; ++i) {
+      cudaSetDevice(_problemOption->deviceUsed[i]);
       const auto nItem = getItemNum(i);
       for (const auto &v : _ptr) {
         cudaFree(v[i]);
       }
-      _poolSize[i] = (_N + 1) * nItem * _sizeofType * _ptr.size();
+      _poolSize[i] = (_problemOption->N + 1) * nItem * _sizeofType * _ptr.size();
       cudaMalloc(&_headPtr[i], _poolSize[i]);
-      int64_t offset{0};
+      uint64_t offset{0};
       for (auto &item : _ptr) {
         Ptr ptr{_headPtr[i]};
         ptr.number += offset;
-        offset += (_N + 1) * nItem * _sizeofType;
+        offset += (_problemOption->N + 1) * nItem * _sizeofType;
         item[i] = ptr.address;
       }
     }
@@ -179,17 +180,20 @@ void MemoryPool::redistribute() {
     for (auto peak : memOverflowedPeak)
       overflowed |= peak != 0;
     if (overflowed) {
-      for (int i = 0; i < _worldSize; ++i) {
-        cudaSetDevice(i);
+      for (auto &item : _ptr) {
+        managedRecorder.erase(item);
+      }
+      for (int i = 0; i < worldSize; ++i) {
+        cudaSetDevice(_problemOption->deviceUsed[i]);
         const auto nItem = getItemNum(i);
         cudaFree(_headPtr[i]);
         _poolSize[i] += memOverflowedPeak[i];
         cudaMalloc(&_headPtr[i], _poolSize[i]);
-        int64_t offset{0};
+        uint64_t offset{0};
         for (auto &item : _ptr) {
           Ptr ptr{_headPtr[i]};
           ptr.number += offset;
-          offset += (_N + 1) * nItem * _sizeofType;
+          offset += (_problemOption->N + 1) * nItem * _sizeofType;
           item[i] = ptr.address;
         }
       }
@@ -197,13 +201,27 @@ void MemoryPool::redistribute() {
   }
 }
 
+void MemoryPool::destruct() {
+  const auto worldSize = getWorldSize();
+  for (int i = 0; i < worldSize; ++i) {
+    cudaSetDevice(_problemOption->deviceUsed[i]);
+    cudaFree(_headPtr[i]);
+  }
+  for (const auto &ptr : managedRecorder) {
+    for (int i = 0; i < worldSize; ++i) {
+      cudaSetDevice(i);
+      cudaFree(ptr[i]);
+    }
+  }
+  _headPtr.clear();
+  _ptr.clear();
+  managedRecorder.clear();
+}
+
 std::vector<std::vector<void *>> MemoryPool::_ptr{};
-std::mutex MemoryPool::_mutex{};
+const ProblemOption *MemoryPool::_problemOption{nullptr};
 std::vector<std::size_t> MemoryPool::_poolSize{};
 std::vector<void *> MemoryPool::_headPtr{};
-int MemoryPool::_N{0};
-std::size_t MemoryPool::_nItem{0};
 std::uint8_t MemoryPool::_sizeofType{0};
-int MemoryPool::_worldSize{1};
 std::size_t MemoryPool::_ptrInUseCounter{0};
 }  // namespace MegBA

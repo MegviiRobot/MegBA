@@ -18,24 +18,20 @@
 #include "problem/hessian_entrance.h"
 
 namespace MegBA {
-
 enum EdgeKind { ONE, ONE_CAMERA_ONE_POINT, TWO_CAMERA, MULTI };
 
-template <typename T> class EdgeVector;
-
-template <typename T> class BaseEdge : public std::vector<BaseVertex<T> *> {
-  typedef std::vector<BaseVertex<T> *> parent;
-
+template <typename T> class BaseEdge {
   typedef Eigen::Matrix<T, Eigen::Dynamic, Eigen::Dynamic> PlainMatrix;
 
-  friend EdgeVector<T>;
-
-  BaseEdgeWrapper<T> _edge;
+  std::vector<BaseVertex<T> *> m_data;
+  EdgeWrapper<T> _edgeWrapper;
   PlainMatrix _measurement;
   PlainMatrix _information;
 
  public:
-  virtual ~BaseEdge() = default;
+  std::size_t size() { return m_data.size(); }
+  BaseVertex<T> * &operator[](std::size_t n) { return m_data[n]; }
+  BaseVertex<T> * const &operator[](std::size_t n) const { return m_data[n]; }
 
   void appendVertex(BaseVertex<T> *vertex);
 
@@ -48,33 +44,35 @@ template <typename T> class BaseEdge : public std::vector<BaseVertex<T> *> {
     _measurement = std::forward<PlainMatrix>(measurement);
   }
 
-  JVD<T> const &getMeasurement() const { return _edge.getMeasurement(); }
-
   template <typename PlainMatrix>
   void setInformation(PlainMatrix &&information) {
     _information = std::forward<PlainMatrix>(information);
   }
 
+  const PlainMatrix &_getMeasurement() const { return _measurement; }
+
+  const PlainMatrix &_getInformation() const { return _information; }
+
+  void bindEdgeVector(const EdgeVector<T> *ev) { _edgeWrapper.bindEdgeVector(ev); }
+
  protected:
-  const BaseEdgeWrapper<T> &getVertices() { return _edge; }
+  const EdgeWrapper<T> &getVertices() { return _edgeWrapper; }
+
+  JVD<T> const &getMeasurement() const { return _edgeWrapper.getMeasurement(); }
 };
 
 template <typename T> class EdgeVector {
-  friend BaseProblem<T>;
-
-  const ProblemOption &_option;
-  const std::vector<SchurHessianEntrance<T>> &schurHessianEntrance;
-  // total number for each vertex kind
-  std::unique_ptr<int[]> num{nullptr};
-  std::vector<std::vector<int>> absolutePosition;
+  const ProblemOption &option;
   // kind -> worldSize
-  std::vector<std::vector<std::vector<int>>> schurRelativePosition;
-  std::vector<std::vector<std::vector<int>>> schurAbsolutePosition;
+  struct PositionContainer {
+    std::vector<int *> relativePosition{};
+    std::vector<int *> absolutePosition{};
+  };
+
+  std::vector<PositionContainer> positionContainers;
   std::vector<BaseEdge<T> *> edgesPtr;
   std::size_t nameHash{};
   std::vector<VertexVector<T>> edges;
-  std::unique_ptr<int[]> csrRowPtr{nullptr};
-  std::vector<std::array<std::unique_ptr<int[]>, 2>> schurCsrRowPtr;
   // kind -> worldSize -> ptr
   std::vector<std::vector<T *>> schurValueDevicePtrs;
   std::vector<std::vector<T *>> schurValueDevicePtrsOld;
@@ -82,62 +80,22 @@ template <typename T> class EdgeVector {
   unsigned int pointVertexNum{0};
   JVD<T> jetMeasurement;
   JVD<T> jetInformation;
-  std::vector<cudaStream_t> schurStreamLmMemcpy{};
   EdgeKind edgeKind{};
-  std::unordered_map<VertexKind, std::set<BaseVertex<T> *>> const
-      *verticesSetPtr;
 
   void decideEdgeKind();
 
  public:
   EdgeVector() = delete;
 
-  EdgeVector(const ProblemOption &option,
-             const std::vector<SchurHessianEntrance<T>> &schurHessianEntrance);
+  explicit EdgeVector(const ProblemOption &option);
 
-  struct SchurEquationContainer {
-    explicit SchurEquationContainer(const Device &device) : _device(device) {}
+  void backup() const;
 
-    SchurEquationContainer(const SchurEquationContainer &container)
-        : _device(container._device) {}
+  void rollback() const;
 
-    ~SchurEquationContainer() { clear(); }
+  std::vector<VertexVector<T>> &getVertexVectors() { return edges; }
 
-    void clear();
-
-    void clearCUDA();
-    const Device &_device;
-    std::array<int *, 2> csrRowPtr{nullptr, nullptr};
-    std::array<T *, 4> csrVal{nullptr, nullptr, nullptr, nullptr};
-    std::array<int *, 2> csrColInd{nullptr, nullptr};
-    T *g{nullptr};
-    std::array<std::size_t, 4> nnz{0, 0, 0, 0};
-    std::array<int, 2> dim{0, 0};
-  };
-
-  struct PositionAndRelationContainer {
-    explicit PositionAndRelationContainer(const Device &device)
-        : _device(device) {}
-
-    ~PositionAndRelationContainer() { clear(); }
-
-    void clear();
-
-    void clearCUDA();
-
-    const Device &_device;
-    int *relativePositionCamera{nullptr}, *relativePositionPoint{nullptr};
-    int *absolutePositionCamera{nullptr}, *absolutePositionPoint{nullptr};
-    int *connectionNumPoint{nullptr};
-  };
-
-  void backupValueDevicePtrs();
-
-  void rollback();
-
-  std::vector<VertexVector<T>> &getEdges() { return edges; }
-
-  const std::vector<VertexVector<T>> &getEdges() const { return edges; }
+  const std::vector<VertexVector<T>> &getVertexVectors() const { return edges; }
 
   JVD<T> &getEstimation(int i) { return edges[i].getJVEstimation(); }
 
@@ -151,50 +109,44 @@ template <typename T> class EdgeVector {
     return edges[i].getJVObservation();
   }
 
-  JVD<T> &getMeasurement() { return jetMeasurement; }
+  auto &getMeasurement() { return jetMeasurement; }
 
-  const JVD<T> &getMeasurement() const { return jetMeasurement; }
+  const auto &getMeasurement() const { return jetMeasurement; }
 
-  JVD<T> &getInformation() { return jetInformation; }
+  auto &getInformation() { return jetInformation; }
 
-  const JVD<T> &getInformation() const { return jetInformation; }
+  auto &getInformation() const { return jetInformation; }
 
-  bool tryPushBack(BaseEdge<T> *edge);
+  auto &getPositionContainers() { return positionContainers; }
+
+  const auto &getPositionContainers() const { return positionContainers; }
+
+  bool tryPushBack(BaseEdge<T> &edge);
 
   void eraseVertex(const BaseVertex<T> &vertex);
 
   unsigned int getGradShape() const;
 
-  void allocateResourcePre();
-
-  void allocateResourcePost();
-
-  void preparePositionAndRelationDataCUDA();
+  void allocateResource();
 
   void deallocateResource();
 
   void deallocateResourceCUDA();
 
-  void makeVertices();
+  void allocateResourceCUDA();
 
-  void makeSchurVertices();
-
-  void PrepareUpdateDataCUDA();
-
-  JVD<T> forward();
+  JVD<T> forward() const;
 
   void fitDevice();
 
-  void buildLinearSystemSchur(const JVD<T> &jetEstimation);
+  void buildLinearSystem(const JVD<T> &jetEstimation, const BaseLinearSystem<T> &linearSystem) const;
 
-  void buildLinearSystemSchurCUDA(const JVD<T> &jetEstimation);
+  void buildLinearSystemCUDA(const JVD<T> &jetEstimation, const BaseLinearSystem<T> &linearSystem) const;
 
-  void updateSchur(const std::vector<T *> &deltaXPtr);
+  void update(const BaseLinearSystem<T> &linearSystem) const;
 
   void bindCUDAGradPtrs();
 
-  std::vector<SchurEquationContainer> schurEquationContainer;
-
-  std::vector<PositionAndRelationContainer> schurPositionAndRelationContainer;
+  void buildPositionContainer(const std::vector<HessianEntrance<T>> &hessianEntrance);
 };
 }  // namespace MegBA

@@ -9,16 +9,13 @@
 #include <cusparse_v2.h>
 #include <cublas_v2.h>
 #include <nccl.h>
-#include <mutex>
 #include <vector>
-#include <map>
 
 namespace MegBA {
 class HandleManager {
   static std::vector<ncclComm_t> comms;
   static std::vector<cublasHandle_t> cublasHandle;
   static std::vector<cusparseHandle_t> cusparseHandle;
-  static std::mutex mutex;
 
  public:
   static void createNCCLComm();

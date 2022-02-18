@@ -6,6 +6,9 @@ set(CMAKE_CXX_STANDARD 14)
 
 #find_package(OpenMP)
 
+find_package(Eigen3 REQUIRED)
+include_directories(${EIGEN3_INCLUDE_DIR})
+
 # CUDA
 find_package(CUDA QUIET)
 IF(CUDA_FOUND)
@@ -33,20 +36,19 @@ ENDIF()
 if(${CMAKE_BUILD_TYPE} MATCHES "Debug")
     add_definitions(-DDEBUG=1)
     set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -O0 -fPIC")
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O0 -fPIC -fopenmp")
-    set(CUDA_NVCC_FLAGS "${CUDA_NVCC_FLAGS} -O0")
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O0 -fPIC -fopenmp -pthread")
+    set(CUDA_NVCC_FLAGS "${CUDA_NVCC_FLAGS} -O0 --extended-lambda")
 else()
     add_definitions(-DDEBUG=0)
     set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -O3 -fPIC")
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O3 -fPIC -fopenmp")
-    set(CUDA_NVCC_FLAGS "${CUDA_NVCC_FLAGS} -O3")
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O3 -fPIC -fopenmp -pthread")
+    set(CUDA_NVCC_FLAGS "${CUDA_NVCC_FLAGS} -O3 --extended-lambda")
 endif()
 
 # Thrust
 find_package(Thrust REQUIRED CONFIG)
 thrust_create_target(Thrust)
-
-include_directories(include)
 include_directories(thirdparty)
+include_directories(include)
 add_subdirectory(src)
 add_subdirectory(examples)

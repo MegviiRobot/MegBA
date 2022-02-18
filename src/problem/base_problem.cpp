@@ -7,27 +7,19 @@
 
 #include "problem/base_problem.h"
 #include <thread>
-#include <condition_variable>
-#include "solver/solver_dispatcher.h"
+#include <iostream>
+#include "algo/base_algo.h"
+#include "linear_system/base_linear_system.h"
+#include "macro.h"
 
 namespace MegBA {
 namespace {
-template <typename SchurHessianEntrance>
-void internalBuildRandomAccess(int i, SchurHessianEntrance *schurHessianEntrance) {
-  const auto &hEntranceBlockMatrix = schurHessianEntrance->nra[i];
-  const auto dimOther = schurHessianEntrance->dim[1 ^ i];
-  auto &csrRowPtrKind = schurHessianEntrance->csrRowPtr[i];
-  auto &csrColIndKind = schurHessianEntrance->csrColInd[i];
-  csrRowPtrKind.reset(
-      new int[hEntranceBlockMatrix.size() * schurHessianEntrance->dim[i] + 1]);
-  csrColIndKind.reset(
-      new int[schurHessianEntrance->counter * schurHessianEntrance->dim[i]]);
-  csrRowPtrKind[0] = 0;
-  std::size_t rowCounter{0};
-  std::size_t nnzCounter{0};
-  auto &HessianEntranceRaBlockMatrix = schurHessianEntrance->ra[i];
-  HessianEntranceRaBlockMatrix.clear();
+template <typename T>
+void internalBuildRandomAccess(int i, HessianEntrance<T> *hessianEntrance) {
+  const auto &hEntranceBlockMatrix = hessianEntrance->nra[i];
+  auto &HessianEntranceRaBlockMatrix = hessianEntrance->ra[i];
   HessianEntranceRaBlockMatrix.reserve(hEntranceBlockMatrix.size());
+  HessianEntranceRaBlockMatrix.clear();
   // row
   for (const auto &rowIter : hEntranceBlockMatrix) {
     const auto &hEntranceBlockRow = rowIter.second;
@@ -36,52 +28,49 @@ void internalBuildRandomAccess(int i, SchurHessianEntrance *schurHessianEntrance
         HessianEntranceRaBlockRow;
     HessianEntranceRaBlockRow.reserve(rowSize);
     // col
-    for (const auto &col : hEntranceBlockRow) {
+    for (const auto col : hEntranceBlockRow) {
       HessianEntranceRaBlockRow.push_back(col);
-      csrColIndKind[nnzCounter] = col->absolutePosition;
-      nnzCounter++;
     }
-    for (int j = 0; j < schurHessianEntrance->dim[i]; ++j) {
-      csrRowPtrKind[rowCounter + 1] =
-          csrRowPtrKind[rowCounter] + rowSize * dimOther;
-      ++rowCounter;
-      if (j > 0) {
-        memcpy(&csrColIndKind[nnzCounter], &csrColIndKind[nnzCounter - rowSize],
-               rowSize * sizeof(int));
-        nnzCounter += rowSize;
-      }
-    }
-    HessianEntranceRaBlockMatrix.push_back(std::move(HessianEntranceRaBlockRow));
+    HessianEntranceRaBlockMatrix.push_back(
+        std::move(HessianEntranceRaBlockRow));
   }
-  schurHessianEntrance->nnzInE = csrRowPtrKind[rowCounter];
 }
 }  // namespace
 
-template <typename T> void SchurHessianEntrance<T>::buildRandomAccess() {
+template <typename T>
+void HessianEntrance<T>::buildRandomAccess() {
   // camera and point
   std::vector<std::thread> threads;
-  threads.emplace_back(std::thread{internalBuildRandomAccess<SchurHessianEntrance<T>>,
-                                   0, this});
-  threads.emplace_back(std::thread{internalBuildRandomAccess<SchurHessianEntrance<T>>,
-                                   1, this});
-  for (auto &thread : threads)
-    thread.join();
+  threads.emplace_back(std::thread{internalBuildRandomAccess<T>, 0, this});
+  threads.emplace_back(std::thread{internalBuildRandomAccess<T>, 1, this});
+  for (auto &thread : threads) thread.join();
 }
 
 template <typename T>
-BaseProblem<T>::BaseProblem(const ProblemOption& option) : option(option), solver(dispatchSolver(*this)) {
-  if (option.N != -1 && option.nItem != -1)
-    MemoryPool::resetPool(option.N, option.nItem, sizeof(T), option.deviceUsed.size());
-  if (option.useSchur) {
-    schurWS.splitSize = option.nItem / option.deviceUsed.size() + 1;
-    schurWS.workingDevice = 0;
-    schurWS.schurHessianEntrance.resize(option.deviceUsed.size());
-    schurWS.schurHessianEntrance.shrink_to_fit();
+BaseProblem<T>::BaseProblem(
+    const ProblemOption &problemOption,
+    std::unique_ptr<BaseAlgo<T>> algo,
+    std::unique_ptr<BaseLinearSystem<T>> linearSystem)
+    : problemOption(problemOption),
+      algo(std::move(algo)),
+      linearSystem(std::move(linearSystem)) {
+  if (problemOption.N != -1 && problemOption.nItem != -1)
+    MemoryPool::resetPool(&problemOption, sizeof(T));
+  if (problemOption.useSchur) {
+    schurWorkSpace.splitSize =
+        problemOption.nItem / problemOption.deviceUsed.size() + 1;
+    schurWorkSpace.workingDevice = 0;
+    schurWorkSpace.hessianEntrance.resize(problemOption.deviceUsed.size());
+    schurWorkSpace.hessianEntrance.shrink_to_fit();
   }
-}
-
-template <typename T> const Device &BaseProblem<T>::getDevice() const {
-  return option.device;
+  if (this->algo->algoKind() != problemOption.algoKind) {
+    throw std::runtime_error("Wrong algo type");
+  }
+  if (this->linearSystem->algoKind() != problemOption.algoKind &&
+      this->linearSystem->linearSystemKind() !=
+          problemOption.linearSystemKind) {
+    throw std::runtime_error("Wrong linear system type");
+  }
 }
 
 template <typename T>
@@ -89,13 +78,14 @@ void BaseProblem<T>::appendVertex(int ID, BaseVertex<T> *vertex) {
   vertices.insert(std::make_pair(ID, vertex));
 }
 
-template <typename T> void BaseProblem<T>::appendEdge(BaseEdge<T> *edge) {
+template <typename T>
+void BaseProblem<T>::appendEdge(BaseEdge<T> &edge) {
   bool success = edges.tryPushBack(edge);
   if (!success) {
     edges.tryPushBack(edge);
   }
-  for (int vertex_idx = edge->size() - 1; vertex_idx >= 0; --vertex_idx) {
-    auto vertex = edge->operator[](vertex_idx);
+  for (int vertex_idx = edge.size() - 1; vertex_idx >= 0; --vertex_idx) {
+    auto vertex = edge[vertex_idx];
     auto kind = vertex->kind();
     auto find = verticesSets.find(kind);
     if (find == verticesSets.end())
@@ -103,37 +93,39 @@ template <typename T> void BaseProblem<T>::appendEdge(BaseEdge<T> *edge) {
     else
       find->second.emplace(vertex);
 
-    if (option.useSchur) {
-      for (int i = 0; i < option.deviceUsed.size(); ++i) {
-        auto &workingSchurHessianEntrance = schurWS.schurHessianEntrance[i];
+    if (problemOption.useSchur) {
+      for (int i = 0; i < problemOption.deviceUsed.size(); ++i) {
+        auto &workingSchurHessianEntrance = schurWorkSpace.hessianEntrance[i];
         workingSchurHessianEntrance.dim[kind] = vertex->getGradShape();
         auto &connectionBlockMatrix = workingSchurHessianEntrance.nra[kind];
         auto connectionFind = connectionBlockMatrix.find(vertex);
         if (connectionFind == connectionBlockMatrix.end()) {
           connectionFind =
               connectionBlockMatrix
-                  .emplace(vertex, typename SchurHessianEntrance<T>::BlockRow{})
+                  .emplace(vertex, typename HessianEntrance<T>::BlockRow{})
                   .first;
         }
-        if (i == schurWS.workingDevice) {
-          connectionFind->second.emplace(edge->operator[](1 ^ vertex_idx));
+        if (i == schurWorkSpace.workingDevice) {
+          connectionFind->second.emplace(edge[1 ^ vertex_idx]);
         }
       }
     } else {
       // TODO(Jie Ren): implement this
     }
   }
-  if (option.useSchur) {
-    auto &workingSchurHessianEntrance = schurWS.schurHessianEntrance[schurWS.workingDevice];
+  if (problemOption.useSchur) {
+    auto &workingSchurHessianEntrance =
+        schurWorkSpace.hessianEntrance[schurWorkSpace.workingDevice];
     workingSchurHessianEntrance.counter++;
-    if (workingSchurHessianEntrance.counter >= schurWS.splitSize)
-      schurWS.workingDevice++;
+    if (workingSchurHessianEntrance.counter >= schurWorkSpace.splitSize)
+      schurWorkSpace.workingDevice++;
   } else {
     // TODO(Jie Ren): implement this
   }
 }
 
-template <typename T> BaseVertex<T> &BaseProblem<T>::getVertex(int ID) {
+template <typename T>
+BaseVertex<T> &BaseProblem<T>::getVertex(int ID) {
   auto vertex = vertices.find(ID);
   if (vertex == vertices.end())
     throw std::runtime_error("The ID " + std::to_string(ID) +
@@ -150,7 +142,8 @@ const BaseVertex<T> &BaseProblem<T>::getVertex(int ID) const {
   return *vertex->second;
 }
 
-template <typename T> void BaseProblem<T>::eraseVertex(int ID) {
+template <typename T>
+void BaseProblem<T>::eraseVertex(int ID) {
   const auto vertex = vertices.find(ID);
   if (vertex == vertices.end())
     throw std::runtime_error("The ID " + std::to_string(ID) +
@@ -163,46 +156,45 @@ template <typename T> void BaseProblem<T>::eraseVertex(int ID) {
   }
 }
 
-template <typename T> void BaseProblem<T>::deallocateResource() {
+template <typename T>
+void BaseProblem<T>::deallocateResource() {
   edges.deallocateResource();
-  switch (option.device) {
-  case Device::CUDA:
-    deallocateResourceCUDA();
-    break;
-  default:
-    throw std::runtime_error("Not Implemented.");
+  switch (problemOption.device) {
+    case Device::CUDA:
+      deallocateResourceCUDA();
+      break;
+    default:
+      throw std::runtime_error("Not Implemented.");
   }
 }
 
-template <typename T> unsigned int BaseProblem<T>::getHessianShape() const {
-  unsigned int gradShape = 0;
-  for (const auto &vertexSetPair : verticesSets) {
-    const auto &vertexSet = vertexSetPair.second;
-    BaseVertex<T> const *vertexPtr = *vertexSet.begin();
-    gradShape += vertexSet.size() * vertexPtr->getGradShape();
-  }
-  return gradShape;
-}
-
-template <typename T> void BaseProblem<T>::prepareUpdateData() {
-  switch (option.device) {
-  case Device::CUDA:
-    prepareUpdateDataCUDA();
-    break;
-  default:
-    throw std::runtime_error("Not Implemented.");
+template <typename T>
+void BaseProblem<T>::allocateResource() {
+  switch (problemOption.device) {
+    case Device::CUDA:
+      allocateResourceCUDA();
+      break;
+    default:
+      throw std::runtime_error("Not Implemented.");
   }
 }
 
-template <typename T> void BaseProblem<T>::makeVertices() {
-  hessianShape = getHessianShape();
-  prepareUpdateData();
+template <typename T>
+void BaseProblem<T>::buildIndex() {
+  linearSystem->num[0] = verticesSets.find(CAMERA)->second.size();
+  linearSystem->num[1] = verticesSets.find(POINT)->second.size();
+  linearSystem->dim[0] =
+      (*(verticesSets.find(CAMERA)->second.begin()))->getGradShape();
+  linearSystem->dim[1] =
+      (*(verticesSets.find(POINT)->second.begin()))->getGradShape();
+  allocateResource();
   setAbsolutePosition();
-  if (option.useSchur) {
+  if (problemOption.useSchur) {
     std::vector<std::thread> threads;
-    for (auto &schurHessianEntrance : schurWS.schurHessianEntrance) {
-      threads.emplace_back(
-          std::thread{[&]() { schurHessianEntrance.buildRandomAccess(); }});
+    for (int i = 0; i < schurWorkSpace.hessianEntrance.size(); ++i) {
+      threads.emplace_back(std::thread{[&, i = i]() {
+        schurWorkSpace.hessianEntrance[i].buildRandomAccess();
+      }});
     }
     for (auto &thread : threads) {
       thread.join();
@@ -211,14 +203,19 @@ template <typename T> void BaseProblem<T>::makeVertices() {
     // TODO(Jie Ren): implement this
   }
 
-  edges.verticesSetPtr = &verticesSets;
-  edges.allocateResourcePre();
-  edges.makeVertices();
-  edges.allocateResourcePost();
+  linearSystem->buildIndex(*this);
+  ASSERT_CUDA_NO_ERROR();
+  edges.buildPositionContainer(schurWorkSpace.hessianEntrance);
+  ASSERT_CUDA_NO_ERROR();
+  edges.allocateResource();
+  ASSERT_CUDA_NO_ERROR();
   edges.fitDevice();
+  ASSERT_CUDA_NO_ERROR();
 }
 
-template <typename T> void BaseProblem<T>::setAbsolutePosition() {
+template <typename T>
+void BaseProblem<T>::setAbsolutePosition() {
+  const auto hessianShape = linearSystem->getHessianShape();
   T *hxPtr = new T[hessianShape];
   std::size_t entranceBias{0};
   for (auto &setPair : verticesSets) {
@@ -237,7 +234,7 @@ template <typename T> void BaseProblem<T>::setAbsolutePosition() {
       }
     }
   }
-  if (option.useSchur) {
+  if (problemOption.useSchur) {
     for (int i = 0; i < MemoryPool::getWorldSize(); ++i) {
       cudaSetDevice(i);
       cudaMemcpyAsync(xPtr[i], hxPtr, hessianShape * sizeof(T),
@@ -249,20 +246,20 @@ template <typename T> void BaseProblem<T>::setAbsolutePosition() {
   delete[] hxPtr;
 }
 
-template <typename T> void BaseProblem<T>::writeBack() {
-  T *hxPtr = new T[hessianShape];
+template <typename T>
+void BaseProblem<T>::writeBack() {
+  T *hxPtr = new T[linearSystem->getHessianShape()];
   std::size_t entrance_bias{0};
-  if (option.useSchur) {
+  if (problemOption.useSchur) {
     cudaSetDevice(0);
-    cudaMemcpy(hxPtr, xPtr[0], hessianShape * sizeof(T),
+    cudaMemcpy(hxPtr, xPtr[0], linearSystem->getHessianShape() * sizeof(T),
                cudaMemcpyDeviceToHost);
   } else {
     // TODO(Jie Ren): implement this
   }
   for (auto &vertexSetPair : verticesSets) {
     auto &vertexSet = vertexSetPair.second;
-    if ((*vertexSet.begin())->fixed)
-      continue;
+    if ((*vertexSet.begin())->fixed) continue;
     const auto nnzEachItem = (*vertexSet.begin())->getEstimation().rows() *
                              (*vertexSet.begin())->getEstimation().cols();
     for (auto &vertex : vertexSet) {
@@ -273,12 +270,20 @@ template <typename T> void BaseProblem<T>::writeBack() {
   }
   delete[] hxPtr;
 }
-template <typename T> void BaseProblem<T>::solve() {
-  switch (option.algoKind) {
-  case LM:
-    solveLM();
-    break;
-  }
+template <typename T>
+void BaseProblem<T>::solve() {
+  buildIndex();
+  algo->solve(*linearSystem, edges, xPtr[0]);
+}
+
+template <typename T>
+BaseProblem<T>::~BaseProblem() {
+  auto problemOptionBackup = new ProblemOption{problemOption};
+  deallocateResource();
+  MemoryPool::destruct();
+  HandleManager::destroyNCCLComm();
+  HandleManager::destroyCUBLASHandle();
+  HandleManager::destroyCUSPARSEHandle();
 }
 
 template class BaseProblem<double>;

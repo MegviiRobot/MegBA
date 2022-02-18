@@ -14,14 +14,15 @@ namespace geo {
 namespace {
 template <typename T>
 __global__ void AngleAxisToRotationKernel(
-    const int nItem, const int N, const T *valueDevicePtr0, const T *valueDevicePtr1,
-    const T *valueDevicePtr2, const T *gradDevicePtr0, const T *gradDevicePtr1, const T *gradDevicePtr2,
-    T *R0, T *R1, T *R2, T *R3, T *R4, T *R5, T *R6, T *R7, T *R8, T *gradDevicePtrR0,
-    T *gradDevicePtrR1, T *gradDevicePtrR2, T *gradDevicePtrR3, T *gradDevicePtrR4, T *gradDevicePtrR5,
-    T *gradDevicePtrR6, T *gradDevicePtrR7, T *gradDevicePtrR8) {
+    const int nItem, const int N, const T *valueDevicePtr0,
+    const T *valueDevicePtr1, const T *valueDevicePtr2, const T *gradDevicePtr0,
+    const T *gradDevicePtr1, const T *gradDevicePtr2, T *R0, T *R1, T *R2,
+    T *R3, T *R4, T *R5, T *R6, T *R7, T *R8, T *gradDevicePtrR0,
+    T *gradDevicePtrR1, T *gradDevicePtrR2, T *gradDevicePtrR3,
+    T *gradDevicePtrR4, T *gradDevicePtrR5, T *gradDevicePtrR6,
+    T *gradDevicePtrR7, T *gradDevicePtrR8) {
   unsigned int idx = threadIdx.x + blockDim.x * blockIdx.x;
-  if (idx >= nItem)
-    return;
+  if (idx >= nItem) return;
   const T angle_axis_x = valueDevicePtr0[idx];
   const T angle_axis_y = valueDevicePtr1[idx];
   const T angle_axis_z = valueDevicePtr2[idx];
@@ -29,7 +30,7 @@ __global__ void AngleAxisToRotationKernel(
   const T theta2 = angle_axis_x * angle_axis_x + angle_axis_y * angle_axis_y +
                    angle_axis_z * angle_axis_z;
   if (theta2 > std::numeric_limits<T>::epsilon()) {
-    const T theta = Wrapper::sqrtG<T>::call(theta2); // sqrt double
+    const T theta = Wrapper::sqrtG<T>::call(theta2);  // sqrt double
     const T wx = angle_axis_x / theta;
     const T wy = angle_axis_y / theta;
     const T wz = angle_axis_z / theta;
@@ -76,33 +77,39 @@ __global__ void AngleAxisToRotationKernel(
           reciprocal_theta *
           (dv_angle_axis_z - angle_axis_z * reciprocal_theta * dv_theta);
 
-      gradDevicePtrR0[index] = tmpwx * dv_tmp1 + 2 * wx_mul_one_minor_costheta * dv_wx;
-      gradDevicePtrR4[index] = tmpwy * dv_tmp1 + 2 * wy_mul_one_minor_costheta * dv_wy;
-      gradDevicePtrR8[index] = tmpwz * dv_tmp1 + 2 * wz_mul_one_minor_costheta * dv_wz;
+      gradDevicePtrR0[index] =
+          tmpwx * dv_tmp1 + 2 * wx_mul_one_minor_costheta * dv_wx;
+      gradDevicePtrR4[index] =
+          tmpwy * dv_tmp1 + 2 * wy_mul_one_minor_costheta * dv_wy;
+      gradDevicePtrR8[index] =
+          tmpwz * dv_tmp1 + 2 * wz_mul_one_minor_costheta * dv_wz;
 
-      gradDevicePtrR1[index] = (wz * costheta + wx * wy_mul_sintheta) * dv_theta +
-                        sintheta * dv_wz + wy_mul_one_minor_costheta * dv_wx +
-                        wx_mul_one_minor_costheta * dv_wy;
+      gradDevicePtrR1[index] =
+          (wz * costheta + wx * wy_mul_sintheta) * dv_theta + sintheta * dv_wz +
+          wy_mul_one_minor_costheta * dv_wx + wx_mul_one_minor_costheta * dv_wy;
 
-      gradDevicePtrR5[index] = (wx * costheta + wy * wz_mul_sintheta) * dv_theta +
-                        sintheta * dv_wx + wz_mul_one_minor_costheta * dv_wy +
-                        wy_mul_one_minor_costheta * dv_wz;
+      gradDevicePtrR5[index] =
+          (wx * costheta + wy * wz_mul_sintheta) * dv_theta + sintheta * dv_wx +
+          wz_mul_one_minor_costheta * dv_wy + wy_mul_one_minor_costheta * dv_wz;
 
-      gradDevicePtrR6[index] = (wy * costheta + wx * wz_mul_sintheta) * dv_theta +
-                        sintheta * dv_wy + wz_mul_one_minor_costheta * dv_wx +
-                        wx_mul_one_minor_costheta * dv_wz;
+      gradDevicePtrR6[index] =
+          (wy * costheta + wx * wz_mul_sintheta) * dv_theta + sintheta * dv_wy +
+          wz_mul_one_minor_costheta * dv_wx + wx_mul_one_minor_costheta * dv_wz;
 
-      gradDevicePtrR2[index] = (-wy * costheta + wx * wz_mul_sintheta) * dv_theta -
-                        sintheta * dv_wy + wz_mul_one_minor_costheta * dv_wx +
-                        wx_mul_one_minor_costheta * dv_wz;
+      gradDevicePtrR2[index] =
+          (-wy * costheta + wx * wz_mul_sintheta) * dv_theta -
+          sintheta * dv_wy + wz_mul_one_minor_costheta * dv_wx +
+          wx_mul_one_minor_costheta * dv_wz;
 
-      gradDevicePtrR3[index] = (-wz * costheta + wx * wy_mul_sintheta) * dv_theta -
-                        sintheta * dv_wz + wy_mul_one_minor_costheta * dv_wx +
-                        wx_mul_one_minor_costheta * dv_wy;
+      gradDevicePtrR3[index] =
+          (-wz * costheta + wx * wy_mul_sintheta) * dv_theta -
+          sintheta * dv_wz + wy_mul_one_minor_costheta * dv_wx +
+          wx_mul_one_minor_costheta * dv_wy;
 
-      gradDevicePtrR7[index] = (-wx * costheta + wy * wz_mul_sintheta) * dv_theta -
-                        sintheta * dv_wx + wz_mul_one_minor_costheta * dv_wy +
-                        wy_mul_one_minor_costheta * dv_wz;
+      gradDevicePtrR7[index] =
+          (-wx * costheta + wy * wz_mul_sintheta) * dv_theta -
+          sintheta * dv_wx + wz_mul_one_minor_costheta * dv_wy +
+          wy_mul_one_minor_costheta * dv_wz;
     }
 
     R0[idx] = costheta + wx * wx_mul_one_minor_costheta;
@@ -149,14 +156,15 @@ __global__ void AngleAxisToRotationKernel(
 
 template <typename T>
 __global__ void AngleAxisToRotationKernelFastGradKernel(
-    const int nItem, const int N, const T *valueDevicePtr0, const T *valueDevicePtr1,
-    const T *valueDevicePtr2, const int grad_position0, const int grad_position1,
+    const int nItem, const int N, const T *valueDevicePtr0,
+    const T *valueDevicePtr1, const T *valueDevicePtr2,
+    const int grad_position0, const int grad_position1,
     const int grad_position2, T *R0, T *R1, T *R2, T *R3, T *R4, T *R5, T *R6,
-    T *R7, T *R8, T *gradDevicePtrR0, T *gradDevicePtrR1, T *gradDevicePtrR2, T *gradDevicePtrR3,
-    T *gradDevicePtrR4, T *gradDevicePtrR5, T *gradDevicePtrR6, T *gradDevicePtrR7, T *gradDevicePtrR8) {
+    T *R7, T *R8, T *gradDevicePtrR0, T *gradDevicePtrR1, T *gradDevicePtrR2,
+    T *gradDevicePtrR3, T *gradDevicePtrR4, T *gradDevicePtrR5,
+    T *gradDevicePtrR6, T *gradDevicePtrR7, T *gradDevicePtrR8) {
   unsigned int idx = threadIdx.x + blockDim.x * blockIdx.x;
-  if (idx >= nItem)
-    return;
+  if (idx >= nItem) return;
   const T angle_axis_x = valueDevicePtr0[idx];
   const T angle_axis_y = valueDevicePtr1[idx];
   const T angle_axis_z = valueDevicePtr2[idx];
@@ -164,7 +172,7 @@ __global__ void AngleAxisToRotationKernelFastGradKernel(
   const T theta2 = angle_axis_x * angle_axis_x + angle_axis_y * angle_axis_y +
                    angle_axis_z * angle_axis_z;
   if (theta2 > std::numeric_limits<T>::epsilon()) {
-    const T theta = Wrapper::sqrtG<T>::call(theta2); // sqrt double
+    const T theta = Wrapper::sqrtG<T>::call(theta2);  // sqrt double
     const T wx = angle_axis_x / theta;
     const T wy = angle_axis_y / theta;
     const T wz = angle_axis_z / theta;
@@ -210,33 +218,39 @@ __global__ void AngleAxisToRotationKernelFastGradKernel(
           reciprocal_theta *
           (dv_angle_axis_z - angle_axis_z * reciprocal_theta * dv_theta);
 
-      gradDevicePtrR0[index] = tmpwx * dv_tmp1 + 2 * wx_mul_one_minor_costheta * dv_wx;
-      gradDevicePtrR4[index] = tmpwy * dv_tmp1 + 2 * wy_mul_one_minor_costheta * dv_wy;
-      gradDevicePtrR8[index] = tmpwz * dv_tmp1 + 2 * wz_mul_one_minor_costheta * dv_wz;
+      gradDevicePtrR0[index] =
+          tmpwx * dv_tmp1 + 2 * wx_mul_one_minor_costheta * dv_wx;
+      gradDevicePtrR4[index] =
+          tmpwy * dv_tmp1 + 2 * wy_mul_one_minor_costheta * dv_wy;
+      gradDevicePtrR8[index] =
+          tmpwz * dv_tmp1 + 2 * wz_mul_one_minor_costheta * dv_wz;
 
-      gradDevicePtrR1[index] = (wz * costheta + wx * wy_mul_sintheta) * dv_theta +
-                        sintheta * dv_wz + wy_mul_one_minor_costheta * dv_wx +
-                        wx_mul_one_minor_costheta * dv_wy;
+      gradDevicePtrR1[index] =
+          (wz * costheta + wx * wy_mul_sintheta) * dv_theta + sintheta * dv_wz +
+          wy_mul_one_minor_costheta * dv_wx + wx_mul_one_minor_costheta * dv_wy;
 
-      gradDevicePtrR5[index] = (wx * costheta + wy * wz_mul_sintheta) * dv_theta +
-                        sintheta * dv_wx + wz_mul_one_minor_costheta * dv_wy +
-                        wy_mul_one_minor_costheta * dv_wz;
+      gradDevicePtrR5[index] =
+          (wx * costheta + wy * wz_mul_sintheta) * dv_theta + sintheta * dv_wx +
+          wz_mul_one_minor_costheta * dv_wy + wy_mul_one_minor_costheta * dv_wz;
 
-      gradDevicePtrR6[index] = (wy * costheta + wx * wz_mul_sintheta) * dv_theta +
-                        sintheta * dv_wy + wz_mul_one_minor_costheta * dv_wx +
-                        wx_mul_one_minor_costheta * dv_wz;
+      gradDevicePtrR6[index] =
+          (wy * costheta + wx * wz_mul_sintheta) * dv_theta + sintheta * dv_wy +
+          wz_mul_one_minor_costheta * dv_wx + wx_mul_one_minor_costheta * dv_wz;
 
-      gradDevicePtrR2[index] = (-wy * costheta + wx * wz_mul_sintheta) * dv_theta -
-                        sintheta * dv_wy + wz_mul_one_minor_costheta * dv_wx +
-                        wx_mul_one_minor_costheta * dv_wz;
+      gradDevicePtrR2[index] =
+          (-wy * costheta + wx * wz_mul_sintheta) * dv_theta -
+          sintheta * dv_wy + wz_mul_one_minor_costheta * dv_wx +
+          wx_mul_one_minor_costheta * dv_wz;
 
-      gradDevicePtrR3[index] = (-wz * costheta + wx * wy_mul_sintheta) * dv_theta -
-                        sintheta * dv_wz + wy_mul_one_minor_costheta * dv_wx +
-                        wx_mul_one_minor_costheta * dv_wy;
+      gradDevicePtrR3[index] =
+          (-wz * costheta + wx * wy_mul_sintheta) * dv_theta -
+          sintheta * dv_wz + wy_mul_one_minor_costheta * dv_wx +
+          wx_mul_one_minor_costheta * dv_wy;
 
-      gradDevicePtrR7[index] = (-wx * costheta + wy * wz_mul_sintheta) * dv_theta -
-                        sintheta * dv_wx + wz_mul_one_minor_costheta * dv_wy +
-                        wy_mul_one_minor_costheta * dv_wz;
+      gradDevicePtrR7[index] =
+          (-wx * costheta + wy * wz_mul_sintheta) * dv_theta -
+          sintheta * dv_wx + wz_mul_one_minor_costheta * dv_wy +
+          wy_mul_one_minor_costheta * dv_wz;
     }
 
     R0[idx] = costheta + wx * wx_mul_one_minor_costheta;
@@ -308,18 +322,18 @@ JM33<T> AngleAxisToRotationKernelMatrix(const JV3<T> &AxisAngle) {
     if (use_fast_grad)
       AngleAxisToRotationKernelFastGradKernel<T><<<grid_dim, block_dim>>>(
           nItem, N, AxisAngle(0).getCUDAResPtr()[i],
-          AxisAngle(1).getCUDAResPtr()[i],
-          AxisAngle(2).getCUDAResPtr()[i], AxisAngle(0).getGradPosition(),
-          AxisAngle(1).getGradPosition(), AxisAngle(2).getGradPosition(),
-          R(0, 0).getCUDAResPtr()[i], R(1, 0).getCUDAResPtr()[i],
-          R(2, 0).getCUDAResPtr()[i], R(0, 1).getCUDAResPtr()[i],
-          R(1, 1).getCUDAResPtr()[i], R(2, 1).getCUDAResPtr()[i],
-          R(0, 2).getCUDAResPtr()[i], R(1, 2).getCUDAResPtr()[i],
-          R(2, 2).getCUDAResPtr()[i], R(0, 0).getCUDAGradPtr()[i],
-          R(1, 0).getCUDAGradPtr()[i], R(2, 0).getCUDAGradPtr()[i],
-          R(0, 1).getCUDAGradPtr()[i], R(1, 1).getCUDAGradPtr()[i],
-          R(2, 1).getCUDAGradPtr()[i], R(0, 2).getCUDAGradPtr()[i],
-          R(1, 2).getCUDAGradPtr()[i], R(2, 2).getCUDAGradPtr()[i]);
+          AxisAngle(1).getCUDAResPtr()[i], AxisAngle(2).getCUDAResPtr()[i],
+          AxisAngle(0).getGradPosition(), AxisAngle(1).getGradPosition(),
+          AxisAngle(2).getGradPosition(), R(0, 0).getCUDAResPtr()[i],
+          R(1, 0).getCUDAResPtr()[i], R(2, 0).getCUDAResPtr()[i],
+          R(0, 1).getCUDAResPtr()[i], R(1, 1).getCUDAResPtr()[i],
+          R(2, 1).getCUDAResPtr()[i], R(0, 2).getCUDAResPtr()[i],
+          R(1, 2).getCUDAResPtr()[i], R(2, 2).getCUDAResPtr()[i],
+          R(0, 0).getCUDAGradPtr()[i], R(1, 0).getCUDAGradPtr()[i],
+          R(2, 0).getCUDAGradPtr()[i], R(0, 1).getCUDAGradPtr()[i],
+          R(1, 1).getCUDAGradPtr()[i], R(2, 1).getCUDAGradPtr()[i],
+          R(0, 2).getCUDAGradPtr()[i], R(1, 2).getCUDAGradPtr()[i],
+          R(2, 2).getCUDAGradPtr()[i]);
     else
       AngleAxisToRotationKernel<T><<<grid_dim, block_dim>>>(
           nItem, N, AxisAngle(0, 0).getCUDAResPtr()[i],
@@ -344,8 +358,8 @@ JM33<T> AngleAxisToRotationKernelMatrix(const JV3<T> &AxisAngle) {
 }
 
 template <typename T>
-JM33<T>
-AngleAxisToRotationKernelMatrix(const Eigen::Map<const JVD<T>> &AxisAngle) {
+JM33<T> AngleAxisToRotationKernelMatrix(
+    const Eigen::Map<const JVD<T>> &AxisAngle) {
   JM33<T> R{};
   const MegBA::JetVector<T> &JV_Template = AxisAngle(0, 0);
   for (int i = 0; i < 3; ++i) {
@@ -370,18 +384,18 @@ AngleAxisToRotationKernelMatrix(const Eigen::Map<const JVD<T>> &AxisAngle) {
     if (use_fast_grad)
       AngleAxisToRotationKernelFastGradKernel<T><<<grid_dim, block_dim>>>(
           nItem, N, AxisAngle(0).getCUDAResPtr()[i],
-          AxisAngle(1).getCUDAResPtr()[i],
-          AxisAngle(2).getCUDAResPtr()[i], AxisAngle(0).getGradPosition(),
-          AxisAngle(1).getGradPosition(), AxisAngle(2).getGradPosition(),
-          R(0, 0).getCUDAResPtr()[i], R(1, 0).getCUDAResPtr()[i],
-          R(2, 0).getCUDAResPtr()[i], R(0, 1).getCUDAResPtr()[i],
-          R(1, 1).getCUDAResPtr()[i], R(2, 1).getCUDAResPtr()[i],
-          R(0, 2).getCUDAResPtr()[i], R(1, 2).getCUDAResPtr()[i],
-          R(2, 2).getCUDAResPtr()[i], R(0, 0).getCUDAGradPtr()[i],
-          R(1, 0).getCUDAGradPtr()[i], R(2, 0).getCUDAGradPtr()[i],
-          R(0, 1).getCUDAGradPtr()[i], R(1, 1).getCUDAGradPtr()[i],
-          R(2, 1).getCUDAGradPtr()[i], R(0, 2).getCUDAGradPtr()[i],
-          R(1, 2).getCUDAGradPtr()[i], R(2, 2).getCUDAGradPtr()[i]);
+          AxisAngle(1).getCUDAResPtr()[i], AxisAngle(2).getCUDAResPtr()[i],
+          AxisAngle(0).getGradPosition(), AxisAngle(1).getGradPosition(),
+          AxisAngle(2).getGradPosition(), R(0, 0).getCUDAResPtr()[i],
+          R(1, 0).getCUDAResPtr()[i], R(2, 0).getCUDAResPtr()[i],
+          R(0, 1).getCUDAResPtr()[i], R(1, 1).getCUDAResPtr()[i],
+          R(2, 1).getCUDAResPtr()[i], R(0, 2).getCUDAResPtr()[i],
+          R(1, 2).getCUDAResPtr()[i], R(2, 2).getCUDAResPtr()[i],
+          R(0, 0).getCUDAGradPtr()[i], R(1, 0).getCUDAGradPtr()[i],
+          R(2, 0).getCUDAGradPtr()[i], R(0, 1).getCUDAGradPtr()[i],
+          R(1, 1).getCUDAGradPtr()[i], R(2, 1).getCUDAGradPtr()[i],
+          R(0, 2).getCUDAGradPtr()[i], R(1, 2).getCUDAGradPtr()[i],
+          R(2, 2).getCUDAGradPtr()[i]);
     else
       AngleAxisToRotationKernel<T><<<grid_dim, block_dim>>>(
           nItem, N, AxisAngle(0, 0).getCUDAResPtr()[i],
@@ -405,14 +419,14 @@ AngleAxisToRotationKernelMatrix(const Eigen::Map<const JVD<T>> &AxisAngle) {
   return R;
 }
 
-template JM33<float>
-AngleAxisToRotationKernelMatrix(const JV3<float> &AxisAngle);
-template JM33<double>
-AngleAxisToRotationKernelMatrix(const JV3<double> &AxisAngle);
+template JM33<float> AngleAxisToRotationKernelMatrix(
+    const JV3<float> &AxisAngle);
+template JM33<double> AngleAxisToRotationKernelMatrix(
+    const JV3<double> &AxisAngle);
 
-template JM33<float>
-AngleAxisToRotationKernelMatrix(const Eigen::Map<const JVD<float>> &AxisAngle);
-template JM33<double>
-AngleAxisToRotationKernelMatrix(const Eigen::Map<const JVD<double>> &AxisAngle);
+template JM33<float> AngleAxisToRotationKernelMatrix(
+    const Eigen::Map<const JVD<float>> &AxisAngle);
+template JM33<double> AngleAxisToRotationKernelMatrix(
+    const Eigen::Map<const JVD<double>> &AxisAngle);
 }
 }

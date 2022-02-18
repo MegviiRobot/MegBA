@@ -16,66 +16,58 @@
 #include "common.h"
 #include "edge/base_edge.h"
 #include "problem/hessian_entrance.h"
-#include "solver/base_solver.h"
 #include "vertex/base_vertex.h"
 
 namespace MegBA {
 template <typename T>
-std::unique_ptr<BaseSolver<T>> dispatchSolver(const BaseProblem<T> &problem);
-
-template <typename T>
 class BaseProblem {
-  friend std::unique_ptr<BaseSolver<T>> dispatchSolver<T>(
-      const BaseProblem<T> &problem);
-  const ProblemOption option;
-
-  std::size_t hessianShape{0};
+  const ProblemOption &problemOption;
   std::unordered_map<int, BaseVertex<T> *> vertices{};
   std::unordered_map<VertexKind, std::set<BaseVertex<T> *>> verticesSets{};
   struct {
     // first: working index, second: body
     std::size_t splitSize{0};
     int workingDevice{0};
-    std::vector<SchurHessianEntrance<T>> schurHessianEntrance;
-  } schurWS{};
-  EdgeVector<T> edges{option, schurWS.schurHessianEntrance};
+    std::vector<HessianEntrance<T>> hessianEntrance;
+  } schurWorkSpace{};
+  EdgeVector<T> edges{problemOption};
 
   std::vector<T *> xPtr{nullptr};
-  std::vector<T *> deltaXPtr{nullptr};
-  std::vector<T *> deltaXPtrBackup{nullptr};
 
-  std::unique_ptr<BaseSolver<T>> solver;
+  const std::unique_ptr<BaseAlgo<T>> algo;
+  const std::unique_ptr<BaseLinearSystem<T>> linearSystem;
 
   void deallocateResource();
 
   void deallocateResourceCUDA();
 
-  unsigned int getHessianShape() const;
-
-  void makeVertices();
+  void buildIndex();
 
   void setAbsolutePosition();
 
-  void prepareUpdateData();
+  void allocateResource();
 
   void writeBack();
 
-  void prepareUpdateDataCUDA();
-
-  void backupLM();
-
-  void rollbackLM();
-
+  void allocateResourceCUDA();
  public:
-  explicit BaseProblem(const ProblemOption &option = ProblemOption{});
+  explicit BaseProblem(const ProblemOption &problemOption,
+                       std::unique_ptr<BaseAlgo<T>> algo,
+                       std::unique_ptr<BaseLinearSystem<T>> linearSystem);
 
-  ~BaseProblem() = default;
+  ~BaseProblem();
 
-  const Device &getDevice() const;
+  const auto &getProblemOption() const { return problemOption; };
+
+  const auto &getEdgeVectors() const { return edges; };
+
+  const auto &getVerticesSets() const { return verticesSets; };
+
+  const auto &getHessianEntrance() const { return schurWorkSpace.hessianEntrance; };
 
   void appendVertex(int ID, BaseVertex<T> *vertex);
 
-  void appendEdge(BaseEdge<T> *edge);
+  void appendEdge(BaseEdge<T> &edge);
 
   BaseVertex<T> &getVertex(int ID);
 
@@ -84,7 +76,5 @@ class BaseProblem {
   void eraseVertex(int ID);
 
   void solve();
-
-  void solveLM();
 };
 }  // namespace MegBA

@@ -1,6 +1,3 @@
 add_library(base_problem SHARED base_problem.cpp)
 cuda_add_library(base_problem_CUDA SHARED base_problem.cu)
-
-cuda_add_library(build_linear_system SHARED build_linear_system.cu)
-
-target_link_libraries(base_problem base_problem_CUDA build_linear_system resource schur_distributed_pcg_solver)
+target_link_libraries(base_problem base_problem_CUDA resource)

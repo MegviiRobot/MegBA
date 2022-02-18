@@ -1,4 +1,6 @@
+add_subdirectory(algo)
 add_subdirectory(resource)
+add_subdirectory(linear_system)
 add_subdirectory(operator)
 add_subdirectory(problem)
 add_subdirectory(geo)

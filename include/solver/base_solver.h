@@ -6,33 +6,26 @@
  **/
 
 #pragma once
-#include <utility>
-#include <vector>
-
 #include "common.h"
 
 namespace MegBA {
 template <typename T>
-class BaseSolver {
- protected:
-  const ProblemOption option;
-  const std::vector<T *> &deltaXPtr;
+struct BaseSolver {
+  virtual LinearSystemKind linearSystemKind() const {
+    return BASE_LINEAR_SYSTEM;
+  }
 
- public:
-  explicit BaseSolver(const ProblemOption &option,
-                      const std::vector<T *> &deltaXPtr)
-      : option(option), deltaXPtr(deltaXPtr){};
+  virtual SolverKind solverKind() const { return BASE_SOLVER; }
 
-  void solve() {
-    switch (option.device) {
-      case CUDA:
-        solveCUDA();
-        break;
-      default:
-        throw std::runtime_error("Not implemented");
-    }
-  };
+  BaseSolver(const ProblemOption &problemOption,
+             const SolverOption &solverOption)
+      : problemOption{problemOption}, solverOption{solverOption} {}
 
-  virtual void solveCUDA() = 0;
+  virtual ~BaseSolver() = default;
+
+  virtual void solve(const BaseLinearSystem<T> &baseLinearSystem) = 0;
+
+  const ProblemOption &problemOption;
+  const SolverOption &solverOption;
 };
 }  // namespace MegBA
