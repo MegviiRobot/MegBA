@@ -274,6 +274,7 @@ template <typename T>
 void BaseProblem<T>::solve() {
   buildIndex();
   algo->solve(*linearSystem, edges, xPtr[0]);
+  writeBack();
 }
 
 template <typename T>
