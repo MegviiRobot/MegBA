@@ -45,6 +45,7 @@ Demo with BAL dataset:
 * Compile
 
   ```bash
+  git submodule init && git submodule update --remote
   mkdir build
   cd build
   cmake ..
