@@ -11,8 +11,6 @@
 #include "linear_system/schur_LM_linear_system.h"
 #include "argparse/include/argparse/argparse.hpp"
 
-#define HAS_CHARCONV __has_include(<charconv>)
-
 template<typename T>
 class BAL_Edge : public MegBA::BaseEdge<T> {
  public:
@@ -61,73 +59,46 @@ int main(int argc, char *argv[]) {
   program.add_argument("--world_size")
       .help("World size")
       .default_value(1)
-#if !HAS_CHARCONV
-      .action([](const std::string& value) { return std::stoi(value); })
-#endif
-      ;
+      .action([](const std::string& value) { return std::stoi(value); });
 
   program.add_argument("--path")
       .help("Path to your dataset")
-#if !HAS_CHARCONV
-      .action([](const std::string& value) { return value; })
-#endif
-      ;
+      .action([](const std::string& value) { return value; });
 
   program.add_argument("--max_iter")
       .help("LM solve iteration")
       .default_value(20)
-#if !HAS_CHARCONV
-      .action([](const std::string& value) { return std::stoi(value); })
-#endif
-      ;
+      .action([](const std::string& value) { return std::stoi(value); });
 
   program.add_argument("--solver_max_iter")
       .help("Linear solver iteration")
       .default_value(50)
-#if !HAS_CHARCONV
-      .action([](const std::string& value) { return std::stoi(value); })
-#endif
-      ;
+      .action([](const std::string& value) { return std::stoi(value); });
 
   program.add_argument("--solver_tol")
       .help("The tolerance of the linear solver")
       .default_value(10.)
-#if !HAS_CHARCONV
-      .action([](const std::string& value) { return std::stod(value); })
-#endif
-      ;
+      .action([](const std::string& value) { return std::stod(value); });
 
   program.add_argument("--solver_refuse_ratio")
       .help("The refuse ratio of the linear solver")
       .default_value(1.)
-#if !HAS_CHARCONV
-      .action([](const std::string& value) { return std::stod(value); })
-#endif
-      ;
+      .action([](const std::string& value) { return std::stod(value); });
 
   program.add_argument("--tau")
       .help("Initial trust region")
       .default_value(1.)
-#if !HAS_CHARCONV
-      .action([](const std::string& value) { return std::stod(value); })
-#endif
-      ;
+      .action([](const std::string& value) { return std::stod(value); });
 
   program.add_argument("--epsilon1")
       .help("Parameter of LM")
       .default_value(1.)
-#if !HAS_CHARCONV
-      .action([](const std::string& value) { return std::stod(value); })
-#endif
-      ;
+      .action([](const std::string& value) { return std::stod(value); });
 
   program.add_argument("--epsilon2")
       .help("Parameter of LM")
       .default_value(1e-10)
-#if !HAS_CHARCONV
-      .action([](const std::string& value) { return std::stod(value); })
-#endif
-      ;
+      .action([](const std::string& value) { return std::stod(value); });
 
   try {
     program.parse_args(argc, argv);
@@ -245,5 +216,3 @@ int main(int argc, char *argv[]) {
   }
   problem.solve();
 }
-
-#undef HAS_CHARCONV
