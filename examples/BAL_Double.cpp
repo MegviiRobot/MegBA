@@ -247,13 +247,15 @@ int main(int argc, char *argv[]) {
   }
 
   for (int j = 0; j < num_observations; ++j) {
-    auto edge_ptr = new BAL_Edge<T>;
-    edge_ptr->appendVertex(&problem.getVertex(std::get<0>(edge[j])));
-    edge_ptr->appendVertex(&problem.getVertex(std::get<1>(edge[j])));
-    edge_ptr->setMeasurement(std::get<2>(std::move(edge[j])));
-    problem.appendEdge(*edge_ptr);
+    auto edgePtr = new BAL_Edge<T>;
+    edgePtr->appendVertex(&problem.getVertex(std::get<0>(edge[j])));
+    edgePtr->appendVertex(&problem.getVertex(std::get<1>(edge[j])));
+    edgePtr->setMeasurement(std::get<2>(std::move(edge[j])));
+    problem.appendEdge(*edgePtr);
   }
+  std::cout << problem.getVertex(0).getEstimation() << std::endl;
   problem.solve();
+  std::cout << problem.getVertex(0).getEstimation() << std::endl;
 }
 
 #undef HAS_CHARCONV
