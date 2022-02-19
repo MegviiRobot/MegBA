@@ -3,11 +3,9 @@
 #include "edge/base_edge.h"
 #include "vertex/base_vertex.h"
 #include <unordered_map>
-#include <random>
 #include <cusparse_v2.h>
 #include "geo/geo.cuh"
 #include <fstream>
-#include "macro.h"
 #include "algo/lm_algo.h"
 #include "solver/schur_pcg_solver.h"
 #include "linear_system/schur_LM_linear_system.h"
@@ -24,23 +22,15 @@ class BAL_Edge : public MegBA::BaseEdge<T> {
     MappedJVD angle_axisd{&Vertices[0].getEstimation()(0, 0), 3, 1};
     MappedJVD t{&Vertices[0].getEstimation()(3, 0), 3, 1};
     MappedJVD intrinsics{&Vertices[0].getEstimation()(6, 0), 3, 1};
-    ASSERT_CUDA_NO_ERROR();
     const auto &point_xyz = Vertices[1].getEstimation();
-    ASSERT_CUDA_NO_ERROR();
     const auto &obs_uv = this->getMeasurement();
-    ASSERT_CUDA_NO_ERROR();
     auto R = MegBA::geo::AngleAxisToRotationKernelMatrix(angle_axisd);
-    ASSERT_CUDA_NO_ERROR();
     Eigen::Matrix<MegBA::JetVector<T>, 3, 1> re_projection = R * point_xyz + t;
-    ASSERT_CUDA_NO_ERROR();
     re_projection = -re_projection / re_projection(2);
     // f, k1, k2 = intrinsics
-    ASSERT_CUDA_NO_ERROR();
     auto fr = MegBA::geo::RadialDistortion(re_projection, intrinsics);
-    ASSERT_CUDA_NO_ERROR();
 
     MegBA::JVD<T> error = fr * re_projection.head(2) - obs_uv;
-    ASSERT_CUDA_NO_ERROR();
     return error;
   }
 };
@@ -253,9 +243,7 @@ int main(int argc, char *argv[]) {
     edgePtr->setMeasurement(std::get<2>(std::move(edge[j])));
     problem.appendEdge(*edgePtr);
   }
-  std::cout << problem.getVertex(0).getEstimation() << std::endl;
   problem.solve();
-  std::cout << problem.getVertex(0).getEstimation() << std::endl;
 }
 
 #undef HAS_CHARCONV
