@@ -57,5 +57,5 @@ JVD<T> AnalyticalDerivativesKernelMatrix(const Eigen::Map<const JVD<T>> &AxisAng
                                          const Eigen::Map<const JVD<T>> &intrinsics,
                                          const JVD<T> &point_xyz,
                                          const JVD<T> &obs_uv);
-} // namespace geo
+}  // namespace geo
 }  // namespace MegBA
