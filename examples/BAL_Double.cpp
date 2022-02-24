@@ -32,6 +32,8 @@ class BAL_Edge : public MegBA::BaseEdge<T> {
     return error;
   }
 };
+
+
 namespace {
 template <typename Derived>
 bool writeVector(std::ostream& os, const Eigen::DenseBase<Derived>& b) {
