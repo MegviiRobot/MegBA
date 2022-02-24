@@ -12,7 +12,7 @@
 #include "argparse/include/argparse/argparse.hpp"
 
 template<typename T>
-class BAL_Edge_Analytical_Derivatives : public MegBA::BaseEdge<T> {
+class BalEdgeAnalyticalDerivatives : public MegBA::BaseEdge<T> {
  public:
   MegBA::JVD<T> forward() override {
     using MappedJVD = Eigen::Map<const MegBA::geo::JVD<T>>;
@@ -96,8 +96,7 @@ int main(int argc, char *argv[]) {
 
   try {
     program.parse_args(argc, argv);
-  }
-  catch (const std::runtime_error& err) {
+  } catch (const std::runtime_error& err) {
     std::cout << err.what() << std::endl;
     std::cout << program;
     exit(0);
@@ -202,7 +201,7 @@ int main(int argc, char *argv[]) {
   }
 
   for (int j = 0; j < num_observations; ++j) {
-    auto edgePtr = new BAL_Edge_Analytical_Derivatives<T>;
+    auto edgePtr = new BalEdgeAnalyticalDerivatives<T>;
     edgePtr->appendVertex(&problem.getVertex(std::get<0>(edge[j])));
     edgePtr->appendVertex(&problem.getVertex(std::get<1>(edge[j])));
     edgePtr->setMeasurement(std::get<2>(std::move(edge[j])));
