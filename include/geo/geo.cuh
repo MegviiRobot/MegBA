@@ -50,5 +50,12 @@ JetVector<T> RadialDistortion(const JV3<T> &point,
 template <typename T>
 JetVector<T> RadialDistortion(const JV3<T> &point,
                               const Eigen::Map<const JVD<T>> &intrinsic);
-}  // namespace geo
+
+template <typename T>
+JVD<T> AnalyticalDerivativesKernelMatrix(const Eigen::Map<const JVD<T>> &AxisAngle,
+                                         const Eigen::Map<const JVD<T>> &t,
+                                         const Eigen::Map<const JVD<T>> &intrinsics,
+                                         const JVD<T> &point_xyz,
+                                         const JVD<T> &obs_uv);
+} // namespace geo
 }  // namespace MegBA
