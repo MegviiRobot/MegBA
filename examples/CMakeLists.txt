@@ -6,6 +6,7 @@ set_target_properties(BAL_Double PROPERTIES CXX_STANDARD 17)
 add_executable(BAL_Float BAL_Float.cpp)
 target_link_libraries(BAL_Float base_problem base_edge jet_vector geo)
 target_link_libraries(BAL_Float lm_algo schur_LM_linear_system schur_pcg_solver)
+set_target_properties(BAL_Float PROPERTIES CXX_STANDARD 17)
 
 add_executable(BAL_Double_analytical BAL_Double_analytical.cpp)
 target_link_libraries(BAL_Double_analytical base_problem base_edge jet_vector geo)
