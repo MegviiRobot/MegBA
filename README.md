@@ -12,12 +12,10 @@ Experiments show that MegBA can out-perform state-of-the-art BA libraries (i.e.,
 ## Version
 
 * 2021/12/06 Beta version released! It corresponds to this [paper](https://arxiv.org/abs/2112.01349)
-* 2022/02/18 Stable version released! We have reconstructed MegBA and fixed some existing bugs, e.g., incorrect rollback in the LM reject step, which will make MegBA have a better convergence performance.
+* 2022/02/18 Stable version released! We have refactored MegBA and fixed some existing bugs, e.g., incorrect rollback in the LM reject step.
+* 2022/02/25 Analytical differentiation module available; We also provide BAL_X_analytical.cpp under examples/. Compared with automatic diff, time and space are reduced by ~30% and ~40%, respectively.
 
 ## Todo
-
-- [x] General version code release (Done in 18th Feb. 2022)
-- [x] analytical differential module (Done in 25 Feb. 2022)
 - [ ] memory-efficient version with implicit Hessian (TBD)
 - [ ] IMU factor, prior factor (TBD)
 
@@ -70,7 +68,7 @@ Demo with BAL dataset:
 
 ## Notes for the practitioners
 
-* Currently, MegBA implements automatic differentiation only for generalizability. Please consider implementing your own analytical differentiation module.
+* ~Currently, MegBA implements automatic differentiation only for generalizability. Please consider implementing your own analytical differentiation module.~ Analytical differentiation module is provided.
 * If you use devices without modern inter-device communication (i.e., NVLinks..), you might find the data transfer is the bottleneck.
 * Empirically, we found it is necessary to customize the LM trust-region strategies and tune its hyper-parameters to further boost the performance. 
 
