@@ -16,8 +16,8 @@ Experiments show that MegBA can out-perform state-of-the-art BA libraries (i.e.,
 
 ## Todo
 
-- [x] General version code release (~~Expected Dec 31 2021~~Done in 18th Feb. 2022)
-- [x] analytical differential module (~~TBD~~Done in 25 Feb. 2022)
+- [x] General version code release (~~Expected Dec 31 2021~~ \*Done in 18th Feb. 2022)
+- [x] analytical differential module (~~TBD~~ \*Done in 25 Feb. 2022)
 - [ ] memory-efficient version with implicit Hessian (TBD)
 - [ ] IMU factor, prior factor (TBD)
 
