@@ -16,8 +16,8 @@ Experiments show that MegBA can out-perform state-of-the-art BA libraries (i.e.,
 
 ## Todo
 
-- [x] General version code release (~~Expected Dec 31 2021~~)
-- [ ] analytical differential module (TBD)
+- [x] General version code release (~~Expected Dec 31 2021~~Done in 18th Feb. 2022)
+- [x] analytical differential module (~~TBD~~Done in 25 Feb. 2022)
 - [ ] memory-efficient version with implicit Hessian (TBD)
 - [ ] IMU factor, prior factor (TBD)
 
@@ -28,12 +28,12 @@ Paper: https://arxiv.org/abs/2112.01349 (updated version)
 
 Dependencies:
 
-- C++14
+- C++14 (C++17 is required for compiling examples)
 - CMake (>= 3.15)
-- CUDA Toolkit (with thrust) https://developer.nvidia.com/cuda-downloads
-- [Eigen](https://eigen.tuxfamily.org/index.php?title=Main_Page)
+- CUDA (>= 11.2) https://developer.nvidia.com/cuda-downloads
+- Eigen (>= 3.4.0) https://eigen.tuxfamily.org/
 - [ArgParse](https://github.com/JieRen98/argparse)
-- NCCL (if you need Distributed features) https://developer.nvidia.com/nccl/nccl-download
+- NCCL2 (if you need Distributed features) https://developer.nvidia.com/nccl/nccl-download
 
 You can also easily install all dependencies with script: [script](https://drive.google.com/file/d/154whcVH2VcJCYnTSlnfo_tbIIaQvSax3/view?usp=sharing)
 
