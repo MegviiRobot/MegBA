@@ -9,6 +9,10 @@
 #include "linear_system/schur_LM_linear_system.h"
 #include "wrapper.hpp"
 
+#if __CUDACC_VER_MAJOR__ < 11 || (__CUDACC_VER_MAJOR__ == 11 && __CUDACC_VER_MINOR__ <= 2)
+#define CUSPARSE_SPMV_ALG_DEFAULT CUSPARSE_MV_ALG_DEFAULT
+#endif
+
 namespace MegBA {
 namespace {
 template <typename T>
