@@ -7,8 +7,8 @@
 
 #pragma once
 #define SPECIALIZE_CLASS(className) \
-template class className<double>;   \
-template class className<float>
+  template class className<double>; \
+  template class className<float>
 
 #include <cstdint>
 #include <vector>

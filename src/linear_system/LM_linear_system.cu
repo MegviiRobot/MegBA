@@ -1,9 +1,9 @@
 /**
-* MegBA is Licensed under the Apache License, Version 2.0 (the "License")
-*
-* Copyright (c) 2021 Megvii Inc. All rights reserved.
-*
-**/
+ * MegBA is Licensed under the Apache License, Version 2.0 (the "License")
+ *
+ * Copyright (c) 2021 Megvii Inc. All rights reserved.
+ *
+ **/
 
 #include "linear_system/LM_linear_system.h"
 
@@ -21,4 +21,4 @@ void LMLinearSystem<T>::freeCUDA() {
 }
 
 SPECIALIZE_CLASS(LMLinearSystem);
-}
+}  // namespace MegBA

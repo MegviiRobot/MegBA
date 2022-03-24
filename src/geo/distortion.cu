@@ -1,9 +1,9 @@
 /**
-* MegBA is Licensed under the Apache License, Version 2.0 (the "License")
-*
-* Copyright (c) 2021 Megvii Inc. All rights reserved.
-*
-**/
+ * MegBA is Licensed under the Apache License, Version 2.0 (the "License")
+ *
+ * Copyright (c) 2021 Megvii Inc. All rights reserved.
+ *
+ **/
 
 #include "geo/geo.cuh"
 
@@ -225,7 +225,7 @@ void RadialDistortionImpl(const JV3<T> &point,
     }
   }
 }
-}
+}  // namespace
 
 template <typename T>
 JetVector<T> RadialDistortion(const JV3<T> &point, const JV3<T> &intrinsic) {
@@ -263,5 +263,5 @@ template JetVector<float> RadialDistortion(
     const JV3<float> &point, const Eigen::Map<const JVD<float>> &intrinsic);
 template JetVector<double> RadialDistortion(
     const JV3<double> &point, const Eigen::Map<const JVD<double>> &intrinsic);
-}
-}
+}  // namespace geo
+}  // namespace MegBA

@@ -1,13 +1,14 @@
 /**
-* MegBA is Licensed under the Apache License, Version 2.0 (the "License")
-*
-* Copyright (c) 2021 Megvii Inc. All rights reserved.
-*
-**/
+ * MegBA is Licensed under the Apache License, Version 2.0 (the "License")
+ *
+ * Copyright (c) 2021 Megvii Inc. All rights reserved.
+ *
+ **/
 
 #pragma once
-#include <vector>
 #include <memory>
+#include <vector>
+
 #include "common.h"
 
 namespace MegBA {
@@ -49,4 +50,4 @@ struct BaseLinearSystem {
 
   void freeCUDA();
 };
-}
+}  // namespace MegBA

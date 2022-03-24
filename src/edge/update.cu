@@ -1,9 +1,9 @@
 /**
-* MegBA is Licensed under the Apache License, Version 2.0 (the "License")
-*
-* Copyright (c) 2021 Megvii Inc. All rights reserved.
-*
-**/
+ * MegBA is Licensed under the Apache License, Version 2.0 (the "License")
+ *
+ * Copyright (c) 2021 Megvii Inc. All rights reserved.
+ *
+ **/
 
 #include "edge/base_edge.h"
 #include "linear_system/base_linear_system.h"
@@ -11,14 +11,14 @@
 namespace MegBA {
 namespace {
 template <typename T>
-__global__ void
-updateDeltaXTwoVertices(const T *deltaX, const int *absolutePositionCamera,
-                        const int *absolutePositionPoint, const int cameraDim,
-                        const int pointDim, const int cameraNum, const int nItem,
-                        T *cameraX, T *pointX) {
+__global__ void updateDeltaXTwoVertices(const T *deltaX,
+                                        const int *absolutePositionCamera,
+                                        const int *absolutePositionPoint,
+                                        const int cameraDim, const int pointDim,
+                                        const int cameraNum, const int nItem,
+                                        T *cameraX, T *pointX) {
   const unsigned int tid = blockDim.x * blockIdx.x + threadIdx.x;
-  if (tid >= nItem)
-    return;
+  if (tid >= nItem) return;
   // ix : index in edges
   // absolute_position_camera[ix] :
   // index in cameras
@@ -41,7 +41,7 @@ updateDeltaXTwoVertices(const T *deltaX, const int *absolutePositionCamera,
 }
 }  // namespace
 
-    template <typename T>
+template <typename T>
 void EdgeVector<T>::update(const BaseLinearSystem<T> &linearSystem) const {
   const auto cameraDim = linearSystem.dim[0];
   const auto cameraNum = linearSystem.num[0];
@@ -54,19 +54,18 @@ void EdgeVector<T>::update(const BaseLinearSystem<T> &linearSystem) const {
     dim3 block(std::min((decltype(nItem))256, nItem));
     dim3 grid((nItem - 1) / block.x + 1);
     updateDeltaXTwoVertices<T><<<grid, block>>>(
-        linearSystem.deltaXPtr[i],
-        positionContainers[i].absolutePosition[0],
-        positionContainers[i].absolutePosition[1],
-        cameraDim, pointDim, cameraNum, nItem,
-        schurValueDevicePtrs[0][i], schurValueDevicePtrs[1][i]);
+        linearSystem.deltaXPtr[i], positionContainers[i].absolutePosition[0],
+        positionContainers[i].absolutePosition[1], cameraDim, pointDim,
+        cameraNum, nItem, schurValueDevicePtrs[0][i],
+        schurValueDevicePtrs[1][i]);
   }
 }
 
-template <typename T> void EdgeVector<T>::bindCUDAGradPtrs() {
+template <typename T>
+void EdgeVector<T>::bindCUDAGradPtrs() {
   int vertexKindIdxUnfixed = 0;
   for (auto &vertexVector : edges) {
-    if (vertexVector[0]->fixed)
-      continue;
+    if (vertexVector[0]->fixed) continue;
     auto &jetEstimation = vertexVector.getJVEstimation();
     auto &jetObservation = vertexVector.getJVObservation();
 
@@ -77,8 +76,9 @@ template <typename T> void EdgeVector<T>::bindCUDAGradPtrs() {
         std::vector<T *> valueDevicePtrs;
         valueDevicePtrs.resize(worldSize);
         for (int k = 0; k < worldSize; ++k) {
-          valueDevicePtrs[k] = &schurValueDevicePtrs[vertexKindIdxUnfixed][k]
-                                  [i * MemoryPool::getItemNum(k)];
+          valueDevicePtrs[k] =
+              &schurValueDevicePtrs[vertexKindIdxUnfixed][k]
+                                   [i * MemoryPool::getItemNum(k)];
         }
         jetEstimation(i).bindValueDevicePtr(std::move(valueDevicePtrs));
       } else {

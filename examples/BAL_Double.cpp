@@ -1,38 +1,36 @@
-#include <iostream>
-#include "problem/base_problem.h"
-#include "edge/base_edge.h"
-#include "vertex/base_vertex.h"
-#include <unordered_map>
-#include <cusparse_v2.h>
-#include "geo/geo.cuh"
 #include <fstream>
-#include "algo/lm_algo.h"
-#include "solver/schur_pcg_solver.h"
-#include "linear_system/schur_LM_linear_system.h"
-#include "argparse/include/argparse/argparse.hpp"
+#include <iostream>
+#include <unordered_map>
 
-template<typename T>
+#include "algo/lm_algo.h"
+#include "argparse/include/argparse/argparse.hpp"
+#include "edge/base_edge.h"
+#include "geo/geo.cuh"
+#include "linear_system/schur_LM_linear_system.h"
+#include "problem/base_problem.h"
+#include "solver/schur_pcg_solver.h"
+#include "vertex/base_vertex.h"
+
+template <typename T>
 class BAL_Edge : public MegBA::BaseEdge<T> {
  public:
   MegBA::JVD<T> forward() override {
     using MappedJVD = Eigen::Map<const MegBA::geo::JVD<T>>;
-    const auto &Vertices = this->getVertices();
+    const auto& Vertices = this->getVertices();
     MappedJVD angle_axisd{&Vertices[0].getEstimation()(0, 0), 3, 1};
     MappedJVD t{&Vertices[0].getEstimation()(3, 0), 3, 1};
     MappedJVD intrinsics{&Vertices[0].getEstimation()(6, 0), 3, 1};
-    const auto &point_xyz = Vertices[1].getEstimation();
-    const auto &obs_uv = this->getMeasurement();
+    const auto& point_xyz = Vertices[1].getEstimation();
+    const auto& obs_uv = this->getMeasurement();
     auto R = MegBA::geo::AngleAxisToRotationKernelMatrix(angle_axisd);
     Eigen::Matrix<MegBA::JetVector<T>, 3, 1> re_projection = R * point_xyz + t;
     re_projection = -re_projection / re_projection(2);
     // f, k1, k2 = intrinsics
     auto fr = MegBA::geo::RadialDistortion(re_projection, intrinsics);
-
     MegBA::JVD<T> error = fr * re_projection.head(2) - obs_uv;
     return error;
   }
 };
-
 
 namespace {
 template <typename Derived>
@@ -46,9 +44,9 @@ bool readVector(std::istream& is, Eigen::DenseBase<Derived>& b) {
   for (int i = 0; i < b.size() && is.good(); i++) is >> b(i);
   return is.good() || is.eof();
 }
-}
+}  // namespace
 
-int main(int argc, char *argv[]) {
+int main(int argc, char* argv[]) {
   std::string name;
   int iter, solver_max_iter, worldSize;
   double solver_tol, solver_refuse_ratio, tau, epsilon1, epsilon2;
@@ -102,8 +100,7 @@ int main(int argc, char *argv[]) {
 
   try {
     program.parse_args(argc, argv);
-  }
-  catch (const std::runtime_error& err) {
+  } catch (const std::runtime_error& err) {
     std::cout << err.what() << std::endl;
     std::cout << program;
     exit(0);
@@ -135,7 +132,7 @@ int main(int argc, char *argv[]) {
   fin >> num_observations;
 
   MegBA::ProblemOption problemOption{};
-  problemOption.nItem = num_observations;
+  problemOption.nItem = 1;
   problemOption.N = 12;
   for (int i = 0; i < worldSize; ++i) {
     problemOption.deviceUsed.push_back(i);
@@ -161,6 +158,13 @@ int main(int argc, char *argv[]) {
   std::vector<std::tuple<int, int, Eigen::Matrix<T, 2, 1>>> edge;
   std::vector<std::tuple<int, Eigen::Matrix<T, 9, 1>>> camera_vertices;
   std::vector<std::tuple<int, Eigen::Matrix<T, 3, 1>>> point_vertices;
+
+  MegBA::JetVector<float> jv;
+  jv.setGradShape(12);
+  jv.appendJet(4., 0);
+  jv.CUDA();
+  auto result = MegBA::math::sqrt(jv);
+  result.CPU();
 
   int counter = 0;
   // read edges

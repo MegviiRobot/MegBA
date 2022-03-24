@@ -1,18 +1,20 @@
 /**
-* MegBA is Licensed under the Apache License, Version 2.0 (the "License")
-*
-* Copyright (c) 2021 Megvii Inc. All rights reserved.
-*
-**/
+ * MegBA is Licensed under the Apache License, Version 2.0 (the "License")
+ *
+ * Copyright (c) 2021 Megvii Inc. All rights reserved.
+ *
+ **/
+
+#include <cassert>
 
 #include "resource/handle_manager.h"
-#include <cassert>
 #include "resource/memory_pool.h"
 
 namespace MegBA {
 void HandleManager::createNCCLComm() {
   comms.resize(MemoryPool::getWorldSize());
-  ncclCommInitAll(comms.data(), MemoryPool::getWorldSize(), MemoryPool::getWorld().data());
+  ncclCommInitAll(comms.data(), MemoryPool::getWorldSize(),
+                  MemoryPool::getWorld().data());
 }
 
 const std::vector<ncclComm_t> &HandleManager::getNCCLComm() { return comms; }
