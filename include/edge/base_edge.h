@@ -1,26 +1,29 @@
 /**
-* MegBA is Licensed under the Apache License, Version 2.0 (the "License")
-*
-* Copyright (c) 2021 Megvii Inc. All rights reserved.
-*
-**/
+ * MegBA is Licensed under the Apache License, Version 2.0 (the "License")
+ *
+ * Copyright (c) 2021 Megvii Inc. All rights reserved.
+ *
+ **/
 
 #pragma once
 #include <cusparse_v2.h>
-#include <utility>
-#include <set>
-#include <vector>
+
 #include <memory>
+#include <set>
 #include <unordered_map>
+#include <utility>
+#include <vector>
+
 #include "common.h"
 #include "operator/jet_vector.h"
-#include "vertex/base_vertex.h"
 #include "problem/hessian_entrance.h"
+#include "vertex/base_vertex.h"
 
 namespace MegBA {
 enum EdgeKind { ONE, ONE_CAMERA_ONE_POINT, TWO_CAMERA, MULTI };
 
-template <typename T> class BaseEdge {
+template <typename T>
+class BaseEdge {
   typedef Eigen::Matrix<T, Eigen::Dynamic, Eigen::Dynamic> PlainMatrix;
 
   std::vector<BaseVertex<T> *> m_data;
@@ -30,8 +33,8 @@ template <typename T> class BaseEdge {
 
  public:
   std::size_t size() { return m_data.size(); }
-  BaseVertex<T> * &operator[](std::size_t n) { return m_data[n]; }
-  BaseVertex<T> * const &operator[](std::size_t n) const { return m_data[n]; }
+  BaseVertex<T> *&operator[](std::size_t n) { return m_data[n]; }
+  BaseVertex<T> *const &operator[](std::size_t n) const { return m_data[n]; }
 
   void appendVertex(BaseVertex<T> *vertex);
 
@@ -53,7 +56,9 @@ template <typename T> class BaseEdge {
 
   const PlainMatrix &_getInformation() const { return _information; }
 
-  void bindEdgeVector(const EdgeVector<T> *ev) { _edgeWrapper.bindEdgeVector(ev); }
+  void bindEdgeVector(const EdgeVector<T> *ev) {
+    _edgeWrapper.bindEdgeVector(ev);
+  }
 
  protected:
   const EdgeWrapper<T> &getVertices() { return _edgeWrapper; }
@@ -61,7 +66,8 @@ template <typename T> class BaseEdge {
   JVD<T> const &getMeasurement() const { return _edgeWrapper.getMeasurement(); }
 };
 
-template <typename T> class EdgeVector {
+template <typename T>
+class EdgeVector {
   const ProblemOption &option;
   // kind -> worldSize
   struct PositionContainer {
@@ -139,14 +145,17 @@ template <typename T> class EdgeVector {
 
   void fitDevice();
 
-  void buildLinearSystem(const JVD<T> &jetEstimation, const BaseLinearSystem<T> &linearSystem) const;
+  void buildLinearSystem(const JVD<T> &jetEstimation,
+                         const BaseLinearSystem<T> &linearSystem) const;
 
-  void buildLinearSystemCUDA(const JVD<T> &jetEstimation, const BaseLinearSystem<T> &linearSystem) const;
+  void buildLinearSystemCUDA(const JVD<T> &jetEstimation,
+                             const BaseLinearSystem<T> &linearSystem) const;
 
   void update(const BaseLinearSystem<T> &linearSystem) const;
 
   void bindCUDAGradPtrs();
 
-  void buildPositionContainer(const std::vector<HessianEntrance<T>> &hessianEntrance);
+  void buildPositionContainer(
+      const std::vector<HessianEntrance<T>> &hessianEntrance);
 };
 }  // namespace MegBA

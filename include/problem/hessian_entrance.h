@@ -1,19 +1,21 @@
 /**
-* MegBA is Licensed under the Apache License, Version 2.0 (the "License")
-*
-* Copyright (c) 2021 Megvii Inc. All rights reserved.
-*
-**/
+ * MegBA is Licensed under the Apache License, Version 2.0 (the "License")
+ *
+ * Copyright (c) 2021 Megvii Inc. All rights reserved.
+ *
+ **/
 
 #pragma once
-#include <set>
 #include <map>
-#include <vector>
 #include <memory>
+#include <set>
+#include <vector>
+
 #include "vertex/base_vertex.h"
 
 namespace MegBA {
-template <typename T> struct HessianEntrance {
+template <typename T>
+struct HessianEntrance {
   // first is camera
   using BlockRow = std::set<BaseVertex<T> *>;
   using BlockMatrix = std::map<BaseVertex<T> *, BlockRow>;

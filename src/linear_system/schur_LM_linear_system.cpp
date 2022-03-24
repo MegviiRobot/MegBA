@@ -1,15 +1,17 @@
 /**
-* MegBA is Licensed under the Apache License, Version 2.0 (the "License")
-*
-* Copyright (c) 2021 Megvii Inc. All rights reserved.
-*
-**/
+ * MegBA is Licensed under the Apache License, Version 2.0 (the "License")
+ *
+ * Copyright (c) 2021 Megvii Inc. All rights reserved.
+ *
+ **/
+
+#include <omp.h>
+
+#include <thread>
 
 #include "linear_system/schur_LM_linear_system.h"
-#include <omp.h>
-#include <thread>
-#include "resource/memory_pool.h"
 #include "problem/base_problem.h"
+#include "resource/memory_pool.h"
 #include "solver/base_solver.h"
 
 namespace MegBA {
@@ -44,7 +46,7 @@ void internalBuildSpIndex(int *csrRowPtr, int *csrColInd, std::size_t *nnz,
   }
   *nnz = csrRowPtr[rowCounter];
 }
-}
+}  // namespace
 
 template <typename T>
 void SchurLMLinearSystem<T>::buildIndex(const BaseProblem<T> &problem) {
@@ -89,4 +91,4 @@ SchurLMLinearSystem<T>::SchurLMLinearSystem(
 
 template struct SchurLMLinearSystem<double>;
 template struct SchurLMLinearSystem<float>;
-}
+}  // namespace MegBA

@@ -1,29 +1,30 @@
-#include <iostream>
-#include "problem/base_problem.h"
-#include "edge/base_edge.h"
-#include "vertex/base_vertex.h"
-#include <unordered_map>
-#include <cusparse_v2.h>
-#include "geo/geo.cuh"
 #include <fstream>
-#include "algo/lm_algo.h"
-#include "solver/schur_pcg_solver.h"
-#include "linear_system/schur_LM_linear_system.h"
-#include "argparse/include/argparse/argparse.hpp"
+#include <iostream>
+#include <unordered_map>
 
-template<typename T>
+#include "algo/lm_algo.h"
+#include "argparse/include/argparse/argparse.hpp"
+#include "edge/base_edge.h"
+#include "geo/geo.cuh"
+#include "linear_system/schur_LM_linear_system.h"
+#include "problem/base_problem.h"
+#include "solver/schur_pcg_solver.h"
+#include "vertex/base_vertex.h"
+
+template <typename T>
 class BalEdgeAnalyticalDerivatives : public MegBA::BaseEdge<T> {
  public:
   MegBA::JVD<T> forward() override {
     using MappedJVD = Eigen::Map<const MegBA::geo::JVD<T>>;
-    const auto &Vertices = this->getVertices();
+    const auto& Vertices = this->getVertices();
     MappedJVD angle_axisd{&Vertices[0].getEstimation()(0, 0), 3, 1};
     MappedJVD t{&Vertices[0].getEstimation()(3, 0), 3, 1};
     MappedJVD intrinsics{&Vertices[0].getEstimation()(6, 0), 3, 1};
 
-    const auto &point_xyz = Vertices[1].getEstimation();
-    const auto &obs_uv = this->getMeasurement();
-    MegBA::JVD<T> &&error = MegBA::geo::AnalyticalDerivativesKernelMatrix(angle_axisd, t, intrinsics, point_xyz, obs_uv);
+    const auto& point_xyz = Vertices[1].getEstimation();
+    const auto& obs_uv = this->getMeasurement();
+    MegBA::JVD<T>&& error = MegBA::geo::AnalyticalDerivativesKernelMatrix(
+        angle_axisd, t, intrinsics, point_xyz, obs_uv);
     return error;
   }
 };
@@ -40,9 +41,9 @@ bool readVector(std::istream& is, Eigen::DenseBase<Derived>& b) {
   for (int i = 0; i < b.size() && is.good(); i++) is >> b(i);
   return is.good() || is.eof();
 }
-}
+}  // namespace
 
-int main(int argc, char *argv[]) {
+int main(int argc, char* argv[]) {
   std::string name;
   int iter, solver_max_iter, worldSize;
   double solver_tol, solver_refuse_ratio, tau, epsilon1, epsilon2;

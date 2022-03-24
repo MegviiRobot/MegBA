@@ -1,13 +1,14 @@
 /**
-* MegBA is Licensed under the Apache License, Version 2.0 (the "License")
-*
-* Copyright (c) 2021 Megvii Inc. All rights reserved.
-*
-**/
+ * MegBA is Licensed under the Apache License, Version 2.0 (the "License")
+ *
+ * Copyright (c) 2021 Megvii Inc. All rights reserved.
+ *
+ **/
 
 #include <cholmod.h>
-#include <memory>
+
 #include <functional>
+#include <memory>
 
 namespace MegAutoBA {
 void CholmodSolverImpl(const double *csrVal, const int *csrColInd,
@@ -88,4 +89,4 @@ void CholmodSolverImpl(const double *csrVal, const int *csrColInd,
   }
   free(X);
 }
-}
+}  // namespace MegAutoBA

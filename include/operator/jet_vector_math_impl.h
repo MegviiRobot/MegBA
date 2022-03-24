@@ -1,9 +1,9 @@
 /**
-* MegBA is Licensed under the Apache License, Version 2.0 (the "License")
-*
-* Copyright (c) 2021 Megvii Inc. All rights reserved.
-*
-**/
+ * MegBA is Licensed under the Apache License, Version 2.0 (the "License")
+ *
+ * Copyright (c) 2021 Megvii Inc. All rights reserved.
+ *
+ **/
 
 #pragma once
 #include "common.h"
@@ -17,15 +17,15 @@ void vectorAddVectorCPU(const JetVector<T> &f, const JetVector<T> &g,
 
 template <typename T>
 void vectorSubVectorCPU(const JetVector<T> &f, const JetVector<T> &g,
-                          JetVector<T> *out);
+                        JetVector<T> *out);
 
 template <typename T>
 void vectorMulVectorCPU(const JetVector<T> &f, const JetVector<T> &g,
-                               JetVector<T> *out);
+                        JetVector<T> *out);
 
 template <typename T>
 void vectorDivVectorCPU(const JetVector<T> &f, const JetVector<T> &g,
-                            JetVector<T> *out);
+                        JetVector<T> *out);
 
 template <typename T>
 void jetVectorAddScalarCPU(const JetVector<T> &f, T g, JetVector<T> *out);
@@ -34,8 +34,7 @@ template <typename T>
 void jetVectorSubScalarCPU(const JetVector<T> &f, T g, JetVector<T> *out);
 
 template <typename T>
-void jetVectorMulScalarCPU(const JetVector<T> &f, T g,
-                                  JetVector<T> *out);
+void jetVectorMulScalarCPU(const JetVector<T> &f, T g, JetVector<T> *out);
 
 template <typename T>
 void jetVectorDivScalarCPU(const JetVector<T> &f, T g, JetVector<T> *out);

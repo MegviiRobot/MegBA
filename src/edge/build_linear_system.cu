@@ -1,29 +1,30 @@
 /**
-* MegBA is Licensed under the Apache License, Version 2.0 (the "License")
-*
-* Copyright (c) 2021 Megvii Inc. All rights reserved.
-*
-**/
+ * MegBA is Licensed under the Apache License, Version 2.0 (the "License")
+ *
+ * Copyright (c) 2021 Megvii Inc. All rights reserved.
+ *
+ **/
 
-#include <thrust/transform.h>
 #include <thrust/device_ptr.h>
-#include <thrust/reduce.h>
 #include <thrust/inner_product.h>
-#include "macro.h"
+#include <thrust/reduce.h>
+#include <thrust/transform.h>
+
 #include "edge/base_edge.h"
-#include "wrapper.hpp"
-#include "resource/handle_manager.h"
 #include "linear_system/schur_LM_linear_system.h"
+#include "macro.h"
+#include "resource/handle_manager.h"
+#include "wrapper.hpp"
 
 #if __CUDA_ARCH__ < 600 && defined(__CUDA_ARCH__)
 namespace {
-  union AtomicUnion {
-    double dValue;
-    unsigned long long ullValue;
-  };
-}
+union AtomicUnion {
+  double dValue;
+  unsigned long long ullValue;
+};
+}  // namespace
 
-__inline__ __device__ double atomicAdd(double* address, double val) {
+__inline__ __device__ double atomicAdd(double *address, double val) {
   AtomicUnion old, assumed;
   old.dValue = *address;
 
@@ -92,7 +93,8 @@ __global__ void makeHSchur(
     const int cameraDim, const int pointDim, const int errorNum, T *gCamera,
     T *gPoint, T *hppCsrVal, T *hllCsrVal, T *hplCsrVal, T *hlpCsrVal) {
   /*
-                 * make sure that blockDim.x % 32 == 0, if so, there won't be any thread divergence within a wrap.
+   * make sure that blockDim.x % 32 == 0, if so, there won't be any thread
+   * divergence within a wrap.
    */
   const unsigned int tid = threadIdx.x + blockDim.x * blockIdx.x;
   if (tid >= errorNum) return;
@@ -123,10 +125,12 @@ __global__ void makeHSchur(
     } else {
       makeHll(valSmem, valI, pointDim, cameraDim,
               absolutePositionPointLocal * (pointDim * pointDim) +
-                  (threadIdx.y - cameraDim) * pointDim, hllCsrVal);
+                  (threadIdx.y - cameraDim) * pointDim,
+              hllCsrVal);
       makeHlp(valSmem, valI, relativePositionCameraLocal, cameraDim,
               hlpCsrRowPtr[absolutePositionPointLocal * pointDim + threadIdx.y -
-                           cameraDim], hlpCsrVal);
+                           cameraDim],
+              hlpCsrVal);
     }
     gSum += -valI * errorPtrs[i][tid];
   }
@@ -161,23 +165,18 @@ void EdgeVector<T>::buildLinearSystemCUDA(
   std::vector<T *> gPointDevice{option.deviceUsed.size()};
   for (int i = 0; i < option.deviceUsed.size(); ++i) {
     cudaSetDevice(i);
-    cudaMemsetAsync(linearSystemLocal.g[i], 0,
-                    (hppRows + hllRows) * sizeof(T));
+    cudaMemsetAsync(linearSystemLocal.g[i], 0, (hppRows + hllRows) * sizeof(T));
     gCameraDevice[i] = &linearSystemLocal.g[i][0];
     gPointDevice[i] = &linearSystemLocal.g[i][hppRows];
     ASSERT_CUDA_NO_ERROR();
-    cudaMemsetAsync(
-        linearSystemLocal.equationContainers[i].csrVal[0], 0,
-        linearSystemLocal.equationContainers[i].nnz[0] * sizeof(T));
-    cudaMemsetAsync(
-        linearSystemLocal.equationContainers[i].csrVal[1], 0,
-        linearSystemLocal.equationContainers[i].nnz[1] * sizeof(T));
-    cudaMemsetAsync(
-        linearSystemLocal.equationContainers[i].csrVal[2], 0,
-        linearSystemLocal.equationContainers[i].nnz[2] * sizeof(T));
-    cudaMemsetAsync(
-        linearSystemLocal.equationContainers[i].csrVal[3], 0,
-        linearSystemLocal.equationContainers[i].nnz[3] * sizeof(T));
+    cudaMemsetAsync(linearSystemLocal.equationContainers[i].csrVal[0], 0,
+                    linearSystemLocal.equationContainers[i].nnz[0] * sizeof(T));
+    cudaMemsetAsync(linearSystemLocal.equationContainers[i].csrVal[1], 0,
+                    linearSystemLocal.equationContainers[i].nnz[1] * sizeof(T));
+    cudaMemsetAsync(linearSystemLocal.equationContainers[i].csrVal[2], 0,
+                    linearSystemLocal.equationContainers[i].nnz[2] * sizeof(T));
+    cudaMemsetAsync(linearSystemLocal.equationContainers[i].csrVal[3], 0,
+                    linearSystemLocal.equationContainers[i].nnz[3] * sizeof(T));
     ASSERT_CUDA_NO_ERROR();
   }
   ASSERT_CUDA_NO_ERROR();
@@ -255,16 +254,16 @@ void EdgeVector<T>::buildLinearSystemCUDA(
     ncclAllReduce(linearSystemLocal.equationContainers[i].csrVal[2],
                   linearSystemLocal.equationContainers[i].csrVal[2],
                   linearSystemLocal.equationContainers[i].nnz[2],
-                  Wrapper::declaredDtype<T>::ncclDtype, ncclSum,
-                  comms[i], nullptr);
+                  Wrapper::declaredDtype<T>::ncclDtype, ncclSum, comms[i],
+                  nullptr);
     ncclAllReduce(linearSystemLocal.equationContainers[i].csrVal[3],
                   linearSystemLocal.equationContainers[i].csrVal[3],
                   linearSystemLocal.equationContainers[i].nnz[3],
-                  Wrapper::declaredDtype<T>::ncclDtype, ncclSum,
-                  comms[i], nullptr);
+                  Wrapper::declaredDtype<T>::ncclDtype, ncclSum, comms[i],
+                  nullptr);
     ncclAllReduce(gCameraDevice[i], gCameraDevice[i], hppRows + hllRows,
-                  Wrapper::declaredDtype<T>::ncclDtype, ncclSum,
-                  comms[i], nullptr);
+                  Wrapper::declaredDtype<T>::ncclDtype, ncclSum, comms[i],
+                  nullptr);
   }
   ncclGroupEnd();
 }

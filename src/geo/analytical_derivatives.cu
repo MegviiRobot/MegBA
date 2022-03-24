@@ -1,13 +1,13 @@
 /**
-* MegBA is Licensed under the Apache License, Version 2.0 (the "License")
-*
-* Copyright (c) 2021 Megvii Inc. All rights reserved.
-*
-**/
+ * MegBA is Licensed under the Apache License, Version 2.0 (the "License")
+ *
+ * Copyright (c) 2021 Megvii Inc. All rights reserved.
+ *
+ **/
 
 #include "geo/geo.cuh"
-#include "wrapper.hpp"
 #include "macro.h"
+#include "wrapper.hpp"
 
 namespace MegBA {
 namespace geo {
@@ -283,8 +283,7 @@ __global__ void AnalyticalDerivativesKernelGradKernel(
       error_factor1 * dprojection1_dpoint[2] +
       error_factor2 * dprojection2_dpoint[2];
 }
-}
-
+}  // namespace
 
 template <typename T>
 MegBA::geo::JVD<T> AnalyticalDerivativesKernelMatrix(
@@ -333,5 +332,5 @@ template MegBA::geo::JVD<double> AnalyticalDerivativesKernelMatrix(
     const Eigen::Map<const JVD<double>> &t,
     const Eigen::Map<const JVD<double>> &intrinsics,
     const JVD<double> &point_xyz, const JVD<double> &obs_uv);
-}
-}
+}  // namespace geo
+}  // namespace MegBA

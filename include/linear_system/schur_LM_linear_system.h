@@ -1,20 +1,21 @@
 /**
-* MegBA is Licensed under the Apache License, Version 2.0 (the "License")
-*
-* Copyright (c) 2021 Megvii Inc. All rights reserved.
-*
-**/
+ * MegBA is Licensed under the Apache License, Version 2.0 (the "License")
+ *
+ * Copyright (c) 2021 Megvii Inc. All rights reserved.
+ *
+ **/
 
 #pragma once
-#include "schur_linear_system.h"
 #include "LM_linear_system.h"
 #include "problem/hessian_entrance.h"
+#include "schur_linear_system.h"
 
 namespace MegBA {
 template <typename T>
-struct SchurLMLinearSystem : public SchurLinearSystem<T>, public LMLinearSystem<T> {
-  explicit SchurLMLinearSystem(
-      const ProblemOption &option, std::unique_ptr<BaseSolver<T>> solver);
+struct SchurLMLinearSystem : public SchurLinearSystem<T>,
+                             public LMLinearSystem<T> {
+  explicit SchurLMLinearSystem(const ProblemOption &option,
+                               std::unique_ptr<BaseSolver<T>> solver);
 
   void allocateResourceCUDA();
 
@@ -28,4 +29,4 @@ struct SchurLMLinearSystem : public SchurLinearSystem<T>, public LMLinearSystem<
 
   void applyUpdate(T *xPtr) const override;
 };
-}
+}  // namespace MegBA

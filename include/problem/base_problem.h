@@ -50,6 +50,7 @@ class BaseProblem {
   void writeBack();
 
   void allocateResourceCUDA();
+
  public:
   explicit BaseProblem(const ProblemOption &problemOption,
                        std::unique_ptr<BaseAlgo<T>> algo,
@@ -63,7 +64,9 @@ class BaseProblem {
 
   const auto &getVerticesSets() const { return verticesSets; };
 
-  const auto &getHessianEntrance() const { return schurWorkSpace.hessianEntrance; };
+  const auto &getHessianEntrance() const {
+    return schurWorkSpace.hessianEntrance;
+  };
 
   void appendVertex(int ID, BaseVertex<T> *vertex);
 

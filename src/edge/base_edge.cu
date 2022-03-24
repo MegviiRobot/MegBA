@@ -1,9 +1,9 @@
 /**
-* MegBA is Licensed under the Apache License, Version 2.0 (the "License")
-*
-* Copyright (c) 2021 Megvii Inc. All rights reserved.
-*
-**/
+ * MegBA is Licensed under the Apache License, Version 2.0 (the "License")
+ *
+ * Copyright (c) 2021 Megvii Inc. All rights reserved.
+ *
+ **/
 
 #include "edge/base_edge.h"
 #include "macro.h"
@@ -11,9 +11,10 @@
 namespace MegBA {
 namespace {
 void CUDART_CB freeCallback(void *ptr) { free(ptr); }
-}
+}  // namespace
 
-template <typename T> void EdgeVector<T>::backup() const {
+template <typename T>
+void EdgeVector<T>::backup() const {
   if (option.useSchur) {
     const auto gradShape = getGradShape();
     for (int i = 0; i < MemoryPool::getWorldSize(); ++i) {
@@ -27,7 +28,8 @@ template <typename T> void EdgeVector<T>::backup() const {
   }
 }
 
-template <typename T> void EdgeVector<T>::rollback() const {
+template <typename T>
+void EdgeVector<T>::rollback() const {
   if (option.useSchur) {
     const auto gradShape = getGradShape();
     for (int i = 0; i < MemoryPool::getWorldSize(); ++i) {
@@ -41,7 +43,8 @@ template <typename T> void EdgeVector<T>::rollback() const {
   }
 }
 
-template <typename T> void EdgeVector<T>::allocateResourceCUDA() {
+template <typename T>
+void EdgeVector<T>::allocateResourceCUDA() {
   if (option.useSchur) {
     const auto worldSize = MemoryPool::getWorldSize();
     const auto gradShape = getGradShape();
@@ -83,12 +86,12 @@ template <typename T> void EdgeVector<T>::allocateResourceCUDA() {
       schurValueDevicePtrsOld[i].resize(worldSize);
     }
     for (int i = 0, iUnfixed = 0, offset = 0; i < edges.size(); ++i) {
-      if (edges[i][0]->fixed)
-        continue;
+      if (edges[i][0]->fixed) continue;
       for (int j = 0; j < worldSize; ++j) {
         const auto nItem = MemoryPool::getItemNum(j);
         schurValueDevicePtrs[iUnfixed][j] = &valueDevicePtrs[j][offset * nItem];
-        schurValueDevicePtrsOld[iUnfixed][j] = &valueDevicePtrsOld[j][offset * nItem];
+        schurValueDevicePtrsOld[iUnfixed][j] =
+            &valueDevicePtrsOld[j][offset * nItem];
       }
       iUnfixed++;
       const auto &estimation = edges[i][0]->getEstimation();
@@ -99,18 +102,16 @@ template <typename T> void EdgeVector<T>::allocateResourceCUDA() {
   }
 }
 
-template <typename T> void EdgeVector<T>::deallocateResourceCUDA() {
+template <typename T>
+void EdgeVector<T>::deallocateResourceCUDA() {
   if (option.useSchur) {
-    for (auto &edge : edges)
-      edge.CPU();
+    for (auto &edge : edges) edge.CPU();
     for (int i = 0; i < MemoryPool::getWorldSize(); ++i) {
       cudaSetDevice(i);
       cudaFree(schurValueDevicePtrs[0][i]);
       cudaFree(schurValueDevicePtrsOld[0][i]);
-      for (auto p : positionContainers[i].relativePosition)
-        cudaFree(p);
-      for (auto p : positionContainers[i].absolutePosition)
-        cudaFree(p);
+      for (auto p : positionContainers[i].relativePosition) cudaFree(p);
+      for (auto p : positionContainers[i].absolutePosition) cudaFree(p);
     }
   } else {
     // TODO(Jie Ren): implement this

@@ -1,34 +1,48 @@
 /**
-* MegBA is Licensed under the Apache License, Version 2.0 (the "License")
-*
-* Copyright (c) 2021 Megvii Inc. All rights reserved.
-*
-**/
+ * MegBA is Licensed under the Apache License, Version 2.0 (the "License")
+ *
+ * Copyright (c) 2021 Megvii Inc. All rights reserved.
+ *
+ **/
 
 #pragma once
 #include <Eigen/Core>
 
 namespace Eigen {
 namespace internal {
-template<typename MegBA_t>
+template <typename MegBA_t>
 struct scalar_constant_op<MegBA::JetVector<MegBA_t>> {
   using Scalar = MegBA::JetVector<MegBA_t>;
-  EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE scalar_constant_op(const scalar_constant_op& other) : m_other(other.m_other) { }
-  EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE scalar_constant_op(const Scalar& other) : m_other(other) { }
-  EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE const Scalar &operator() () const { return m_other; }
-  template<typename PacketType>
-  EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE const PacketType packetOp() const { return internal::pset1<PacketType>(m_other); }
+  EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE
+  scalar_constant_op(const scalar_constant_op &other)
+      : m_other(other.m_other) {}
+  EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE scalar_constant_op(const Scalar &other)
+      : m_other(other) {}
+  EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE const Scalar &operator()() const {
+    return m_other;
+  }
+  template <typename PacketType>
+  EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE const PacketType packetOp() const {
+    return internal::pset1<PacketType>(m_other);
+  }
   const Scalar &m_other;
 };
 
-template<typename MegBA_t>
+template <typename MegBA_t>
 struct scalar_constant_op<const MegBA::JetVector<MegBA_t>> {
   using Scalar = const MegBA::JetVector<MegBA_t>;
-  EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE scalar_constant_op(const scalar_constant_op& other) : m_other(other.m_other) { }
-  EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE scalar_constant_op(const Scalar& other) : m_other(other) { }
-  EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE const Scalar &operator() () const { return m_other; }
-  template<typename PacketType>
-  EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE const PacketType packetOp() const { return internal::pset1<PacketType>(m_other); }
+  EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE
+  scalar_constant_op(const scalar_constant_op &other)
+      : m_other(other.m_other) {}
+  EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE scalar_constant_op(const Scalar &other)
+      : m_other(other) {}
+  EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE const Scalar &operator()() const {
+    return m_other;
+  }
+  template <typename PacketType>
+  EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE const PacketType packetOp() const {
+    return internal::pset1<PacketType>(m_other);
+  }
   const Scalar &m_other;
 };
 
@@ -42,8 +56,8 @@ struct assign_op<MegBA::JetVector<MegBA_t>, MegBA::JetVector<MegBA_t>> {
       DstScalar &a, const SrcScalar &b) {
     a = b;
   }
-  EIGEN_DEVICE_FUNC static EIGEN_STRONG_INLINE void assignCoeff(
-      DstScalar &a, SrcScalar &&b) {
+  EIGEN_DEVICE_FUNC static EIGEN_STRONG_INLINE void assignCoeff(DstScalar &a,
+                                                                SrcScalar &&b) {
     a = std::move(b);
   }
 
@@ -117,10 +131,11 @@ struct is_lvalue<const Block<
 };
 
 template <typename MegBA_t, typename NullaryOp, int... MatrixArgs>
-struct is_lvalue<CwiseNullaryOp<NullaryOp, const Matrix<MegBA::JetVector<MegBA_t>, MatrixArgs...>>> {
+struct is_lvalue<CwiseNullaryOp<
+    NullaryOp, const Matrix<MegBA::JetVector<MegBA_t>, MatrixArgs...>>> {
   enum { value = true };
 };
-}
+}  // namespace internal
 
 template <typename MegBA_t, int... MatrixArgs, int MapOptions,
           typename StrideType>
@@ -150,25 +165,25 @@ class MapBase<Map<const Matrix<MegBA::JetVector<MegBA_t>, MatrixArgs...>,
   typedef const Scalar *PointerType;
 
   using Base::derived;
-  using Base::MaxRowsAtCompileTime;
-  using Base::MaxColsAtCompileTime;
-  using Base::MaxSizeAtCompileTime;
-  using Base::IsVectorAtCompileTime;
   using Base::Flags;
   using Base::IsRowMajor;
+  using Base::IsVectorAtCompileTime;
+  using Base::MaxColsAtCompileTime;
+  using Base::MaxRowsAtCompileTime;
+  using Base::MaxSizeAtCompileTime;
 
-  using Base::rows;
-  using Base::cols;
-  using Base::size;
   using Base::coeff;
   using Base::coeffRef;
-  using Base::lazyAssign;
+  using Base::cols;
   using Base::eval;
+  using Base::lazyAssign;
+  using Base::rows;
+  using Base::size;
 
+  using Base::colStride;
   using Base::innerStride;
   using Base::outerStride;
   using Base::rowStride;
-  using Base::colStride;
 
   // bug 217 - compile error on ICC 11.1
   using Base::operator=;
@@ -185,10 +200,11 @@ class MapBase<Map<const Matrix<MegBA::JetVector<MegBA_t>, MatrixArgs...>,
   }
 
   /** Returns a pointer to the first coefficient of the matrix or vector.
-      *
-      * \note When addressing this data, make sure to honor the strides returned by innerStride() and outerStride().
-      *
-      * \sa innerStride(), outerStride()
+   *
+   * \note When addressing this data, make sure to honor the strides returned by
+   * innerStride() and outerStride().
+   *
+   * \sa innerStride(), outerStride()
    */
   EIGEN_DEVICE_FUNC inline const Scalar *data() const { return m_data; }
 
@@ -278,7 +294,8 @@ class MapBase<Map<const Matrix<MegBA::JetVector<MegBA_t>, MatrixArgs...>,
       typename internal::enable_if<(internal::traits<T>::Alignment > 0),
                                    void *>::type = 0) const {
 #if EIGEN_MAX_ALIGN_BYTES > 0
-    // innerStride() is not set yet when this function is called, so we optimistically assume the lowest plausible value:
+    // innerStride() is not set yet when this function is called, so we
+    // optimistically assume the lowest plausible value:
     const Index minInnerStride = InnerStrideAtCompileTime == Dynamic
                                      ? 1
                                      : Index(InnerStrideAtCompileTime);
@@ -334,25 +351,25 @@ class MapBase<
   typedef const Scalar *PointerType;
 
   using Base::derived;
-  using Base::MaxRowsAtCompileTime;
-  using Base::MaxColsAtCompileTime;
-  using Base::MaxSizeAtCompileTime;
-  using Base::IsVectorAtCompileTime;
   using Base::Flags;
   using Base::IsRowMajor;
+  using Base::IsVectorAtCompileTime;
+  using Base::MaxColsAtCompileTime;
+  using Base::MaxRowsAtCompileTime;
+  using Base::MaxSizeAtCompileTime;
 
-  using Base::rows;
-  using Base::cols;
-  using Base::size;
   using Base::coeff;
   using Base::coeffRef;
-  using Base::lazyAssign;
+  using Base::cols;
   using Base::eval;
+  using Base::lazyAssign;
+  using Base::rows;
+  using Base::size;
 
+  using Base::colStride;
   using Base::innerStride;
   using Base::outerStride;
   using Base::rowStride;
-  using Base::colStride;
 
   // bug 217 - compile error on ICC 11.1
   using Base::operator=;
@@ -369,10 +386,11 @@ class MapBase<
   }
 
   /** Returns a pointer to the first coefficient of the matrix or vector.
-      *
-      * \note When addressing this data, make sure to honor the strides returned by innerStride() and outerStride().
-      *
-      * \sa innerStride(), outerStride()
+   *
+   * \note When addressing this data, make sure to honor the strides returned by
+   * innerStride() and outerStride().
+   *
+   * \sa innerStride(), outerStride()
    */
   EIGEN_DEVICE_FUNC inline const Scalar *data() const { return m_data; }
 
@@ -462,7 +480,8 @@ class MapBase<
       typename internal::enable_if<(internal::traits<T>::Alignment > 0),
                                    void *>::type = 0) const {
 #if EIGEN_MAX_ALIGN_BYTES > 0
-    // innerStride() is not set yet when this function is called, so we optimistically assume the lowest plausible value:
+    // innerStride() is not set yet when this function is called, so we
+    // optimistically assume the lowest plausible value:
     const Index minInnerStride = InnerStrideAtCompileTime == Dynamic
                                      ? 1
                                      : Index(InnerStrideAtCompileTime);
@@ -513,25 +532,25 @@ class MapBase<Block<const Matrix<MegBA::JetVector<MegBA_t>, MatrixArgs...>,
   typedef const Scalar *PointerType;
 
   using Base::derived;
-  using Base::MaxRowsAtCompileTime;
-  using Base::MaxColsAtCompileTime;
-  using Base::MaxSizeAtCompileTime;
-  using Base::IsVectorAtCompileTime;
   using Base::Flags;
   using Base::IsRowMajor;
+  using Base::IsVectorAtCompileTime;
+  using Base::MaxColsAtCompileTime;
+  using Base::MaxRowsAtCompileTime;
+  using Base::MaxSizeAtCompileTime;
 
-  using Base::rows;
-  using Base::cols;
-  using Base::size;
   using Base::coeff;
   using Base::coeffRef;
-  using Base::lazyAssign;
+  using Base::cols;
   using Base::eval;
+  using Base::lazyAssign;
+  using Base::rows;
+  using Base::size;
 
+  using Base::colStride;
   using Base::innerStride;
   using Base::outerStride;
   using Base::rowStride;
-  using Base::colStride;
 
   // bug 217 - compile error on ICC 11.1
   using Base::operator=;
@@ -548,10 +567,11 @@ class MapBase<Block<const Matrix<MegBA::JetVector<MegBA_t>, MatrixArgs...>,
   }
 
   /** Returns a pointer to the first coefficient of the matrix or vector.
-      *
-      * \note When addressing this data, make sure to honor the strides returned by innerStride() and outerStride().
-      *
-      * \sa innerStride(), outerStride()
+   *
+   * \note When addressing this data, make sure to honor the strides returned by
+   * innerStride() and outerStride().
+   *
+   * \sa innerStride(), outerStride()
    */
   EIGEN_DEVICE_FUNC inline const Scalar *data() const { return m_data; }
 
@@ -641,7 +661,8 @@ class MapBase<Block<const Matrix<MegBA::JetVector<MegBA_t>, MatrixArgs...>,
       typename internal::enable_if<(internal::traits<T>::Alignment > 0),
                                    void *>::type = 0) const {
 #if EIGEN_MAX_ALIGN_BYTES > 0
-    // innerStride() is not set yet when this function is called, so we optimistically assume the lowest plausible value:
+    // innerStride() is not set yet when this function is called, so we
+    // optimistically assume the lowest plausible value:
     const Index minInnerStride = InnerStrideAtCompileTime == Dynamic
                                      ? 1
                                      : Index(InnerStrideAtCompileTime);
@@ -663,4 +684,4 @@ class MapBase<Block<const Matrix<MegBA::JetVector<MegBA_t>, MatrixArgs...>,
   const internal::variable_if_dynamic<Index, RowsAtCompileTime> m_rows;
   const internal::variable_if_dynamic<Index, ColsAtCompileTime> m_cols;
 };
-}
+}  // namespace Eigen

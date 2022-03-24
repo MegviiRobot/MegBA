@@ -5,11 +5,12 @@
  *
  **/
 
-#include "solver/schur_pcg_solver.h"
 #include "linear_system/schur_LM_linear_system.h"
+#include "solver/schur_pcg_solver.h"
 #include "wrapper.hpp"
 
-#if __CUDACC_VER_MAJOR__ < 11 || (__CUDACC_VER_MAJOR__ == 11 && __CUDACC_VER_MINOR__ <= 2)
+#if __CUDACC_VER_MAJOR__ < 11 || \
+    (__CUDACC_VER_MAJOR__ == 11 && __CUDACC_VER_MINOR__ <= 2)
 #define CUSPARSE_SPMV_ALG_DEFAULT CUSPARSE_MV_ALG_DEFAULT
 #endif
 
@@ -208,8 +209,8 @@ bool schurPCGSolverDistributedCUDA(
   ncclGroupStart();
   for (int i = 0; i < worldSize; ++i) {
     ncclAllReduce(temp[i], temp[i], hllRows,
-                  Wrapper::declaredDtype<T>::ncclDtype, ncclSum,
-                  comms[i], cusparseStream[i]);
+                  Wrapper::declaredDtype<T>::ncclDtype, ncclSum, comms[i],
+                  cusparseStream[i]);
   }
   ncclGroupEnd();
 
@@ -229,9 +230,8 @@ bool schurPCGSolverDistributedCUDA(
 
   ncclGroupStart();
   for (int i = 0; i < worldSize; ++i) {
-    ncclAllReduce(axN[i], axN[i], hppRows,
-                  Wrapper::declaredDtype<T>::ncclDtype, ncclSum,
-                  comms[i], cusparseStream[i]);
+    ncclAllReduce(axN[i], axN[i], hppRows, Wrapper::declaredDtype<T>::ncclDtype,
+                  ncclSum, comms[i], cusparseStream[i]);
   }
   ncclGroupEnd();
 
@@ -319,8 +319,8 @@ bool schurPCGSolverDistributedCUDA(
     ncclGroupStart();
     for (int i = 0; i < worldSize; ++i) {
       ncclAllReduce(temp[i], temp[i], hllRows,
-                    Wrapper::declaredDtype<T>::ncclDtype, ncclSum,
-                    comms[i], cusparseStream[i]);
+                    Wrapper::declaredDtype<T>::ncclDtype, ncclSum, comms[i],
+                    cusparseStream[i]);
     }
     ncclGroupEnd();
 
@@ -341,8 +341,8 @@ bool schurPCGSolverDistributedCUDA(
     ncclGroupStart();
     for (int i = 0; i < worldSize; ++i) {
       ncclAllReduce(axN[i], axN[i], hppRows,
-                    Wrapper::declaredDtype<T>::ncclDtype, ncclSum,
-                    comms[i], cusparseStream[i]);
+                    Wrapper::declaredDtype<T>::ncclDtype, ncclSum, comms[i],
+                    cusparseStream[i]);
     }
     ncclGroupEnd();
 
@@ -473,8 +473,8 @@ void schurMakeVDistributed(std::vector<T *> &SpMVbuffer, const int pointNum,
                             &alpha, hpl[i], vecw[i], &beta, vecv[i],
                             cudaDataType, CUSPARSE_SPMV_ALG_DEFAULT,
                             &bufferSize);
-    MemoryPool::allocateNormal(
-        reinterpret_cast<void **>(&SpMVbuffer[i]), bufferSize, i);
+    MemoryPool::allocateNormal(reinterpret_cast<void **>(&SpMVbuffer[i]),
+                               bufferSize, i);
     cusparseSpMV(cusparseHandle[i], CUSPARSE_OPERATION_NON_TRANSPOSE, &alpha,
                  hpl[i], vecw[i], &beta, vecv[i], cudaDataType,
                  CUSPARSE_SPMV_ALG_DEFAULT, SpMVbuffer[i]);
@@ -490,9 +490,8 @@ void schurMakeVDistributed(std::vector<T *> &SpMVbuffer, const int pointNum,
   }
   ncclGroupStart();
   for (int i = 0; i < worldSize; ++i) {
-    ncclAllReduce(v[i], v[i], hppRows,
-                  Wrapper::declaredDtype<T>::ncclDtype, ncclSum,
-                  comms[i], cusparseStream[i]);
+    ncclAllReduce(v[i], v[i], hppRows, Wrapper::declaredDtype<T>::ncclDtype,
+                  ncclSum, comms[i], cusparseStream[i]);
   }
   ncclGroupEnd();
 }
@@ -553,9 +552,8 @@ void schurSolveWDistributed(
 
   ncclGroupStart();
   for (int i = 0; i < worldSize; ++i) {
-    ncclAllReduce(xp[i], xp[i], hllRows,
-                  Wrapper::declaredDtype<T>::ncclDtype, ncclSum,
-                  comms[i], cusparseStream[i]);
+    ncclAllReduce(xp[i], xp[i], hllRows, Wrapper::declaredDtype<T>::ncclDtype,
+                  ncclSum, comms[i], cusparseStream[i]);
   }
   ncclGroupEnd();
 
@@ -625,8 +623,9 @@ bool SchurPCGSolverDistributed(
 }  // namespace
 
 template <typename T>
-void SchurPCGSolver<T>::solve(const BaseLinearSystem<T>& baseLinearSystem) {
-  const auto &linearSystem = dynamic_cast<const SchurLinearSystem<T> &>(baseLinearSystem);
+void SchurPCGSolver<T>::solve(const BaseLinearSystem<T> &baseLinearSystem) {
+  const auto &linearSystem =
+      dynamic_cast<const SchurLinearSystem<T> &>(baseLinearSystem);
   const std::size_t worldSize = linearSystem.problemOption.deviceUsed.size();
   std::vector<T *> hppCsrVal{worldSize};
   std::vector<T *> hllCsrVal{worldSize};
@@ -655,11 +654,12 @@ void SchurPCGSolver<T>::solve(const BaseLinearSystem<T>& baseLinearSystem) {
     deltaX[i] = linearSystem.deltaXPtr[i];
   }
 
-  SchurPCGSolverDistributed(this->solverOption.solverOptionPCG, hppCsrVal,
-                            hllCsrVal, hplCsrVal, hplCsrColInd, hplCsrRowPtr,
-                            hlpCsrVal, hlpCsrColInd, hlpCsrRowPtr, g, linearSystem.dim[0],
-                            linearSystem.num[0], linearSystem.dim[1], linearSystem.num[1], hplNnz, linearSystem.dim[0] * linearSystem.num[0],
-                            linearSystem.dim[1] * linearSystem.num[1], deltaX);
+  SchurPCGSolverDistributed(
+      this->solverOption.solverOptionPCG, hppCsrVal, hllCsrVal, hplCsrVal,
+      hplCsrColInd, hplCsrRowPtr, hlpCsrVal, hlpCsrColInd, hlpCsrRowPtr, g,
+      linearSystem.dim[0], linearSystem.num[0], linearSystem.dim[1],
+      linearSystem.num[1], hplNnz, linearSystem.dim[0] * linearSystem.num[0],
+      linearSystem.dim[1] * linearSystem.num[1], deltaX);
 }
 
 SPECIALIZE_CLASS(SchurPCGSolver);

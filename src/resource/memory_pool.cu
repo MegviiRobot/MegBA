@@ -38,12 +38,14 @@ std::vector<std::size_t> memOverflowedPeak{};
 std::set<std::vector<void *>> managedRecorder{};
 }  // namespace
 
-void MemoryPool::resetPool(const ProblemOption *problemOption, std::int8_t sizeofType) {
+void MemoryPool::resetPool(const ProblemOption *problemOption,
+                           std::int8_t sizeofType) {
   int deviceCount;
   cudaGetDeviceCount(&deviceCount);
   cudaDeviceSynchronize();
   if (problemOption->deviceUsed.size() > deviceCount) {
-    throw std::runtime_error("world_size is larger than the number of devices you have");
+    throw std::runtime_error(
+        "world_size is larger than the number of devices you have");
   }
 
   // TODO(Jie Ren): maybe destroy only once

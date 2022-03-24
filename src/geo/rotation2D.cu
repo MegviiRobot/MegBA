@@ -1,9 +1,9 @@
 /**
-* MegBA is Licensed under the Apache License, Version 2.0 (the "License")
-*
-* Copyright (c) 2021 Megvii Inc. All rights reserved.
-*
-**/
+ * MegBA is Licensed under the Apache License, Version 2.0 (the "License")
+ *
+ * Copyright (c) 2021 Megvii Inc. All rights reserved.
+ *
+ **/
 
 #include "geo/geo.cuh"
 #include "wrapper.hpp"
@@ -34,9 +34,9 @@ __global__ void Rotation2DToRotation(const int nItem, const int N, const T *R,
     dR11[index] *= -sinr;
   }
 }
-}
+}  // namespace
 
-        template <typename T>
+template <typename T>
 JM22<T> Rotation2DToRotationMatrix(
     const Eigen::Rotation2D<JetVector<T>> &Rotation2D) {
   JM22<T> R{};
@@ -73,5 +73,5 @@ template JM22<float> Rotation2DToRotationMatrix(
 
 template JM22<double> Rotation2DToRotationMatrix(
     const Eigen::Rotation2D<JetVector<double>> &Rotation2D);
-}
-}
+}  // namespace geo
+}  // namespace MegBA

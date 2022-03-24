@@ -1,14 +1,15 @@
 /**
-* MegBA is Licensed under the Apache License, Version 2.0 (the "License")
-*
-* Copyright (c) 2021 Megvii Inc. All rights reserved.
-*
-**/
+ * MegBA is Licensed under the Apache License, Version 2.0 (the "License")
+ *
+ * Copyright (c) 2021 Megvii Inc. All rights reserved.
+ *
+ **/
 
 #pragma once
-#include "common.h"
 #include <cassert>
 #include <vector>
+
+#include "common.h"
 
 namespace MegBA {
 class MemoryPool {
@@ -20,11 +21,13 @@ class MemoryPool {
   static std::size_t _ptrInUseCounter;
 
  public:
-  static void resetPool(const ProblemOption *problemOption, std::int8_t sizeofType);
+  static void resetPool(const ProblemOption *problemOption,
+                        std::int8_t sizeofType);
 
   static void allocateJetVector(std::vector<void *> &valueDevicePtr,
-                                std::vector<void *> &gradDevicePtr, std::size_t N,
-                                std::size_t nItem, std::int8_t sizeofType);
+                                std::vector<void *> &gradDevicePtr,
+                                std::size_t N, std::size_t nItem,
+                                std::int8_t sizeofType);
 
   static void deallocateJetVector(std::vector<void *> &ptr);
 
@@ -32,16 +35,21 @@ class MemoryPool {
 
   static void deallocateNormal(void *ptr, int rank = 0);
 
-  static std::size_t getWorldSize() { return _problemOption->deviceUsed.size(); }
+  static std::size_t getWorldSize() {
+    return _problemOption->deviceUsed.size();
+  }
 
-  static const std::vector<int> &getWorld() { return _problemOption->deviceUsed; }
+  static const std::vector<int> &getWorld() {
+    return _problemOption->deviceUsed;
+  }
 
   static void redistribute();
 
   static std::size_t getItemNum(int rank) {
     const auto worldSize = getWorldSize();
     if (rank == worldSize - 1)
-      return _problemOption->nItem - (_problemOption->nItem / worldSize + 1) * (worldSize - 1);
+      return _problemOption->nItem -
+             (_problemOption->nItem / worldSize + 1) * (worldSize - 1);
     else
       return _problemOption->nItem / worldSize + 1;
   }
