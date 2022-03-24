@@ -132,7 +132,7 @@ int main(int argc, char* argv[]) {
   fin >> num_observations;
 
   MegBA::ProblemOption problemOption{};
-  problemOption.nItem = 1;
+  problemOption.nItem = num_observations;
   problemOption.N = 12;
   for (int i = 0; i < worldSize; ++i) {
     problemOption.deviceUsed.push_back(i);
@@ -158,13 +158,6 @@ int main(int argc, char* argv[]) {
   std::vector<std::tuple<int, int, Eigen::Matrix<T, 2, 1>>> edge;
   std::vector<std::tuple<int, Eigen::Matrix<T, 9, 1>>> camera_vertices;
   std::vector<std::tuple<int, Eigen::Matrix<T, 3, 1>>> point_vertices;
-
-  MegBA::JetVector<float> jv;
-  jv.setGradShape(12);
-  jv.appendJet(4., 0);
-  jv.CUDA();
-  auto result = MegBA::math::sqrt(jv);
-  result.CPU();
 
   int counter = 0;
   // read edges
