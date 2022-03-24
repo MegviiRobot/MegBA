@@ -1,24 +1,26 @@
 /**
-* MegBA is Licensed under the Apache License, Version 2.0 (the "License")
-*
-* Copyright (c) 2021 Megvii Inc. All rights reserved.
-*
-**/
+ * MegBA is Licensed under the Apache License, Version 2.0 (the "License")
+ *
+ * Copyright (c) 2021 Megvii Inc. All rights reserved.
+ *
+ **/
 
 #pragma once
-#include <utility>
-#include <iostream>
 #include <cassert>
 #include <functional>
+#include <iostream>
+#include <utility>
 #include <vector>
+
 #include "common.h"
 #include "jet_vector-inl.h"
 #include "jet_vector_op-inl.h"
-#include "resource/memory_pool.h"
 #include "resource/handle_manager.h"
+#include "resource/memory_pool.h"
 
 namespace MegBA {
-template <typename T> class JetVector {
+template <typename T>
+class JetVector {
   // cuda functions
   void initAsCUDA(const JetVector<T> &f);
   void CPU2CUDA(const JetVector<T> &f);
@@ -42,7 +44,9 @@ template <typename T> class JetVector {
   explicit JetVector(T scalar) : _pureScalarFlag(true), _pureScalar(scalar) {}
 
   JetVector(const JetVector<T> &f)
-      : _N{f._N}, _nItem{f._nItem}, _device{f._device},
+      : _N{f._N},
+        _nItem{f._nItem},
+        _device{f._device},
         _valueHostVec{f._valueHostVec},
         _gradHostVec{f._gradHostVec} {
     switch (_device) {
@@ -55,11 +59,14 @@ template <typename T> class JetVector {
   }
 
   JetVector(JetVector<T> &&f) noexcept
-      : _N{f._N}, _nItem{f._nItem},
-        _device{f._device}, _gradHostVec{std::move(f._gradHostVec)},
+      : _N{f._N},
+        _nItem{f._nItem},
+        _device{f._device},
+        _gradHostVec{std::move(f._gradHostVec)},
         _gradDevicePtr{std::move(f._gradDevicePtr)},
         _valueHostVec{std::move(f._valueHostVec)},
-        _valueDevicePtr{std::move(f._valueDevicePtr)}, _gradPosition{f._gradPosition},
+        _valueDevicePtr{std::move(f._valueDevicePtr)},
+        _gradPosition{f._gradPosition},
         _pureScalarFlag{f._pureScalarFlag},
         _pureScalar{f._pureScalar} {
     f._N = 0;
@@ -90,7 +97,7 @@ template <typename T> class JetVector {
   JetVector<T> &CPU();
   JetVector<T> &CUDA();
   bool IsEmpty();
-  void set_Grad_Shape(unsigned int N);
+  void setGradShape(unsigned int N);
   void erase(std::size_t idx) {
     assert(_device == Device::CPU || _gradPosition != -1 || _N == 0);
     _valueHostVec.erase(_valueHostVec.begin() + idx);
@@ -98,7 +105,9 @@ template <typename T> class JetVector {
   }
   const unsigned int &getGradShape() const { return _N; }
   const unsigned int &getItemNum() const { return _nItem; }
-  std::size_t getItemNum(int rank) const { return MemoryPool::getItemNum(rank); }
+  std::size_t getItemNum(int rank) const {
+    return MemoryPool::getItemNum(rank);
+  }
   int getGradPosition() const { return _gradPosition; }
   const Device &getDevice() const { return _device; }
 
@@ -112,7 +121,8 @@ template <typename T> class JetVector {
   const std::vector<T *> &getCUDAResPtr() const { return _valueDevicePtr; }
 
   void bindValueDevicePtr(std::vector<T *> &&valueDevicePtr) {
-    _valueDevicePtr = std::move(valueDevicePtr); }
+    _valueDevicePtr = std::move(valueDevicePtr);
+  }
 
   void setGradPosition(int gradPosition);
 

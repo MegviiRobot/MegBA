@@ -1,15 +1,16 @@
 /**
-* MegBA is Licensed under the Apache License, Version 2.0 (the "License")
-*
-* Copyright (c) 2021 Megvii Inc. All rights reserved.
-*
-**/
+ * MegBA is Licensed under the Apache License, Version 2.0 (the "License")
+ *
+ * Copyright (c) 2021 Megvii Inc. All rights reserved.
+ *
+ **/
 
-#include "resource/memory_pool.h"
-#include <unordered_map>
 #include <set>
 #include <stack>
+#include <unordered_map>
+
 #include "resource/handle_manager.h"
+#include "resource/memory_pool.h"
 
 namespace MegBA {
 namespace {
@@ -38,6 +39,13 @@ std::set<std::vector<void *>> managedRecorder{};
 }  // namespace
 
 void MemoryPool::resetPool(const ProblemOption *problemOption, std::int8_t sizeofType) {
+  int deviceCount;
+  cudaGetDeviceCount(&deviceCount);
+  cudaDeviceSynchronize();
+  if (problemOption->deviceUsed.size() > deviceCount) {
+    throw std::runtime_error("world_size is larger than the number of devices you have");
+  }
+
   // TODO(Jie Ren): maybe destroy only once
   _problemOption = problemOption;
   _sizeofType = sizeofType;
@@ -50,17 +58,18 @@ void MemoryPool::resetPool(const ProblemOption *problemOption, std::int8_t sizeo
 }
 
 void MemoryPool::allocateJetVector(std::vector<void *> &valueDevicePtr,
-                                   std::vector<void *> &gradDevicePtr, std::size_t N,
-                                   std::size_t nItem, std::int8_t sizeofType) {
+                                   std::vector<void *> &gradDevicePtr,
+                                   std::size_t N, std::size_t nItem,
+                                   std::int8_t sizeofType) {
   const auto worldSize = getWorldSize();
   valueDevicePtr.clear();
   valueDevicePtr.resize(worldSize);
   gradDevicePtr.clear();
   gradDevicePtr.resize(worldSize);
-//  assert((N == _N || N == 0) && nItem == _nItem && sizeofType == _sizeofType);
+  //  assert((N == _N || N == 0) && nItem == _nItem && sizeofType ==
+  //  _sizeofType);
   for (auto offset : memOffsetCounter)
-    if (offset != 0)
-      throw std::runtime_error("memory leak");
+    if (offset != 0) throw std::runtime_error("memory leak");
   if (_ptr.empty()) {
     for (int i = 0; i < worldSize; ++i) {
       const auto nItem = getItemNum(i);
@@ -165,7 +174,8 @@ void MemoryPool::redistribute() {
       for (const auto &v : _ptr) {
         cudaFree(v[i]);
       }
-      _poolSize[i] = (_problemOption->N + 1) * nItem * _sizeofType * _ptr.size();
+      _poolSize[i] =
+          (_problemOption->N + 1) * nItem * _sizeofType * _ptr.size();
       cudaMalloc(&_headPtr[i], _poolSize[i]);
       uint64_t offset{0};
       for (auto &item : _ptr) {
@@ -177,8 +187,7 @@ void MemoryPool::redistribute() {
     }
   } else {
     bool overflowed{false};
-    for (auto peak : memOverflowedPeak)
-      overflowed |= peak != 0;
+    for (auto peak : memOverflowedPeak) overflowed |= peak != 0;
     if (overflowed) {
       for (auto &item : _ptr) {
         managedRecorder.erase(item);
