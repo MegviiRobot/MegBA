@@ -1,16 +1,17 @@
 /**
-* MegBA is Licensed under the Apache License, Version 2.0 (the "License")
-*
-* Copyright (c) 2021 Megvii Inc. All rights reserved.
-*
-**/
+ * MegBA is Licensed under the Apache License, Version 2.0 (the "License")
+ *
+ * Copyright (c) 2021 Megvii Inc. All rights reserved.
+ *
+ **/
 
 #pragma once
 #include <Eigen/Core>
 #include <map>
-#include <vector>
 #include <set>
 #include <utility>
+#include <vector>
+
 #include "common.h"
 
 namespace MegBA {
@@ -22,14 +23,17 @@ using TD = Eigen::Matrix<T, Eigen::Dynamic, Eigen::Dynamic>;
 
 enum VertexKind { CAMERA = 0, POINT = 1, NONE = 2 };
 
-template <typename T> struct BaseVertex {
+template <typename T>
+struct BaseVertex {
   BaseVertex() = default;
 
-  template <typename Estimation> void setEstimation(Estimation &&estimation) {
+  template <typename Estimation>
+  void setEstimation(Estimation &&estimation) {
     _estimation = std::forward<Estimation>(estimation);
   }
 
-  template <typename Estimation> void setObservation(Estimation &&observation) {
+  template <typename Estimation>
+  void setObservation(Estimation &&observation) {
     _observation = std::forward<Estimation>(observation);
   }
 
@@ -58,19 +62,22 @@ template <typename T> struct BaseVertex {
   TD<T> _observation{};
 };
 
-template <typename T> struct CameraVertex : public BaseVertex<T> {
+template <typename T>
+struct CameraVertex : public BaseVertex<T> {
   CameraVertex() = default;
 
   VertexKind kind() final { return CAMERA; };
 };
 
-template <typename T> struct PointVertex : public BaseVertex<T> {
+template <typename T>
+struct PointVertex : public BaseVertex<T> {
   PointVertex() = default;
 
   VertexKind kind() final { return POINT; }
 };
 
-template <typename T> class VertexVector {
+template <typename T>
+class VertexVector {
   std::vector<BaseVertex<T> *> m_data;
   std::map<const BaseVertex<T> *, std::size_t> _vertexCounter;
   JVD<T> _jvEstimation;
@@ -84,8 +91,8 @@ template <typename T> class VertexVector {
   bool fixed;
 
   std::size_t size() { return m_data.size(); }
-  BaseVertex<T> * &operator[](std::size_t n) { return m_data[n]; }
-  BaseVertex<T> * const &operator[](std::size_t n) const { return m_data[n]; }
+  BaseVertex<T> *&operator[](std::size_t n) { return m_data[n]; }
+  BaseVertex<T> *const &operator[](std::size_t n) const { return m_data[n]; }
 
   void CPU() {
     for (int i = 0; i < _estimationRows * _estimationCols; ++i) {
@@ -128,7 +135,7 @@ template <typename T> class VertexVector {
     _observationCols = cols;
     _jvObservation.resize(rows, cols);
     for (int i = 0; i < rows * cols; ++i) {
-      _jvObservation(i).set_Grad_Shape(0);
+      _jvObservation(i).setGradShape(0);
     }
   }
 
@@ -136,7 +143,7 @@ template <typename T> class VertexVector {
     if (fixed) offset = -_estimationRows * _estimationCols - 1;
     for (int i = 0; i < _estimationRows; ++i) {
       for (int j = 0; j < _estimationCols; ++j) {
-        _jvEstimation(i, j).set_Grad_Shape(fixed ? 0 : N);
+        _jvEstimation(i, j).setGradShape(fixed ? 0 : N);
         _jvEstimation(i, j).setGradPosition(
             fixed ? -1 : offset + i * _estimationCols + j);
       }
@@ -176,9 +183,11 @@ template <typename T> class VertexVector {
   const auto &getJVObservation() const { return _jvObservation; }
 };
 
-template <typename T> class EdgeWrapper;
+template <typename T>
+class EdgeWrapper;
 
-template <typename T> class VertexWrapper {
+template <typename T>
+class VertexWrapper {
   friend EdgeWrapper<T>;
 
   void bindJVEstimation(const JVD<T> &jvEstimation) {
