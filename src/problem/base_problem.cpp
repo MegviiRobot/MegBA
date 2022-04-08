@@ -1,16 +1,17 @@
 /**
-* MegBA is Licensed under the Apache License, Version 2.0 (the "License")
-*
-* Copyright (c) 2021 Megvii Inc. All rights reserved.
-*
-**/
+ * MegBA is Licensed under the Apache License, Version 2.0 (the "License")
+ *
+ * Copyright (c) 2021 Megvii Inc. All rights reserved.
+ *
+ **/
 
-#include "problem/base_problem.h"
-#include <thread>
 #include <iostream>
+#include <thread>
+
 #include "algo/base_algo.h"
 #include "linear_system/base_linear_system.h"
 #include "macro.h"
+#include "problem/base_problem.h"
 
 namespace MegBA {
 namespace {
@@ -47,10 +48,9 @@ void HessianEntrance<T>::buildRandomAccess() {
 }
 
 template <typename T>
-BaseProblem<T>::BaseProblem(
-    const ProblemOption &problemOption,
-    std::unique_ptr<BaseAlgo<T>> algo,
-    std::unique_ptr<BaseLinearSystem<T>> linearSystem)
+BaseProblem<T>::BaseProblem(const ProblemOption &problemOption,
+                            std::unique_ptr<BaseAlgo<T>> algo,
+                            std::unique_ptr<BaseLinearSystem<T>> linearSystem)
     : problemOption(problemOption),
       algo(std::move(algo)),
       linearSystem(std::move(linearSystem)) {

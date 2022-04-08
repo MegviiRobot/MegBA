@@ -1,14 +1,15 @@
 /**
-* MegBA is Licensed under the Apache License, Version 2.0 (the "License")
-*
-* Copyright (c) 2021 Megvii Inc. All rights reserved.
-*
-**/
+ * MegBA is Licensed under the Apache License, Version 2.0 (the "License")
+ *
+ * Copyright (c) 2021 Megvii Inc. All rights reserved.
+ *
+ **/
 
 #pragma once
-#include <cusparse_v2.h>
 #include <cublas_v2.h>
+#include <cusparse_v2.h>
 #include <nccl.h>
+
 #include <vector>
 
 namespace MegBA {

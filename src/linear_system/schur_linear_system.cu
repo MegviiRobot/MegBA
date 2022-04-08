@@ -1,9 +1,9 @@
 /**
-* MegBA is Licensed under the Apache License, Version 2.0 (the "License")
-*
-* Copyright (c) 2021 Megvii Inc. All rights reserved.
-*
-**/
+ * MegBA is Licensed under the Apache License, Version 2.0 (the "License")
+ *
+ * Copyright (c) 2021 Megvii Inc. All rights reserved.
+ *
+ **/
 
 #include "linear_system/schur_linear_system.h"
 
@@ -27,4 +27,4 @@ void SchurLinearSystem<T>::freeCUDA() {
 
 template class SchurLinearSystem<double>;
 template class SchurLinearSystem<float>;
-}
+}  // namespace MegBA

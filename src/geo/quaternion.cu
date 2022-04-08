@@ -1,12 +1,12 @@
 /**
-* MegBA is Licensed under the Apache License, Version 2.0 (the "License")
-*
-* Copyright (c) 2021 Megvii Inc. All rights reserved.
-*
-**/
+ * MegBA is Licensed under the Apache License, Version 2.0 (the "License")
+ *
+ * Copyright (c) 2021 Megvii Inc. All rights reserved.
+ *
+ **/
 
-#include "geo/Geo.cuh"
 #include "Wrapper.hpp"
+#include "geo/Geo.cuh"
 
 namespace MegAutoBA {
 namespace geo {
@@ -101,9 +101,9 @@ struct R2Q_Address_Wrapper<double> {
 template <typename T>
 __global__ void RotationToQuaternion(const int nItem, const int N) {
   /*
-                 * 00: 0    01: 1   02: 2
-                 * 10: 3    11: 4   12: 5
-                 * 20: 6    21: 7   22: 8
+   * 00: 0    01: 1   02: 2
+   * 10: 3    11: 4   12: 5
+   * 20: 6    21: 7   22: 8
    */
   using W = R2Q_Address_Wrapper<T>;
   unsigned int idx = threadIdx.x + blockDim.x * blockIdx.x;
@@ -232,9 +232,9 @@ __global__ void Normalize_(const int nItem, const int N, T *Qx, T *Qy, T *Qz,
     dQz[index] = inv_l2 * (dqz - qz * common_coeff);
   }
 }
-}
+}  // namespace
 
-        template <typename T>
+template <typename T>
 JM33<T> QuaternionToRotationMatrix(const JV4<T> &Q) {
   JM33<T> R{};
   const MegAutoBA::JetVector<T> &JV_Template = Q(0, 0);
@@ -345,5 +345,5 @@ template JV4<float> RotationMatrixToQuaternion(const JM33<float> &R);
 template JV4<double> RotationMatrixToQuaternion(const JM33<double> &R);
 template JV4<float> &Normalize_(JV4<float> &Q);
 template JV4<double> &Normalize_(JV4<double> &Q);
-}
-}
+}  // namespace geo
+}  // namespace MegAutoBA

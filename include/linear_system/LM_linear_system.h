@@ -1,9 +1,9 @@
 /**
-* MegBA is Licensed under the Apache License, Version 2.0 (the "License")
-*
-* Copyright (c) 2021 Megvii Inc. All rights reserved.
-*
-**/
+ * MegBA is Licensed under the Apache License, Version 2.0 (the "License")
+ *
+ * Copyright (c) 2021 Megvii Inc. All rights reserved.
+ *
+ **/
 
 #pragma once
 #include "base_linear_system.h"
@@ -31,11 +31,12 @@ struct LMLinearSystem : virtual public BaseLinearSystem<T> {
   virtual void rollback() const = 0;
 
  protected:
-  explicit LMLinearSystem(const ProblemOption &option, std::unique_ptr<BaseSolver<T>> solver);
+  explicit LMLinearSystem(const ProblemOption &option,
+                          std::unique_ptr<BaseSolver<T>> solver);
 
  private:
   void freeCPU();
 
   void freeCUDA();
 };
-}
+}  // namespace MegBA

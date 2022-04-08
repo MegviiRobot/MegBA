@@ -1,9 +1,9 @@
 /**
-* MegBA is Licensed under the Apache License, Version 2.0 (the "License")
-*
-* Copyright (c) 2021 Megvii Inc. All rights reserved.
-*
-**/
+ * MegBA is Licensed under the Apache License, Version 2.0 (the "License")
+ *
+ * Copyright (c) 2021 Megvii Inc. All rights reserved.
+ *
+ **/
 
 #pragma once
 #include "LM_linear_system.h"
@@ -27,11 +27,12 @@ struct SchurLinearSystem : virtual public BaseLinearSystem<T> {
   std::vector<EquationContainer> equationContainers;
 
  protected:
-  explicit SchurLinearSystem(const ProblemOption &option, std::unique_ptr<BaseSolver<T>> solver);
+  explicit SchurLinearSystem(const ProblemOption &option,
+                             std::unique_ptr<BaseSolver<T>> solver);
 
  private:
   void freeCPU();
 
   void freeCUDA();
 };
-}
+}  // namespace MegBA

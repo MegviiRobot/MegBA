@@ -1,21 +1,23 @@
 /**
-* MegBA is Licensed under the Apache License, Version 2.0 (the "License")
-*
-* Copyright (c) 2021 Megvii Inc. All rights reserved.
-*
-**/
+ * MegBA is Licensed under the Apache License, Version 2.0 (the "License")
+ *
+ * Copyright (c) 2021 Megvii Inc. All rights reserved.
+ *
+ **/
 
-#include "algo/lm_algo.h"
+#include <thrust/async/reduce.h>
 #include <thrust/device_ptr.h>
 #include <thrust/inner_product.h>
-#include <thrust/async/reduce.h>
-#include <iostream>
+
 #include <chrono>
+#include <iostream>
+
+#include "algo/lm_algo.h"
+#include "edge/base_edge.h"
 #include "linear_system/LM_linear_system.h"
+#include "operator/jet_vector.h"
 #include "resource/handle_manager.h"
 #include "resource/memory_pool.h"
-#include "operator/jet_vector.h"
-#include "edge/base_edge.h"
 #include "wrapper.hpp"
 
 namespace MegBA {
@@ -132,13 +134,13 @@ inline T linfNorm(const T *vector, const std::size_t size) {
                              return std::abs(lhs) < std::abs(rhs);
                            }));
 }
-}
+}  // namespace
 template <typename T>
 void LMAlgo<T>::solveCUDA(const BaseLinearSystem<T> &baseLinearSystem,
-                          const EdgeVector<T> &edges,
-                          T *xPtr) {
+                          const EdgeVector<T> &edges, T *xPtr) {
   auto startTimePoint = std::chrono::system_clock::now();
-  const auto &linearSystem = dynamic_cast<const LMLinearSystem<T> &>(baseLinearSystem);
+  const auto &linearSystem =
+      dynamic_cast<const LMLinearSystem<T> &>(baseLinearSystem);
   JVD<T> jvBackup;
   jvBackup = edges.forward();
   MemoryPool::redistribute();
@@ -152,8 +154,11 @@ void LMAlgo<T>::solveCUDA(const BaseLinearSystem<T> &baseLinearSystem,
   double v = 2.;
   linearSystem.backup();
   edges.backup();
-  std::cout << ", elapsed " <<
-  std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now() - startTimePoint).count() << " ms";
+  std::cout << ", elapsed "
+            << std::chrono::duration_cast<std::chrono::milliseconds>(
+                   std::chrono::system_clock::now() - startTimePoint)
+                   .count()
+            << " ms";
   std::cout << std::endl;
   while (!stop && k < this->algoOption.algoOptionLM.maxIter) {
     k++;
@@ -161,13 +166,17 @@ void LMAlgo<T>::solveCUDA(const BaseLinearSystem<T> &baseLinearSystem,
     linearSystem.solve();
     MemoryPool::redistribute();
     cudaSetDevice(0);
-    double deltaXL2 = std::sqrt(l2NormPow2(linearSystem.deltaXPtr[0], linearSystem.getHessianShape()));;
+    double deltaXL2 = std::sqrt(
+        l2NormPow2(linearSystem.deltaXPtr[0], linearSystem.getHessianShape()));
+    ;
     double xL2 = std::sqrt(l2NormPow2(xPtr, linearSystem.getHessianShape()));
-    if (deltaXL2 <= this->algoOption.algoOptionLM.epsilon2 * (xL2 + this->algoOption.algoOptionLM.epsilon1)) {
+    if (deltaXL2 <= this->algoOption.algoOptionLM.epsilon2 *
+                        (xL2 + this->algoOption.algoOptionLM.epsilon1)) {
       break;
     }
     edges.update(linearSystem);
-    double rhoDenominator = computeRhoDenominator(jvBackup, linearSystem, edges) - residualNormNew;
+    double rhoDenominator =
+        computeRhoDenominator(jvBackup, linearSystem, edges) - residualNormNew;
     residualNorm = residualNormNew;
     JVD<T> jv = edges.forward();
     residualNormNew = computeResidualNorm(jv);
@@ -182,7 +191,8 @@ void LMAlgo<T>::solveCUDA(const BaseLinearSystem<T> &baseLinearSystem,
       linearSystem.applyUpdate(xPtr);
 
       residualNorm = residualNormNew;
-      this->algoStatus.algoStatusLM.region /= std::max(1. / 3., 1 - std::pow(2 * rho - 1, 3));
+      this->algoStatus.algoStatusLM.region /=
+          std::max(1. / 3., 1 - std::pow(2 * rho - 1, 3));
       v = 2.;
       this->algoStatus.algoStatusLM.recoverDiag = false;
 
@@ -199,12 +209,15 @@ void LMAlgo<T>::solveCUDA(const BaseLinearSystem<T> &baseLinearSystem,
       v *= 2;
       this->algoStatus.algoStatusLM.recoverDiag = true;
     }
-    std::cout << ", elapsed " <<
-        std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now() - startTimePoint).count() << " ms";
+    std::cout << ", elapsed "
+              << std::chrono::duration_cast<std::chrono::milliseconds>(
+                     std::chrono::system_clock::now() - startTimePoint)
+                     .count()
+              << " ms";
     std::cout << std::endl;
   }
   std::cout << "Finished" << std::endl;
 }
 
 SPECIALIZE_CLASS(LMAlgo);
-}
+}  // namespace MegBA

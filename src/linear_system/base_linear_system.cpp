@@ -1,9 +1,9 @@
 /**
-* MegBA is Licensed under the Apache License, Version 2.0 (the "License")
-*
-* Copyright (c) 2021 Megvii Inc. All rights reserved.
-*
-**/
+ * MegBA is Licensed under the Apache License, Version 2.0 (the "License")
+ *
+ * Copyright (c) 2021 Megvii Inc. All rights reserved.
+ *
+ **/
 
 #include "linear_system/base_linear_system.h"
 #include "solver/base_solver.h"
@@ -49,4 +49,4 @@ void BaseLinearSystem<T>::freeCPU() {
 }
 
 SPECIALIZE_CLASS(BaseLinearSystem);
-}
+}  // namespace MegBA
