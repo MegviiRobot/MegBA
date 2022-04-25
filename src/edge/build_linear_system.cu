@@ -145,29 +145,29 @@ __global__ void makeHSchur(
   }
 }
 
-template<typename T>
-__global__ void JMulInfo(
-    const T *const *const valPtrs, 
-    const T *const *const infoPtrs,
-    const int resDim, const int edgeNum,
-    T *const *const outValPtrs) {
+template <typename T>
+__global__ void JMulInfo(const T *const *const valPtrs,
+                         const T *const *const infoPtrs, const int resDim,
+                         const int edgeNum, T *const *const outValPtrs) {
   /*
     * make sure that blockDim.x % 32 == 0, if so, there won't be any thread divergence within a wrap.
    */
   const unsigned int tid = threadIdx.x + blockDim.x * blockIdx.x;
-  if (tid >= edgeNum)
-    return;
-  
+  if (tid >= edgeNum) return;
+
   T *valSmem = Wrapper::SharedMemory<T>::get();
-  for(int i = 0; i < resDim; ++i) {
-    valSmem[threadIdx.x + threadIdx.y * blockDim.x + i * blockDim.x * blockDim.y] = valPtrs[i][tid + threadIdx.y * edgeNum];
+  for (int i = 0; i < resDim; ++i) {
+    valSmem[threadIdx.x + threadIdx.y * blockDim.x +
+            i * blockDim.x * blockDim.y] =
+        valPtrs[i][tid + threadIdx.y * edgeNum];
   }
   __syncthreads();
 
-  for(int i = 0; i < resDim; ++i) {
+  for (int i = 0; i < resDim; ++i) {
     T sum_Val = 0.;
     for (int j = 0; j < resDim; ++j) {
-      sum_Val += valSmem[threadIdx.x + threadIdx.y * blockDim.x + j * blockDim.x * blockDim.y] *
+      sum_Val += valSmem[threadIdx.x + threadIdx.y * blockDim.x +
+                         j * blockDim.x * blockDim.y] *
                  infoPtrs[i + j * resDim][tid];
     }
     outValPtrs[i][tid + threadIdx.y * edgeNum] = sum_Val;
@@ -177,12 +177,12 @@ __global__ void JMulInfo(
 template <typename T>
 __global__ void makeHSchurWithInfo(
     const T *const *const leftValPtrs, const T *const *const rightValPtrs,
-    const T *const *const errorPtrs,
-    const int *absolutePositionCamera, const int *absolutePositionPoint,
-    const int *relativePositionCamera, const int *relativePositionPoint,
-    const int *hplCsrRowPtr, const int *hlpCsrRowPtr, const int resDim,
-    const int cameraDim, const int pointDim, const int errorNum, T *gCamera,
-    T *gPoint, T *hppCsrVal, T *hllCsrVal, T *hplCsrVal, T *hlpCsrVal) {
+    const T *const *const errorPtrs, const int *absolutePositionCamera,
+    const int *absolutePositionPoint, const int *relativePositionCamera,
+    const int *relativePositionPoint, const int *hplCsrRowPtr,
+    const int *hlpCsrRowPtr, const int resDim, const int cameraDim,
+    const int pointDim, const int errorNum, T *gCamera, T *gPoint, T *hppCsrVal,
+    T *hllCsrVal, T *hplCsrVal, T *hlpCsrVal) {
   /*
                  * make sure that blockDim.x % 32 == 0, if so, there won't be any thread divergence within a wrap.
    */
@@ -200,7 +200,8 @@ __global__ void makeHSchurWithInfo(
   for (int i = 0; i < resDim; ++i) {
     const T valI = leftValPtrs[i][errorNum * threadIdx.y + tid];
     __syncthreads();
-    valSmem[threadIdx.y * blockDim.x + threadIdx.x] = rightValPtrs[i][errorNum * threadIdx.y + tid];
+    valSmem[threadIdx.y * blockDim.x + threadIdx.x] =
+        rightValPtrs[i][errorNum * threadIdx.y + tid];
     __syncthreads();
 
     if (threadIdx.y < cameraDim) {
@@ -215,10 +216,12 @@ __global__ void makeHSchurWithInfo(
     } else {
       makeHll(valSmem, valI, pointDim, cameraDim,
               absolutePositionPointLocal * (pointDim * pointDim) +
-                  (threadIdx.y - cameraDim) * pointDim, hllCsrVal);
+                  (threadIdx.y - cameraDim) * pointDim,
+              hllCsrVal);
       makeHlp(valSmem, valI, relativePositionCameraLocal, cameraDim,
               hlpCsrRowPtr[absolutePositionPointLocal * pointDim + threadIdx.y -
-                           cameraDim], hlpCsrVal);
+                           cameraDim],
+              hlpCsrVal);
     }
     gSum += -valI * errorPtrs[i][tid];
   }
@@ -299,8 +302,6 @@ void EdgeVector<T>::buildLinearSystemCUDA(
         errorPtrs[deviceRank][j + i * cols] =
             jetEstimationInner.getCUDAResPtr()[deviceRank];
       }
-//    cudaMemcpyAsync(totalPtrsDevice[deviceRank], totalPtrs[deviceRank].get(),
-//                    resDim * 2 * sizeof(T *), cudaMemcpyHostToDevice);
   }
 
   if (jetInformation.rows() != 0 && jetInformation.cols() != 0) {
@@ -310,14 +311,10 @@ void EdgeVector<T>::buildLinearSystemCUDA(
     std::vector<const T **> infoPtrs{option.deviceUsed.size()};
     std::vector<const T **> infoPtrsDevice{option.deviceUsed.size()};
 
-    for (int deviceRank = 0; deviceRank < option.deviceUsed.size(); ++deviceRank) {
+    for (int deviceRank = 0; deviceRank < option.deviceUsed.size();
+         ++deviceRank) {
       ASSERT_CUDA_NO_ERROR();
       cudaSetDevice(deviceRank);
-      const auto edgeNum = MemoryPool::getItemNum(deviceRank);
-      dim3 block(std::min((decltype(edgeNum))32, edgeNum),
-                 cameraDim + pointDim);
-      dim3 grid((edgeNum - 1) / block.x + 1);
-
       JMulInfoPtrs[deviceRank] = &totalPtrs[deviceRank][2 * resDim];
       JMulInfoPtrsDevice[deviceRank] = &totalPtrsDevice[deviceRank][2 * resDim];
       JVD<T> JMulInfoContainer;
@@ -325,36 +322,44 @@ void EdgeVector<T>::buildLinearSystemCUDA(
       for (int i = 0; i < rows; ++i)
         for (int j = 0; j < cols; ++j) {
           JMulInfoContainer(i, j).initAs(jetEstimation(0));
-          JMulInfoPtrs[deviceRank][j + i * cols] = JMulInfoContainer(i, j).getCUDAGradPtr()[deviceRank];
+          JMulInfoPtrs[deviceRank][j + i * cols] =
+              JMulInfoContainer(i, j).getCUDAGradPtr()[deviceRank];
         }
 
       infoPtrs[deviceRank] = &totalPtrs[deviceRank][3 * resDim];
       infoPtrsDevice[deviceRank] = &totalPtrsDevice[deviceRank][3 * resDim];
       for (int i = 0; i < rows * cols; ++i)
-        for (int j = 0; j < rows * cols; ++j){
-          infoPtrs[deviceRank][j + i * rows * cols] = jetInformation(i, j).getCUDAResPtr()[deviceRank];
+        for (int j = 0; j < rows * cols; ++j) {
+          infoPtrs[deviceRank][j + i * rows * cols] =
+              jetInformation(i, j).getCUDAResPtr()[deviceRank];
         }
-
-      cudaStream_t stream_inner;
-      cudaStreamCreateWithFlags(&stream_inner, cudaStreamNonBlocking);
-      cudaMemcpyAsync(totalPtrsDevice[deviceRank], totalPtrs[deviceRank].get(), resDim * (3 + resDim) * sizeof(T *), cudaMemcpyHostToDevice, stream_inner);
+    }
+    for (int deviceRank = 0; deviceRank < option.deviceUsed.size();
+         ++deviceRank) {
+      cudaSetDevice(deviceRank);
+      const auto edgeNum = MemoryPool::getItemNum(deviceRank);
+      dim3 block(std::min((decltype(edgeNum))32, edgeNum),
+                 cameraDim + pointDim);
+      dim3 grid((edgeNum - 1) / block.x + 1);
+      cudaMemcpyAsync(totalPtrsDevice[deviceRank], totalPtrs[deviceRank].get(),
+                      resDim * (3 + resDim) * sizeof(T *),
+                      cudaMemcpyHostToDevice);
 
       ASSERT_CUDA_NO_ERROR();
-      JMulInfo<T><<<grid, block, block.x * block.y * rows * cols * sizeof(T), stream_inner>>>(
-          valPtrsDevice[deviceRank], infoPtrsDevice[deviceRank],
-          resDim, edgeNum,
-          const_cast<T *const *>(JMulInfoPtrsDevice[deviceRank])
-      );
-      cudaStreamSynchronize(stream_inner);
+      JMulInfo<T><<<grid, block, block.x * block.y * rows * cols * sizeof(T)>>>(
+          valPtrsDevice[deviceRank], infoPtrsDevice[deviceRank], resDim,
+          edgeNum, const_cast<T *const *>(JMulInfoPtrsDevice[deviceRank]));
       makeHSchurWithInfo<<<grid, block, block.x * block.y * sizeof(T)>>>(
-          JMulInfoPtrsDevice[deviceRank], valPtrsDevice[deviceRank],errorPtrsDevice[deviceRank],
+          JMulInfoPtrsDevice[deviceRank], valPtrsDevice[deviceRank],
+          errorPtrsDevice[deviceRank],
           positionContainers[deviceRank].absolutePosition[0],
           positionContainers[deviceRank].absolutePosition[1],
           positionContainers[deviceRank].relativePosition[0],
           positionContainers[deviceRank].relativePosition[1],
           linearSystemLocal.equationContainers[deviceRank].csrRowPtr[0],
           linearSystemLocal.equationContainers[deviceRank].csrRowPtr[1], resDim,
-          cameraDim, pointDim, edgeNum, gCameraDevice[deviceRank], gPointDevice[deviceRank],
+          cameraDim, pointDim, edgeNum, gCameraDevice[deviceRank],
+          gPointDevice[deviceRank],
           linearSystemLocal.equationContainers[deviceRank].csrVal[2],
           linearSystemLocal.equationContainers[deviceRank].csrVal[3],
           linearSystemLocal.equationContainers[deviceRank].csrVal[0],
