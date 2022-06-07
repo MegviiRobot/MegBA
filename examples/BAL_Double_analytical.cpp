@@ -206,6 +206,7 @@ int main(int argc, char* argv[]) {
     edgePtr->appendVertex(&problem.getVertex(std::get<0>(edge[j])));
     edgePtr->appendVertex(&problem.getVertex(std::get<1>(edge[j])));
     edgePtr->setMeasurement(std::get<2>(std::move(edge[j])));
+    edgePtr->setInformation(Eigen::Matrix2d::Identity());
     problem.appendEdge(*edgePtr);
   }
   problem.solve();
