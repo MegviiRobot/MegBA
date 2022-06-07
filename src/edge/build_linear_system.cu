@@ -150,7 +150,8 @@ __global__ void JMulInfo(const T *const *const valPtrs,
                          const T *const *const infoPtrs, const int resDim,
                          const int edgeNum, T *const *const outValPtrs) {
   /*
-    * make sure that blockDim.x % 32 == 0, if so, there won't be any thread divergence within a wrap.
+   * make sure that blockDim.x % 32 == 0, if so, there won't be any thread
+   * divergence within a wrap.
    */
   const unsigned int tid = threadIdx.x + blockDim.x * blockIdx.x;
   if (tid >= edgeNum) return;
@@ -184,7 +185,8 @@ __global__ void makeHSchurWithInfo(
     const int pointDim, const int errorNum, T *gCamera, T *gPoint, T *hppCsrVal,
     T *hllCsrVal, T *hplCsrVal, T *hlpCsrVal) {
   /*
-                 * make sure that blockDim.x % 32 == 0, if so, there won't be any thread divergence within a wrap.
+   * make sure that blockDim.x % 32 == 0, if so, there won't be any thread
+   * divergence within a wrap.
    */
   const unsigned int tid = threadIdx.x + blockDim.x * blockIdx.x;
   if (tid >= errorNum) return;
