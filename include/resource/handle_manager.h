@@ -8,22 +8,32 @@
 #pragma once
 #include <cublas_v2.h>
 #include <cusparse_v2.h>
+#ifdef MEGBA_ENABLE_NCCL
 #include <nccl.h>
+#endif
 
 #include <vector>
 
 namespace MegBA {
 class HandleManager {
+#ifdef MEGBA_ENABLE_NCCL
   static std::vector<ncclComm_t> comms;
+#endif
   static std::vector<cublasHandle_t> cublasHandle;
   static std::vector<cusparseHandle_t> cusparseHandle;
 
  public:
+#ifdef MEGBA_ENABLE_NCCL
   static void createNCCLComm();
+#endif
 
+#ifdef MEGBA_ENABLE_NCCL
   static const std::vector<ncclComm_t> &getNCCLComm();
+#endif
 
+#ifdef MEGBA_ENABLE_NCCL
   static void destroyNCCLComm();
+#endif
 
   static void createCUBLASHandle();
 

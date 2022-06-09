@@ -282,7 +282,9 @@ BaseProblem<T>::~BaseProblem() {
   auto problemOptionBackup = new ProblemOption{problemOption};
   deallocateResource();
   MemoryPool::destruct();
+#ifdef MEGBA_ENABLE_NCCL
   HandleManager::destroyNCCLComm();
+#endif
   HandleManager::destroyCUBLASHandle();
   HandleManager::destroyCUSPARSEHandle();
 }

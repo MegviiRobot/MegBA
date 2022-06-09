@@ -8,6 +8,7 @@
 #pragma once
 #include <Eigen/Sparse>
 #include <cassert>
+#include <cuda_runtime_api.h>
 
 #if DEBUG
 #define PRINT_DMEMORY(d_ptr, nItem, T)                                     \

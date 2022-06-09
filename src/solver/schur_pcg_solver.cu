@@ -132,7 +132,9 @@ bool schurPCGSolverDistributedCUDA(
     const std::vector<int *> &hlpCsrRowPtr,
     const std::vector<T *> &hllInvCsrVal, const std::vector<T *> &g,
     const std::vector<T *> &d_x) {
+#ifdef MEGBA_ENABLE_NCCL
   const auto &comms = HandleManager::getNCCLComm();
+#endif
   const auto worldSize = MemoryPool::getWorldSize();
   constexpr auto cudaDataType = Wrapper::declaredDtype<T>::cudaDtype;
   const auto &cusparseHandle = HandleManager::getCUSPARSEHandle();
@@ -206,6 +208,7 @@ bool schurPCGSolverDistributedCUDA(
                  CUSPARSE_SPMV_ALG_DEFAULT, SpMVbuffer[i]);
   }
 
+#ifdef MEGBA_ENABLE_NCCL
   ncclGroupStart();
   for (int i = 0; i < worldSize; ++i) {
     ncclAllReduce(temp[i], temp[i], hllRows,
@@ -213,6 +216,7 @@ bool schurPCGSolverDistributedCUDA(
                   cusparseStream[i]);
   }
   ncclGroupEnd();
+#endif
 
   for (int i = 0; i < worldSize; ++i) {
     dim3 block(pointDim, std::min(32, pointNum));
@@ -228,12 +232,14 @@ bool schurPCGSolverDistributedCUDA(
                  CUSPARSE_SPMV_ALG_DEFAULT, SpMVbuffer[i]);
   }
 
+#ifdef MEGBA_ENABLE_NCCL
   ncclGroupStart();
   for (int i = 0; i < worldSize; ++i) {
     ncclAllReduce(axN[i], axN[i], hppRows, Wrapper::declaredDtype<T>::ncclDtype,
                   ncclSum, comms[i], cusparseStream[i]);
   }
   ncclGroupEnd();
+#endif
 
   for (int i = 0; i < worldSize; ++i) {
     dim3 block(cameraDim, std::min(32, cameraNum));
@@ -316,6 +322,7 @@ bool schurPCGSolverDistributedCUDA(
                    CUSPARSE_SPMV_ALG_DEFAULT, SpMVbuffer[i]);
     }
 
+#ifdef MEGBA_ENABLE_NCCL
     ncclGroupStart();
     for (int i = 0; i < worldSize; ++i) {
       ncclAllReduce(temp[i], temp[i], hllRows,
@@ -323,6 +330,7 @@ bool schurPCGSolverDistributedCUDA(
                     cusparseStream[i]);
     }
     ncclGroupEnd();
+#endif
 
     for (int i = 0; i < worldSize; ++i) {
       dim3 block(pointDim, std::min(32, pointNum));
@@ -338,6 +346,7 @@ bool schurPCGSolverDistributedCUDA(
                    CUSPARSE_SPMV_ALG_DEFAULT, SpMVbuffer[i]);
     }
 
+#ifdef MEGBA_ENABLE_NCCL
     ncclGroupStart();
     for (int i = 0; i < worldSize; ++i) {
       ncclAllReduce(axN[i], axN[i], hppRows,
@@ -345,6 +354,7 @@ bool schurPCGSolverDistributedCUDA(
                     cusparseStream[i]);
     }
     ncclGroupEnd();
+#endif
 
     for (int i = 0; i < worldSize; ++i) {
       dim3 block(cameraDim, std::min(32, cameraNum));
@@ -425,7 +435,9 @@ void schurMakeVDistributed(std::vector<T *> &SpMVbuffer, const int pointNum,
                            const std::vector<int *> &hplCsrRowPtr,
                            const std::vector<T *> &hllInvCsrVal,
                            const std::vector<T *> &r) {
+#ifdef MEGBA_ENABLE_NCCL
   const auto &comms = HandleManager::getNCCLComm();
+#endif
   const auto worldSize = MemoryPool::getWorldSize();
   const auto &cusparseHandle = HandleManager::getCUSPARSEHandle();
   constexpr auto cudaDataType = Wrapper::declaredDtype<T>::cudaDtype;
@@ -488,12 +500,14 @@ void schurMakeVDistributed(std::vector<T *> &SpMVbuffer, const int pointNum,
     cusparseDestroyDnVec(vecv[i]);
     cusparseDestroyDnVec(vecw[i]);
   }
+#ifdef MEGBA_ENABLE_NCCL
   ncclGroupStart();
   for (int i = 0; i < worldSize; ++i) {
     ncclAllReduce(v[i], v[i], hppRows, Wrapper::declaredDtype<T>::ncclDtype,
                   ncclSum, comms[i], cusparseStream[i]);
   }
   ncclGroupEnd();
+#endif
 }
 
 template <typename T>
@@ -504,7 +518,9 @@ void schurSolveWDistributed(
     const std::vector<int *> &hlpCsrRowPtr,
     const std::vector<T *> &hllInvCsrVal, const std::vector<T *> &d_r,
     const std::vector<T *> &d_x) {
+#ifdef MEGBA_ENABLE_NCCL
   const auto comms = HandleManager::getNCCLComm();
+#endif
   const auto worldSize = MemoryPool::getWorldSize();
   constexpr auto cudaDataType = Wrapper::declaredDtype<T>::cudaDtype;
 
@@ -550,12 +566,14 @@ void schurSolveWDistributed(
                  CUSPARSE_SPMV_ALG_DEFAULT, SpMVbuffer[i]);
   }
 
+#ifdef MEGBA_ENABLE_NCCL
   ncclGroupStart();
   for (int i = 0; i < worldSize; ++i) {
     ncclAllReduce(xp[i], xp[i], hllRows, Wrapper::declaredDtype<T>::ncclDtype,
                   ncclSum, comms[i], cusparseStream[i]);
   }
   ncclGroupEnd();
+#endif
 
   dim3 blockDim(pointDim, std::min(32, pointNum));
   dim3 gridDim((pointNum - 1) / blockDim.y + 1);

@@ -400,6 +400,7 @@ void EdgeVector<T>::buildLinearSystemCUDA(
     cudaFree(totalPtrsDevice[i]);
   }
 
+#ifdef MEGBA_ENABLE_NCCL
   const auto &comms = HandleManager::getNCCLComm();
   ncclGroupStart();
   for (int i = 0; i < option.deviceUsed.size(); ++i) {
@@ -418,6 +419,7 @@ void EdgeVector<T>::buildLinearSystemCUDA(
                   nullptr);
   }
   ncclGroupEnd();
+#endif
 }
 
 template class EdgeVector<double>;
