@@ -7,6 +7,7 @@
 
 #include <set>
 #include <stack>
+#include <stdexcept>
 #include <unordered_map>
 
 #include "resource/handle_manager.h"
@@ -51,8 +52,10 @@ void MemoryPool::resetPool(const ProblemOption *problemOption,
   // TODO(Jie Ren): maybe destroy only once
   _problemOption = problemOption;
   _sizeofType = sizeofType;
+#ifdef MEGBA_ENABLE_NCCL
   HandleManager::destroyNCCLComm();
   HandleManager::createNCCLComm();
+#endif
   HandleManager::destroyCUBLASHandle();
   HandleManager::destroyCUSPARSEHandle();
   HandleManager::createCUBLASHandle();

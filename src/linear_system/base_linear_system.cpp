@@ -6,6 +6,9 @@
  **/
 
 #include "linear_system/base_linear_system.h"
+
+#include <stdexcept>
+
 #include "solver/base_solver.h"
 
 namespace MegBA {

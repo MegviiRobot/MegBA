@@ -42,11 +42,13 @@ Demo with BAL dataset:
 
 * Compile
 
+If you want to use the distributed feature, use `cmake -DMEGBA_ENABLE_NCCL ..` instead of `cmake ..`.
+
   ```bash
   git submodule init && git submodule update --remote
   mkdir build
   cd build
-  cmake ..
+  cmake ..  # enable nccl by using cmake -DMEGBA_ENABLE_NCCL ..
   make -j4 BAL_Double
   ```
 
@@ -54,7 +56,7 @@ Demo with BAL dataset:
 
   ```bash
   cd examples
-  ./BAL_Double --path=/path/to/your/dataset --world_size=2 --max_iter=100 --solver_tol=1e-1 --solver_refuse_ratio=1 --solver_max_iter=100 --tau=1e4 --epsilon1=1 --epsilon2=1e-10
+  ./BAL_Double --path /path/to/your/dataset --world_size 2 --max_iter 100 --solver_tol 1e-1 --solver_refuse_ratio 1 --solver_max_iter 100 --tau 1e4 --epsilon1 1 --epsilon2 1e-10
   ```
 
   - world_size: number of GPUs available

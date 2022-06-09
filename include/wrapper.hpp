@@ -8,7 +8,9 @@
 #pragma once
 #include <cublas_v2.h>
 #include <cusparse_v2.h>
+#ifdef MEGBA_ENABLE_NCCL
 #include <nccl.h>
+#endif
 
 #include <tuple>
 #include <utility>
@@ -126,13 +128,17 @@ struct declaredDtype {};
 
 template <>
 struct declaredDtype<float> {
+#ifdef MEGBA_ENABLE_NCCL
   constexpr static const ncclDataType_t ncclDtype{ncclFloat32};
+#endif
   constexpr static const cudaDataType cudaDtype{CUDA_R_32F};
 };
 
 template <>
 struct declaredDtype<double> {
+#ifdef MEGBA_ENABLE_NCCL
   constexpr static const ncclDataType_t ncclDtype{ncclFloat64};
+#endif
   constexpr static const cudaDataType cudaDtype{CUDA_R_64F};
 };
 
