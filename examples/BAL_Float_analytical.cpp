@@ -1,9 +1,10 @@
+#include <gflags/gflags.h>
+
 #include <fstream>
 #include <iostream>
 #include <unordered_map>
 
 #include "algo/lm_algo.h"
-#include <gflags/gflags.h>
 #include "edge/base_edge.h"
 #include "geo/geo.cuh"
 #include "linear_system/schur_LM_linear_system.h"
@@ -54,32 +55,20 @@ DEFINE_double(epsilon1, 1., "Parameter of LM");
 DEFINE_double(epsilon2, 1e-10, "Parameter of LM");
 
 int main(int argc, char* argv[]) {
-  std::string name;
-  int iter, solver_max_iter, worldSize;
-  double solver_tol, solver_refuse_ratio, tau, epsilon1, epsilon2;
   std::string out_path;
 
   GFLAGS_NAMESPACE::ParseCommandLineFlags(&argc, &argv, true);
 
-  worldSize = FLAGS_world_size;
-  name = FLAGS_path;
-  iter = FLAGS_max_iter;
-  solver_tol = FLAGS_solver_tol;
-  solver_refuse_ratio = FLAGS_solver_refuse_ratio;
-  solver_max_iter = FLAGS_solver_max_iter;
-  tau = FLAGS_tau;
-  epsilon1 = FLAGS_epsilon1;
-  epsilon2 = FLAGS_epsilon2;
-
-  std::cout << "solving " << name << ", world_size: " << worldSize
-            << ", max iter: " << iter << ", solver_tol: " << solver_tol
-            << ", solver_refuse_ratio: " << solver_refuse_ratio
-            << ", solver_max_iter: " << solver_max_iter << ", tau: " << tau
-            << ", epsilon1: " << epsilon1 << ", epsilon2: " << epsilon2
-            << std::endl;
+  std::cout << "solving " << FLAGS_path << ", world_size: " << FLAGS_world_size
+            << ", max iter: " << FLAGS_max_iter
+            << ", solver_tol: " << FLAGS_solver_tol
+            << ", solver_refuse_ratio: " << FLAGS_solver_refuse_ratio
+            << ", solver_max_iter: " << FLAGS_solver_max_iter
+            << ", tau: " << FLAGS_tau << ", epsilon1: " << FLAGS_epsilon1
+            << ", epsilon2: " << FLAGS_epsilon2 << std::endl;
   typedef float T;
 
-  std::ifstream fin(name);
+  std::ifstream fin(FLAGS_path);
 
   int num_cameras = 0, num_points = 0, num_observations = 0;
   fin >> num_cameras;
@@ -89,18 +78,18 @@ int main(int argc, char* argv[]) {
   MegBA::ProblemOption problemOption{};
   problemOption.nItem = num_observations;
   problemOption.N = 12;
-  for (int i = 0; i < worldSize; ++i) {
+  for (int i = 0; i < FLAGS_world_size; ++i) {
     problemOption.deviceUsed.push_back(i);
   }
   MegBA::SolverOption solverOption{};
-  solverOption.solverOptionPCG.maxIter = solver_max_iter;
-  solverOption.solverOptionPCG.tol = solver_tol;
-  solverOption.solverOptionPCG.refuseRatio = solver_refuse_ratio;
+  solverOption.solverOptionPCG.maxIter = FLAGS_solver_max_iter;
+  solverOption.solverOptionPCG.tol = FLAGS_solver_tol;
+  solverOption.solverOptionPCG.refuseRatio = FLAGS_solver_refuse_ratio;
   MegBA::AlgoOption algoOption{};
-  algoOption.algoOptionLM.maxIter = iter;
-  algoOption.algoOptionLM.initialRegion = tau;
-  algoOption.algoOptionLM.epsilon1 = epsilon1;
-  algoOption.algoOptionLM.epsilon2 = epsilon2;
+  algoOption.algoOptionLM.maxIter = FLAGS_max_iter;
+  algoOption.algoOptionLM.initialRegion = FLAGS_tau;
+  algoOption.algoOptionLM.epsilon1 = FLAGS_epsilon1;
+  algoOption.algoOptionLM.epsilon2 = FLAGS_epsilon2;
   std::unique_ptr<MegBA::BaseAlgo<T>> algo{
       new MegBA::LMAlgo<T>{problemOption, algoOption}};
   std::unique_ptr<MegBA::BaseSolver<T>> solver{
