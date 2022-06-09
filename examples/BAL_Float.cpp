@@ -3,7 +3,7 @@
 #include <unordered_map>
 
 #include "algo/lm_algo.h"
-#include "argparse/include/argparse/argparse.hpp"
+#include <gflags/gflags.h>
 #include "edge/base_edge.h"
 #include "geo/geo.cuh"
 #include "linear_system/schur_LM_linear_system.h"
@@ -47,75 +47,32 @@ bool readVector(std::istream& is, Eigen::DenseBase<Derived>& b) {
 }
 }  // namespace
 
+DEFINE_int32(world_size, 1, "World size");
+DEFINE_string(path, "", "Path to your dataset");
+DEFINE_int32(max_iter, 20, "LM solve iteration");
+DEFINE_int32(solver_max_iter, 50, "Linear solver iteration");
+DEFINE_double(solver_tol, 10., "The tolerance of the linear solver");
+DEFINE_double(solver_refuse_ratio, 1., "The refuse ratio of the linear solver");
+DEFINE_double(tau, 1., "Initial trust region");
+DEFINE_double(epsilon1, 1., "Parameter of LM");
+DEFINE_double(epsilon2, 1e-10, "Parameter of LM");
 int main(int argc, char* argv[]) {
   std::string name;
   int iter, solver_max_iter, worldSize;
   double solver_tol, solver_refuse_ratio, tau, epsilon1, epsilon2;
   std::string out_path;
 
-  argparse::ArgumentParser program("BAL_Double");
+  GFLAGS_NAMESPACE::ParseCommandLineFlags(&argc, &argv, true);
 
-  program.add_argument("--world_size")
-      .help("World size")
-      .default_value(1)
-      .action([](const std::string& value) { return std::stoi(value); });
-
-  program.add_argument("--path")
-      .help("Path to your dataset")
-      .action([](const std::string& value) { return value; });
-
-  program.add_argument("--max_iter")
-      .help("LM solve iteration")
-      .default_value(20)
-      .action([](const std::string& value) { return std::stoi(value); });
-
-  program.add_argument("--solver_max_iter")
-      .help("Linear solver iteration")
-      .default_value(50)
-      .action([](const std::string& value) { return std::stoi(value); });
-
-  program.add_argument("--solver_tol")
-      .help("The tolerance of the linear solver")
-      .default_value(10.)
-      .action([](const std::string& value) { return std::stod(value); });
-
-  program.add_argument("--solver_refuse_ratio")
-      .help("The refuse ratio of the linear solver")
-      .default_value(1.)
-      .action([](const std::string& value) { return std::stod(value); });
-
-  program.add_argument("--tau")
-      .help("Initial trust region")
-      .default_value(1.)
-      .action([](const std::string& value) { return std::stod(value); });
-
-  program.add_argument("--epsilon1")
-      .help("Parameter of LM")
-      .default_value(1.)
-      .action([](const std::string& value) { return std::stod(value); });
-
-  program.add_argument("--epsilon2")
-      .help("Parameter of LM")
-      .default_value(1e-10)
-      .action([](const std::string& value) { return std::stod(value); });
-
-  try {
-    program.parse_args(argc, argv);
-  } catch (const std::runtime_error& err) {
-    std::cout << err.what() << std::endl;
-    std::cout << program;
-    exit(0);
-  }
-
-  worldSize = program.get<int>("--world_size");
-  name = program.get<std::string>("--path");
-  iter = program.get<int>("--max_iter");
-  solver_tol = program.get<double>("--solver_tol");
-  solver_refuse_ratio = program.get<double>("--solver_refuse_ratio");
-  solver_max_iter = program.get<int>("--solver_max_iter");
-  tau = program.get<double>("--tau");
-  epsilon1 = program.get<double>("--epsilon1");
-  epsilon2 = program.get<double>("--epsilon2");
+  worldSize = FLAGS_world_size;
+  name = FLAGS_path;
+  iter = FLAGS_max_iter;
+  solver_tol = FLAGS_solver_tol;
+  solver_refuse_ratio = FLAGS_solver_refuse_ratio;
+  solver_max_iter = FLAGS_solver_max_iter;
+  tau = FLAGS_tau;
+  epsilon1 = FLAGS_epsilon1;
+  epsilon2 = FLAGS_epsilon2;
 
   std::cout << "solving " << name << ", world_size: " << worldSize
             << ", max iter: " << iter << ", solver_tol: " << solver_tol
@@ -213,4 +170,5 @@ int main(int argc, char* argv[]) {
     problem.appendEdge(*edgePtr);
   }
   problem.solve();
+  GFLAGS_NAMESPACE::ShutDownCommandLineFlags();
 }
