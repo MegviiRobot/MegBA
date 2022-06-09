@@ -48,12 +48,14 @@ else ()
     set(CUDA_NVCC_FLAGS "${CUDA_NVCC_FLAGS} -O3 --extended-lambda")
 endif ()
 
+
+find_package(GFLAGS REQUIRED)
 # Thrust
 find_package(Thrust REQUIRED CONFIG)
 thrust_create_target(Thrust)
 include_directories(thirdparty)
 include_directories(include)
 include_directories(thirdparty/Eigen3)
+include_directories(${gflags_INCLUDE_DIR})
 add_subdirectory(src)
 add_subdirectory(examples)
-add_subdirectory(thirdparty/gflags)
