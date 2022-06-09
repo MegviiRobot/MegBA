@@ -1,8 +1,8 @@
-[submodule "thirdparty/argparse"]
-	path = thirdparty/argparse
-	url = https://github.com/JieRen98/argparse.git
-	shallow = true
 [submodule "thirdparty/Eigen3"]
 	path = thirdparty/Eigen3
 	url = https://gitlab.com/libeigen/eigen.git
+	shallow = true
+[submodule "thirdparty/gflags"]
+	path = thirdparty/gflags
+	url = https://github.com/gflags/gflags
 	shallow = true
