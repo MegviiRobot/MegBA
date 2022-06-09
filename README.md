@@ -30,7 +30,7 @@ Dependencies:
 - CMake (>= 3.15)
 - CUDA (>= 11.2) https://developer.nvidia.com/cuda-downloads
 - Eigen (>= 3.4.0) https://eigen.tuxfamily.org/
-- [ArgParse](https://github.com/JieRen98/argparse)
+- [Gflags](https://github.com/gflags/gflags)
 - NCCL2 (if you need Distributed features) https://developer.nvidia.com/nccl/nccl-download
 
 You can also easily install all dependencies with script: [script](https://drive.google.com/file/d/154whcVH2VcJCYnTSlnfo_tbIIaQvSax3/view?usp=sharing)
