@@ -42,7 +42,7 @@ Demo with BAL dataset:
 
 * Compile
 
-If you want to use the distributed feature, use `cmake -DMEGBA_ENABLE_NCCL ..` instead of `cmake ..`.
+  If you want to use the distributed feature, use `cmake -DMEGBA_ENABLE_NCCL ..` instead of `cmake ..`.
 
   ```bash
   git submodule init && git submodule update --remote
