@@ -680,5 +680,5 @@ void SchurPCGSolver<T>::solve(const BaseLinearSystem<T> &baseLinearSystem) {
       linearSystem.dim[1] * linearSystem.num[1], deltaX);
 }
 
-SPECIALIZE_CLASS(SchurPCGSolver);
+SPECIALIZE_STRUCT(SchurPCGSolver);
 }  // namespace MegBA

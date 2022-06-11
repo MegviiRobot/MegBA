@@ -53,7 +53,7 @@ bool EdgeVector<T>::tryPushBack(BaseEdge<T> &edge) {
     edges.resize(vertex_num_in_edge);
     // TODO(Jie Ren): not consider the situation that vertex is fixed
     unsigned int accumulated_grad_shape = 0;
-    unsigned int offset[vertex_num_in_edge];
+    std::vector<unsigned int> offset(vertex_num_in_edge);
     bool same_vertex = true;
     for (int i = 0; i < vertex_num_in_edge; ++i) {
       offset[i] = accumulated_grad_shape;

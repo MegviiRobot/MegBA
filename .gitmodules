@@ -1,4 +1,0 @@
-[submodule "thirdparty/Eigen3"]
-	path = thirdparty/Eigen3
-	url = https://gitlab.com/libeigen/eigen.git
-	shallow = true

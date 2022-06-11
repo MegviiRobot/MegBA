@@ -1,0 +1,201 @@
+{
+    "version": 3,
+    "configurePresets": [
+        {
+            "name": "default",
+            "hidden": true,
+            "generator": "Ninja"
+        },
+        {
+            "name": "default-win",
+            "inherits": [
+                "default"
+            ],
+            "hidden": true,
+            "binaryDir": "${sourceDir}/build/win/${presetName}",
+            "cacheVariables": {
+                "CMAKE_INSTALL_PREFIX": "${sourceDir}/install/win/${presetName}"
+            },
+            "condition": {
+                "type": "equals",
+                "lhs": "${hostSystemName}",
+                "rhs": "Windows"
+            }
+        },
+        {
+            "name": "default-linux",
+            "inherits": [
+                "default"
+            ],
+            "hidden": true,
+            "binaryDir": "${sourceDir}/build/linux/${presetName}",
+            "cacheVariables": {
+                "CMAKE_INSTALL_PREFIX": "${sourceDir}/install/linux/${presetName}"
+            },
+            "condition": {
+                "type": "equals",
+                "lhs": "${hostSystemName}",
+                "rhs": "Linux"
+            },
+            "vendor": {
+                "microsoft.com/VisualStudioRemoteSettings/CMake/1.0": {}
+            }
+        },
+        {
+            "name": "default-msvc",
+            "hidden": true,
+            "architecture": {
+                "value": "x64",
+                "strategy": "external"
+            },
+            "toolset": {
+                "value": "host=x64",
+                "strategy": "external"
+            },
+            "cacheVariables": {
+                "CMAKE_C_COMPILER": "cl",
+                "CMAKE_CXX_COMPILER": "cl"
+            }
+        },
+        {
+            "name": "default-gcc",
+            "hidden": true,
+            "cacheVariables": {
+                "CMAKE_C_COMPILER": "gcc",
+                "CMAKE_CXX_COMPILER": "g++"
+            }
+        },
+        {
+            "name": "default-clang",
+            "hidden": true,
+            "cacheVariables": {
+                "CMAKE_C_COMPILER": "clang",
+                "CMAKE_CXX_COMPILER": "clang++"
+            }
+        },
+        {
+            "name": "debug-build",
+            "hidden": true,
+            "cacheVariables": {
+                "CMAKE_BUILD_TYPE": "Debug"
+            }
+        },
+        {
+            "name": "release-debug-info-build",
+            "hidden": true,
+            "cacheVariables": {
+                "CMAKE_BUILD_TYPE": "RelWithDebInfo"
+            }
+        },
+        {
+            "name": "release-build",
+            "hidden": true,
+            "cacheVariables": {
+                "CMAKE_BUILD_TYPE": "Release"
+            }
+        },
+        {
+            "name": "min-size-release-build",
+            "hidden": true,
+            "cacheVariables": {
+                "CMAKE_BUILD_TYPE": "MinSizeRel"
+            }
+        },
+        {
+            "name": "msvc-debug",
+            "inherits": [
+                "default-win",
+                "default-msvc",
+                "debug-build"
+            ]
+        },
+        {
+            "name": "msvc-release-debug-info",
+            "inherits": [
+                "default-win",
+                "default-msvc",
+                "release-debug-info-build"
+            ]
+        },
+        {
+            "name": "msvc-release",
+            "inherits": [
+                "default-win",
+                "default-msvc",
+                "release-build"
+            ]
+        },
+        {
+            "name": "msvc-min-size-release",
+            "inherits": [
+                "default-win",
+                "default-msvc",
+                "min-size-release-build"
+            ]
+        },
+        {
+            "name": "clang-debug",
+            "inherits": [
+                "default-linux",
+                "default-clang",
+                "debug-build"
+            ]
+        },
+        {
+            "name": "clang-release-debug-info",
+            "inherits": [
+                "default-linux",
+                "default-clang",
+                "release-debug-info-build"
+            ]
+        },
+        {
+            "name": "clang-release",
+            "inherits": [
+                "default-linux",
+                "default-clang",
+                "release-build"
+            ]
+        },
+        {
+            "name": "clang-min-size-release",
+            "inherits": [
+                "default-linux",
+                "default-clang",
+                "min-size-release-build"
+            ]
+        },
+        {
+            "name": "gcc-debug",
+            "inherits": [
+                "default-linux",
+                "default-gcc",
+                "debug-build"
+            ]
+        },
+        {
+            "name": "gcc-release-debug-info",
+            "inherits": [
+                "default-linux",
+                "default-gcc",
+                "release-debug-info-build"
+            ]
+        },
+        {
+            "name": "gcc-release",
+            "inherits": [
+                "default-linux",
+                "default-gcc",
+                "release-build"
+            ]
+        },
+        {
+            "name": "gcc-min-size-release",
+            "inherits": [
+                "default-linux",
+                "default-gcc",
+                "min-size-release-build"
+            ]
+        }
+    ]
+}

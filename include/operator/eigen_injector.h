@@ -145,10 +145,9 @@ class MapBase<Map<const Matrix<MegBA::JetVector<MegBA_t>, MatrixArgs...>,
     : public internal::dense_xpr_base<
           Map<const Matrix<MegBA::JetVector<MegBA_t>, MatrixArgs...>,
               MapOptions, StrideType>>::type {
-  using Derived = Map<const Matrix<MegBA::JetVector<MegBA_t>, MatrixArgs...>,
-                      MapOptions, StrideType>;
-
  public:
+ using Derived = Map<const Matrix<MegBA::JetVector<MegBA_t>, MatrixArgs...>,
+                      MapOptions, StrideType>;
   typedef typename internal::dense_xpr_base<Derived>::type Base;
   enum {
     RowsAtCompileTime = internal::traits<Derived>::RowsAtCompileTime,
@@ -512,10 +511,11 @@ class MapBase<Block<const Matrix<MegBA::JetVector<MegBA_t>, MatrixArgs...>,
     : public internal::dense_xpr_base<
           Block<const Matrix<MegBA::JetVector<MegBA_t>, MatrixArgs...>,
                 BlockRows, BlockCols, InnerPanel>>::type {
+  
+ public:
   using Derived = Block<const Matrix<MegBA::JetVector<MegBA_t>, MatrixArgs...>,
                         BlockRows, BlockCols, InnerPanel>;
 
- public:
   typedef typename internal::dense_xpr_base<Derived>::type Base;
   enum {
     RowsAtCompileTime = internal::traits<Derived>::RowsAtCompileTime,

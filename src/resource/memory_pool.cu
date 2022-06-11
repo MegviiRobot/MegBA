@@ -18,12 +18,18 @@ namespace {
 union Ptr {
   explicit Ptr(void *address) : address(address) {}
   void *address;
+#ifdef __SIZEOF_POINTER__
 #if __SIZEOF_POINTER__ == 8
   std::uint64_t number;
 #elif __SIZEOF_POINTER__ == 4
   std::uint32_t number;
 #elif __SIZEOF_POINTER__ == 2
   std::uint16_t number;
+#endif
+#elif defined(_WIN64)
+  std::uint64_t number;
+#elif defined(_WIN32)
+  std::uint32_t number;
 #endif
 };
 

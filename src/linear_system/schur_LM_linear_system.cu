@@ -217,6 +217,5 @@ void SchurLMLinearSystem<T>::applyUpdate(T *xPtr) const {
                              this->deltaXPtr[0], 1, xPtr, 1);
 }
 
-template struct SchurLMLinearSystem<double>;
-template struct SchurLMLinearSystem<float>;
+SPECIALIZE_STRUCT(SchurLMLinearSystem);
 }  // namespace MegBA

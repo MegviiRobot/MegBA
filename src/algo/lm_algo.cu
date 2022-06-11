@@ -219,5 +219,5 @@ void LMAlgo<T>::solveCUDA(const BaseLinearSystem<T> &baseLinearSystem,
   std::cout << "Finished" << std::endl;
 }
 
-SPECIALIZE_CLASS(LMAlgo);
+SPECIALIZE_STRUCT(LMAlgo);
 }  // namespace MegBA
