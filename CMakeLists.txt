@@ -36,6 +36,7 @@ set(SOLVER_EXPORT_NAME "Solver_Targets")
 set(VERTEX_EXPORT_NAME "Vertex_Targets")
 
 option(MEGBA_ENABLE_NCCL "Enable NCCL" FALSE)
+option(MEGBA_ENABLE_EXAMPLE "BUILD EXAMPLES" TRUE)
 
 # CUDA
 find_package(CUDAToolkit REQUIRED)
@@ -48,7 +49,9 @@ thrust_create_target(Thrust)
 
 add_subdirectory(src)
 
+if(MEGBA_ENABLE_EXAMPLE)
 add_subdirectory(examples)
+endif()
 
 include(CMakePackageConfigHelpers)
 
