@@ -66,3 +66,12 @@ install(
     FILES "${project_config}" "${version_config}"
     DESTINATION "${config_install_dir}"
 )
+install(DIRECTORY ${CMAKE_CURRENT_LIST_DIR}/include/ 
+        DESTINATION "${CMAKE_INSTALL_INCLUDEDIR}")
+
+set(CPACK_GENERATOR "7Z")
+set(CPACK_PACKAGE_VERSION "${MegBA_VERSION}")
+include(CPack)
+
+include(FeatureSummary)
+feature_summary(WHAT ALL)
