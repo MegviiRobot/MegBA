@@ -53,6 +53,8 @@ endif()
 find_package(Thrust REQUIRED CONFIG)
 thrust_create_target(Thrust)
 
+include_directories(${EIGEN3_INCLUDE_DIRS})
+
 add_subdirectory(src)
 
 if(MEGBA_ENABLE_EXAMPLE)
