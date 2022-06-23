@@ -25,6 +25,5 @@ void SchurLinearSystem<T>::freeCUDA() {
   }
 }
 
-template class SchurLinearSystem<double>;
-template class SchurLinearSystem<float>;
+SPECIALIZE_STRUCT(SchurLinearSystem);
 }  // namespace MegBA

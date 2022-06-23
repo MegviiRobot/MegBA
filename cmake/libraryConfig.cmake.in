@@ -1,0 +1,17 @@
+@PACKAGE_INIT@
+
+include(CMakeFindDependencyMacro)
+##################   Dependency   #################################
+find_dependency(Eigen3)
+##################   Dependency   #################################
+include("${CMAKE_CURRENT_LIST_DIR}/@ALGO_EXPORT_NAME@.cmake")
+include("${CMAKE_CURRENT_LIST_DIR}/@RESOURCE_EXPORT_NAME@.cmake")
+include("${CMAKE_CURRENT_LIST_DIR}/@LINEAR_SYSTEM_EXPORT_NAME@.cmake")
+include("${CMAKE_CURRENT_LIST_DIR}/@OPERATOR_EXPORT_NAME@.cmake")
+include("${CMAKE_CURRENT_LIST_DIR}/@PROBLEM_EXPORT_NAME@.cmake")
+include("${CMAKE_CURRENT_LIST_DIR}/@GEO_EXPORT_NAME@.cmake")
+include("${CMAKE_CURRENT_LIST_DIR}/@EDGE_EXPORT_NAME@.cmake")
+include("${CMAKE_CURRENT_LIST_DIR}/@SOLVER_EXPORT_NAME@.cmake")
+# include("${CMAKE_CURRENT_LIST_DIR}/@VERTEX_EXPORT_NAME@.cmake")
+
+check_required_components("@PROJECT_NAME@")

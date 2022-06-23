@@ -1,7 +1,34 @@
-add_library(jet_vector SHARED jet_vector.cpp)
-cuda_add_library(jet_vector_CUDA SHARED jet_vector.cu)
+add_library(operator)
+add_library(MegBA::operator ALIAS operator)
 
-add_library(jet_vector_math_impl_CPU SHARED jet_vector_math_impl.cpp)
-cuda_add_library(jet_vector_math_impl_CUDA SHARED jet_vector_math_impl.cu)
+target_sources(operator 
+               PRIVATE 
+               jet_vector.cpp
+               jet_vector.cu
+               jet_vector_math_impl.cpp
+               jet_vector_math_impl.cu)
 
-target_link_libraries(jet_vector jet_vector_CUDA jet_vector_math_impl_CPU jet_vector_math_impl_CUDA)
+target_include_directories(operator 
+                           PUBLIC 
+                           $<BUILD_INTERFACE:${generated_headers}/>
+                           $<BUILD_INTERFACE:${CMAKE_CURRENT_LIST_DIR}/../../include>)
+
+target_link_libraries(operator
+                      PRIVATE
+                      Eigen3::Eigen
+                      CUDA::cusparse
+                      Thrust
+                      Threads::Threads
+                      OpenMP::OpenMP_CXX)
+target_compile_options(operator PRIVATE $<$<COMPILE_LANGUAGE:CUDA>:--expt-relaxed-constexpr --extended-lambda>)
+
+install(TARGETS operator
+        EXPORT "${OPERATOR_EXPORT_NAME}"
+        LIBRARY DESTINATION "${CMAKE_INSTALL_LIBDIR}"
+        ARCHIVE DESTINATION "${CMAKE_INSTALL_LIBDIR}"
+        RUNTIME DESTINATION "${CMAKE_INSTALL_BINDIR}"
+        INCLUDES DESTINATION "${CMAKE_INSTALL_INCLUDEDIR}")
+
+install(EXPORT "${OPERATOR_EXPORT_NAME}"
+        NAMESPACE "MegBA::"
+        DESTINATION "${config_install_dir}")

@@ -17,6 +17,5 @@ void BaseLinearSystem<T>::freeCUDA() {
   }
 }
 
-template class BaseLinearSystem<double>;
-template class BaseLinearSystem<float>;
+SPECIALIZE_STRUCT(BaseLinearSystem);
 }  // namespace MegBA

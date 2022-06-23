@@ -15,5 +15,5 @@ SchurPCGSolver<T>::SchurPCGSolver(const ProblemOption &problemOption,
       SchurSolver<T>{problemOption, solverOption},
       BaseSolver<T>{problemOption, solverOption} {}
 
-SPECIALIZE_CLASS(SchurPCGSolver);
+SPECIALIZE_STRUCT(SchurPCGSolver);
 }  // namespace MegBA

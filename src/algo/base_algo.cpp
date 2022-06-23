@@ -26,5 +26,5 @@ void BaseAlgo<T>::solve(const BaseLinearSystem<T> &baseLinearSystem,
   }
 }
 
-SPECIALIZE_CLASS(BaseAlgo);
+SPECIALIZE_STRUCT(BaseAlgo);
 }  // namespace MegBA

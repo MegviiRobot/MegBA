@@ -20,5 +20,5 @@ void LMLinearSystem<T>::freeCUDA() {
   }
 }
 
-SPECIALIZE_CLASS(LMLinearSystem);
+SPECIALIZE_STRUCT(LMLinearSystem);
 }  // namespace MegBA

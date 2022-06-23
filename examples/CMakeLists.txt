@@ -1,15 +1,41 @@
 add_executable(BAL_Double BAL_Double.cpp)
-target_link_libraries(BAL_Double base_problem base_edge jet_vector geo)
-target_link_libraries(BAL_Double lm_algo schur_LM_linear_system schur_pcg_solver ${gflags_LIBRARIES})
+target_link_libraries(BAL_Double 
+                      PRIVATE
+                      CUDA::cusparse
+                      MegBA::algo
+                      MegBA::resource
+                      MegBA::linear_system
+                      MegBA::operator
+                      MegBA::problem
+                      MegBA::geo
+                      MegBA::edge
+                      MegBA::solver
+                      gflags::gflags)
 
 add_executable(BAL_Float BAL_Float.cpp)
-target_link_libraries(BAL_Float base_problem base_edge jet_vector geo)
-target_link_libraries(BAL_Float lm_algo schur_LM_linear_system schur_pcg_solver ${gflags_LIBRARIES})
-
-add_executable(BAL_Double_analytical BAL_Double_analytical.cpp)
-target_link_libraries(BAL_Double_analytical base_problem base_edge jet_vector geo)
-target_link_libraries(BAL_Double_analytical lm_algo schur_LM_linear_system schur_pcg_solver ${gflags_LIBRARIES})
+target_link_libraries(BAL_Float
+                      PRIVATE
+                      CUDA::cusparse
+                      MegBA::algo
+                      MegBA::resource
+                      MegBA::linear_system
+                      MegBA::operator
+                      MegBA::problem
+                      MegBA::geo
+                      MegBA::edge
+                      MegBA::solver
+                      gflags::gflags)
 
 add_executable(BAL_Float_analytical BAL_Float_analytical.cpp)
-target_link_libraries(BAL_Float_analytical base_problem base_edge jet_vector geo)
-target_link_libraries(BAL_Float_analytical lm_algo schur_LM_linear_system schur_pcg_solver ${gflags_LIBRARIES})
+target_link_libraries(BAL_Float_analytical
+                      PRIVATE
+                      CUDA::cusparse
+                      MegBA::algo
+                      MegBA::resource
+                      MegBA::linear_system
+                      MegBA::operator
+                      MegBA::problem
+                      MegBA::geo
+                      MegBA::edge
+                      MegBA::solver
+                      gflags::gflags)

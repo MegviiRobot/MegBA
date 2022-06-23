@@ -7,6 +7,8 @@
 
 #include "linear_system/schur_linear_system.h"
 
+#include "solver/base_solver.h"
+
 namespace MegBA {
 template <typename T>
 SchurLinearSystem<T>::SchurLinearSystem(const ProblemOption& option,
@@ -28,6 +30,6 @@ SchurLinearSystem<T>::~SchurLinearSystem<T>() {
 template <typename T>
 void SchurLinearSystem<T>::freeCPU() {}
 
-template class SchurLinearSystem<double>;
-template class SchurLinearSystem<float>;
+SPECIALIZE_STRUCT(SchurLinearSystem);
+
 }  // namespace MegBA

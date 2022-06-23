@@ -7,6 +7,8 @@
 
 #include "linear_system/LM_linear_system.h"
 
+#include "solver/base_solver.h"
+
 namespace MegBA {
 template <typename T>
 LMLinearSystem<T>::LMLinearSystem(const ProblemOption& option,
@@ -31,6 +33,5 @@ LMLinearSystem<T>::~LMLinearSystem<T>() {
 template <typename T>
 void LMLinearSystem<T>::freeCPU() {}
 
-template class LMLinearSystem<double>;
-template class LMLinearSystem<float>;
+SPECIALIZE_STRUCT(LMLinearSystem);
 }  // namespace MegBA

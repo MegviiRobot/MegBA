@@ -15,5 +15,5 @@ LMAlgo<T>::LMAlgo(const ProblemOption &problemOption,
   this->algoStatus.algoStatusLM.region = algoOption.algoOptionLM.initialRegion;
 }
 
-SPECIALIZE_CLASS(LMAlgo);
+SPECIALIZE_STRUCT(LMAlgo);
 }  // namespace MegBA

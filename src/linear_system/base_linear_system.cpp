@@ -51,5 +51,5 @@ void BaseLinearSystem<T>::freeCPU() {
   // TODO (Jie): implement this
 }
 
-SPECIALIZE_CLASS(BaseLinearSystem);
+SPECIALIZE_STRUCT(BaseLinearSystem);
 }  // namespace MegBA

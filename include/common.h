@@ -6,9 +6,9 @@
  **/
 
 #pragma once
-#define SPECIALIZE_CLASS(className) \
-  template class className<double>; \
-  template class className<float>
+#define SPECIALIZE_STRUCT(structName) \
+  template struct structName<double>; \
+  template struct structName<float>
 
 #include <cstdint>
 #include <vector>
@@ -64,7 +64,7 @@ template <typename T>
 class BaseProblem;
 
 template <typename T>
-class BaseVertex;
+struct BaseVertex;
 
 template <typename T>
 class BaseEdge;
@@ -73,11 +73,11 @@ template <typename T>
 class EdgeVector;
 
 template <typename T>
-class BaseAlgo;
+struct BaseAlgo;
 
 template <typename T>
-class BaseSolver;
+struct BaseSolver;
 
 template <typename T>
-class BaseLinearSystem;
+struct BaseLinearSystem;
 }  // namespace MegBA

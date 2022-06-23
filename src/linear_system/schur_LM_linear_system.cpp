@@ -5,11 +5,12 @@
  *
  **/
 
+#include "linear_system/schur_LM_linear_system.h"
+
 #include <omp.h>
 
 #include <thread>
 
-#include "linear_system/schur_LM_linear_system.h"
 #include "problem/base_problem.h"
 #include "resource/memory_pool.h"
 #include "solver/base_solver.h"
@@ -89,6 +90,5 @@ SchurLMLinearSystem<T>::SchurLMLinearSystem(
       LMLinearSystem<T>{option, nullptr},
       BaseLinearSystem<T>{option, std::move(solver)} {}
 
-template struct SchurLMLinearSystem<double>;
-template struct SchurLMLinearSystem<float>;
+SPECIALIZE_STRUCT(SchurLMLinearSystem);
 }  // namespace MegBA
