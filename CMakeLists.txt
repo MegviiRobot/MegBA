@@ -41,7 +41,7 @@ option(MEGBA_ENABLE_EXAMPLE "BUILD EXAMPLES" TRUE)
 # CUDA
 find_package(CUDAToolkit REQUIRED)
 find_package(OpenMP REQUIRED)
-find_package(Eigen3 CONFIG REQUIRED)
+find_package(Eigen3 3.4.0 CONFIG REQUIRED)
 find_package(Threads REQUIRED)
 if (${CMAKE_CUDA_COMPILER_VERSION} GREATER_EQUAL 11.5)
     set(Thrust_DIR /usr/local/cuda/targets/x86_64-linux/lib/cmake/thrust/)
@@ -52,8 +52,6 @@ else ()
 endif()
 find_package(Thrust REQUIRED CONFIG)
 thrust_create_target(Thrust)
-
-include_directories(${EIGEN3_INCLUDE_DIRS})
 
 add_subdirectory(src)
 

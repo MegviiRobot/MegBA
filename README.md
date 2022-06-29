@@ -26,11 +26,11 @@ Paper: https://arxiv.org/abs/2112.01349 (updated version)
 
 Dependencies:
 
-- C++14 (C++17 is required for compiling examples)
+- C++14
 - CMake (>= 3.15)
-- CUDA (>= 11.2) https://developer.nvidia.com/cuda-downloads
-- Eigen (>= 3.4.0) https://eigen.tuxfamily.org/
-- [gflags](https://github.com/gflags/gflags): `apt install libgflags-dev`
+- [CUDA](https://developer.nvidia.com/cuda-downloads) (>= 11.2)
+- [Eigen](https://eigen.tuxfamily.org/) (>= 3.4.0)
+- [gflags](https://github.com/gflags/gflags)
 - NCCL2 (if you need Distributed features) https://developer.nvidia.com/nccl/nccl-download
 
 You can also easily install all dependencies with script: [script](https://drive.google.com/file/d/154whcVH2VcJCYnTSlnfo_tbIIaQvSax3/view?usp=sharing)
@@ -45,7 +45,6 @@ Demo with BAL dataset:
   If you want to use the distributed feature, use `cmake -DMEGBA_ENABLE_NCCL ..` instead of `cmake ..`.
 
   ```bash
-  git submodule init && git submodule update --remote
   mkdir build
   cd build
   cmake ..  # enable nccl by using cmake -DMEGBA_ENABLE_NCCL ..
@@ -70,7 +69,7 @@ Demo with BAL dataset:
 
 ## Notes for the practitioners
 
-* ~Currently, MegBA implements automatic differentiation only for generalizability. Please consider implementing your own analytical differentiation module.~ Analytical differentiation module is provided.
+* ~~Currently, MegBA implements automatic differentiation only for generalizability. Please consider implementing your own analytical differentiation module.~~ Analytical differentiation module is provided.
 * If you use devices without modern inter-device communication (i.e., NVLinks..), you might find the data transfer is the bottleneck.
 * Empirically, we found it is necessary to customize the LM trust-region strategies and tune its hyper-parameters to further boost the performance. 
 
