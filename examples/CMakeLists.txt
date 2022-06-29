@@ -1,3 +1,4 @@
+find_package(gflags REQUIRED)
 add_executable(BAL_Double BAL_Double.cpp)
 target_link_libraries(BAL_Double 
                       PRIVATE
@@ -10,7 +11,7 @@ target_link_libraries(BAL_Double
                       MegBA::geo
                       MegBA::edge
                       MegBA::solver
-                      gflags::gflags)
+                      gflags)
 
 add_executable(BAL_Float BAL_Float.cpp)
 target_link_libraries(BAL_Float
@@ -24,7 +25,7 @@ target_link_libraries(BAL_Float
                       MegBA::geo
                       MegBA::edge
                       MegBA::solver
-                      gflags::gflags)
+                      gflags)
 
 add_executable(BAL_Float_analytical BAL_Float_analytical.cpp)
 target_link_libraries(BAL_Float_analytical
@@ -38,4 +39,4 @@ target_link_libraries(BAL_Float_analytical
                       MegBA::geo
                       MegBA::edge
                       MegBA::solver
-                      gflags::gflags)
+                      gflags)
