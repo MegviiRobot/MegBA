@@ -209,7 +209,10 @@ void EdgeVector<T>::buildLinearSystem(
     const BaseLinearSystem<T> &linearSystem) const {
   switch (option.device) {
     case Device::CUDA: {
-      buildLinearSystemCUDA(jetEstimation, linearSystem);
+      if(linearSystem.computeKind() == EXPLICIT)
+        buildLinearSystemCUDA(jetEstimation, linearSystem);
+      else
+        buildImplicitLinearSystemCUDA(jetEstimation, linearSystem);
       break;
     }
     default:

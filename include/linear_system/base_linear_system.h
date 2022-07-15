@@ -10,6 +10,7 @@
 #include <vector>
 #include <array>
 #include "common.h"
+#include "vertex/base_vertex.h"
 
 namespace MegBA {
 template <typename T>
@@ -18,6 +19,10 @@ struct BaseLinearSystem {
 
   virtual LinearSystemKind linearSystemKind() const {
     return BASE_LINEAR_SYSTEM;
+  }
+
+  virtual ComputeKind computeKind() const {
+    return EXPLICIT;
   }
 
   BaseLinearSystem() = delete;
@@ -36,6 +41,8 @@ struct BaseLinearSystem {
   std::size_t getHessianShape() const;
 
   void solve() const;
+
+  virtual void solve(const EdgeVector<T> &edges, const JVD<T> &jetEstimation) const {};
 
   virtual void buildIndex(const BaseProblem<T> &problem) = 0;
 

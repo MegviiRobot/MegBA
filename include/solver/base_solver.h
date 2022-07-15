@@ -25,6 +25,10 @@ struct BaseSolver {
 
   virtual void solve(const BaseLinearSystem<T> &baseLinearSystem) = 0;
 
+  virtual void solve(const BaseLinearSystem<T> &baseLinearSystem,
+                     const EdgeVector<T> &edges,
+                     const JVD<T> &jetEstimation) {};
+
   const ProblemOption &problemOption;
   const SolverOption &solverOption;
 };

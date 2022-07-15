@@ -163,7 +163,10 @@ void LMAlgo<T>::solveCUDA(const BaseLinearSystem<T> &baseLinearSystem,
   while (!stop && k < this->algoOption.algoOptionLM.maxIter) {
     k++;
     linearSystem.processDiag(this->algoStatus.algoStatusLM);
-    linearSystem.solve();
+    if(linearSystem.computeKind() == EXPLICIT)
+      linearSystem.solve();
+    else
+      linearSystem.solve(edges, jvBackup);
     MemoryPool::redistribute();
     cudaSetDevice(0);
     double deltaXL2 = std::sqrt(

@@ -4,7 +4,9 @@ add_library(MegBA::solver ALIAS solver)
 target_sources(solver 
                PRIVATE 
                schur_pcg_solver.cpp
-               schur_pcg_solver.cu)
+               schur_pcg_solver.cu
+               implicit_schur_pcg_solver.cpp
+               implicit_schur_pcg_solver.cu)
 
 target_include_directories(solver 
                            PUBLIC 

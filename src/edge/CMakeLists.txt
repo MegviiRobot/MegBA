@@ -6,7 +6,8 @@ target_sources(edge
                base_edge.cpp
                base_edge.cu
                update.cu
-               build_linear_system.cu)
+               build_linear_system.cu
+               build_implicit_linear_system.cu)
 
 target_include_directories(edge 
                            PUBLIC 

@@ -8,6 +8,7 @@
 #include "linear_system/schur_LM_linear_system.h"
 #include "solver/schur_pcg_solver.h"
 #include "wrapper.hpp"
+#include "macro.h"
 
 #if __CUDACC_VER_MAJOR__ < 11 || \
     (__CUDACC_VER_MAJOR__ == 11 && __CUDACC_VER_MINOR__ <= 2)
@@ -495,7 +496,6 @@ void schurMakeVDistributed(std::vector<T *> &SpMVbuffer, const int pointNum,
   for (int i = 0; i < worldSize; ++i) {
     cudaSetDevice(i);
     cudaStreamSynchronize(cusparseStream[i]);
-
     cusparseDestroySpMat(hpl[i]);
     cusparseDestroyDnVec(vecv[i]);
     cusparseDestroyDnVec(vecw[i]);
@@ -671,7 +671,6 @@ void SchurPCGSolver<T>::solve(const BaseLinearSystem<T> &baseLinearSystem) {
     hplNnz[i] = linearSystem.equationContainers[i].nnz[0];
     deltaX[i] = linearSystem.deltaXPtr[i];
   }
-
   SchurPCGSolverDistributed(
       this->solverOption.solverOptionPCG, hppCsrVal, hllCsrVal, hplCsrVal,
       hplCsrColInd, hplCsrRowPtr, hlpCsrVal, hlpCsrColInd, hlpCsrRowPtr, g,
