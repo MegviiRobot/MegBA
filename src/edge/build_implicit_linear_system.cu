@@ -301,14 +301,14 @@ void EdgeVector<T>::buildImplicitLinearSystemCUDA(
  const auto &comms = HandleManager::getNCCLComm();
  ncclGroupStart();
  for (int i = 0; i < option.deviceUsed.size(); ++i) {
-   ncclAllReduce(linearSystemLocal.implicitEquationContainers[i].csrVal[2],
-                 linearSystemLocal.implicitEquationContainers[i].csrVal[2],
-                 linearSystemLocal.implicitEquationContainers[i].nnz[2],
+   ncclAllReduce(linearSystemLocal.implicitEquationContainers[i].csrVal[0],
+                 linearSystemLocal.implicitEquationContainers[i].csrVal[0],
+                 linearSystemLocal.implicitEquationContainers[i].nnz[0],
                  Wrapper::declaredDtype<T>::ncclDtype, ncclSum, comms[i],
                  nullptr);
-   ncclAllReduce(linearSystemLocal.implicitEquationContainers[i].csrVal[3],
-                 linearSystemLocal.implicitEquationContainers[i].csrVal[3],
-                 linearSystemLocal.implicitEquationContainers[i].nnz[3],
+   ncclAllReduce(linearSystemLocal.implicitEquationContainers[i].csrVal[1],
+                 linearSystemLocal.implicitEquationContainers[i].csrVal[1],
+                 linearSystemLocal.implicitEquationContainers[i].nnz[1],
                  Wrapper::declaredDtype<T>::ncclDtype, ncclSum, comms[i],
                  nullptr);
    ncclAllReduce(gCameraDevice[i], gCameraDevice[i], hppRows + hllRows,
