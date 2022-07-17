@@ -13,16 +13,16 @@ namespace internal {
 template <typename MegBA_t>
 struct scalar_constant_op<MegBA::JetVector<MegBA_t>> {
   using Scalar = MegBA::JetVector<MegBA_t>;
-  EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE
+  EIGEN_STRONG_INLINE
   scalar_constant_op(const scalar_constant_op &other)
       : m_other(other.m_other) {}
-  EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE scalar_constant_op(const Scalar &other)
+  EIGEN_STRONG_INLINE scalar_constant_op(const Scalar &other)
       : m_other(other) {}
-  EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE const Scalar &operator()() const {
+  EIGEN_STRONG_INLINE const Scalar &operator()() const {
     return m_other;
   }
   template <typename PacketType>
-  EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE const PacketType packetOp() const {
+  EIGEN_STRONG_INLINE const PacketType packetOp() const {
     return internal::pset1<PacketType>(m_other);
   }
   const Scalar &m_other;
@@ -31,16 +31,16 @@ struct scalar_constant_op<MegBA::JetVector<MegBA_t>> {
 template <typename MegBA_t>
 struct scalar_constant_op<const MegBA::JetVector<MegBA_t>> {
   using Scalar = const MegBA::JetVector<MegBA_t>;
-  EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE
+  EIGEN_STRONG_INLINE
   scalar_constant_op(const scalar_constant_op &other)
       : m_other(other.m_other) {}
-  EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE scalar_constant_op(const Scalar &other)
+  EIGEN_STRONG_INLINE scalar_constant_op(const Scalar &other)
       : m_other(other) {}
-  EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE const Scalar &operator()() const {
+  EIGEN_STRONG_INLINE const Scalar &operator()() const {
     return m_other;
   }
   template <typename PacketType>
-  EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE const PacketType packetOp() const {
+  EIGEN_STRONG_INLINE const PacketType packetOp() const {
     return internal::pset1<PacketType>(m_other);
   }
   const Scalar &m_other;
@@ -52,16 +52,16 @@ struct assign_op<MegBA::JetVector<MegBA_t>, MegBA::JetVector<MegBA_t>> {
   using SrcScalar = MegBA::JetVector<MegBA_t>;
 
   EIGEN_EMPTY_STRUCT_CTOR(assign_op)
-  EIGEN_DEVICE_FUNC static EIGEN_STRONG_INLINE void assignCoeff(
+  static EIGEN_STRONG_INLINE void assignCoeff(
       DstScalar &a, const SrcScalar &b) {
     a = b;
   }
-  EIGEN_DEVICE_FUNC static EIGEN_STRONG_INLINE void assignCoeff(DstScalar &a,
+  static EIGEN_STRONG_INLINE void assignCoeff(DstScalar &a,
                                                                 SrcScalar &&b) {
     a = std::move(b);
   }
 
-  EIGEN_DEVICE_FUNC static EIGEN_STRONG_INLINE void assignCoeff(
+  static EIGEN_STRONG_INLINE void assignCoeff(
       DstScalar &a, const SrcScalar &&b) {
     a = std::move(const_cast<SrcScalar &&>(b));
   }
@@ -190,11 +190,11 @@ class MapBase<Map<const Matrix<MegBA::JetVector<MegBA_t>, MatrixArgs...>,
   typedef typename Base::CoeffReturnType CoeffReturnType;
 
   /** \copydoc DenseBase::rows() */
-  EIGEN_DEVICE_FUNC EIGEN_CONSTEXPR inline Index rows() const EIGEN_NOEXCEPT {
+  EIGEN_CONSTEXPR inline Index rows() const EIGEN_NOEXCEPT {
     return m_rows.value();
   }
   /** \copydoc DenseBase::cols() */
-  EIGEN_DEVICE_FUNC EIGEN_CONSTEXPR inline Index cols() const EIGEN_NOEXCEPT {
+  EIGEN_CONSTEXPR inline Index cols() const EIGEN_NOEXCEPT {
     return m_cols.value();
   }
 
@@ -205,7 +205,7 @@ class MapBase<Map<const Matrix<MegBA::JetVector<MegBA_t>, MatrixArgs...>,
    *
    * \sa innerStride(), outerStride()
    */
-  EIGEN_DEVICE_FUNC inline const Scalar *data() const { return m_data; }
+  inline const Scalar *data() const { return m_data; }
 
   /** \copydoc PlainObjectBase::coeff(Index,Index) const */
   EIGEN_DEVICE_FUNC
@@ -289,7 +289,7 @@ class MapBase<Map<const Matrix<MegBA::JetVector<MegBA_t>, MatrixArgs...>,
   EIGEN_DEFAULT_EMPTY_CONSTRUCTOR_AND_DESTRUCTOR(MapBase)
 
   template <typename T>
-  EIGEN_DEVICE_FUNC void checkSanity(
+  void checkSanity(
       typename internal::enable_if<(internal::traits<T>::Alignment > 0),
                                    void *>::type = 0) const {
 #if EIGEN_MAX_ALIGN_BYTES > 0
@@ -308,7 +308,7 @@ class MapBase<Map<const Matrix<MegBA::JetVector<MegBA_t>, MatrixArgs...>,
   }
 
   template <typename T>
-  EIGEN_DEVICE_FUNC void checkSanity(
+  void checkSanity(
       typename internal::enable_if<internal::traits<T>::Alignment == 0,
                                    void *>::type = 0) const {}
 
@@ -376,11 +376,11 @@ class MapBase<
   typedef typename Base::CoeffReturnType CoeffReturnType;
 
   /** \copydoc DenseBase::rows() */
-  EIGEN_DEVICE_FUNC EIGEN_CONSTEXPR inline Index rows() const EIGEN_NOEXCEPT {
+  EIGEN_CONSTEXPR inline Index rows() const EIGEN_NOEXCEPT {
     return m_rows.value();
   }
   /** \copydoc DenseBase::cols() */
-  EIGEN_DEVICE_FUNC EIGEN_CONSTEXPR inline Index cols() const EIGEN_NOEXCEPT {
+  EIGEN_CONSTEXPR inline Index cols() const EIGEN_NOEXCEPT {
     return m_cols.value();
   }
 
@@ -391,7 +391,7 @@ class MapBase<
    *
    * \sa innerStride(), outerStride()
    */
-  EIGEN_DEVICE_FUNC inline const Scalar *data() const { return m_data; }
+  inline const Scalar *data() const { return m_data; }
 
   /** \copydoc PlainObjectBase::coeff(Index,Index) const */
   EIGEN_DEVICE_FUNC
@@ -475,7 +475,7 @@ class MapBase<
   EIGEN_DEFAULT_EMPTY_CONSTRUCTOR_AND_DESTRUCTOR(MapBase)
 
   template <typename T>
-  EIGEN_DEVICE_FUNC void checkSanity(
+  void checkSanity(
       typename internal::enable_if<(internal::traits<T>::Alignment > 0),
                                    void *>::type = 0) const {
 #if EIGEN_MAX_ALIGN_BYTES > 0
@@ -494,7 +494,7 @@ class MapBase<
   }
 
   template <typename T>
-  EIGEN_DEVICE_FUNC void checkSanity(
+  void checkSanity(
       typename internal::enable_if<internal::traits<T>::Alignment == 0,
                                    void *>::type = 0) const {}
 
@@ -558,11 +558,11 @@ class MapBase<Block<const Matrix<MegBA::JetVector<MegBA_t>, MatrixArgs...>,
   typedef typename Base::CoeffReturnType CoeffReturnType;
 
   /** \copydoc DenseBase::rows() */
-  EIGEN_DEVICE_FUNC EIGEN_CONSTEXPR inline Index rows() const EIGEN_NOEXCEPT {
+  EIGEN_CONSTEXPR inline Index rows() const EIGEN_NOEXCEPT {
     return m_rows.value();
   }
   /** \copydoc DenseBase::cols() */
-  EIGEN_DEVICE_FUNC EIGEN_CONSTEXPR inline Index cols() const EIGEN_NOEXCEPT {
+  EIGEN_CONSTEXPR inline Index cols() const EIGEN_NOEXCEPT {
     return m_cols.value();
   }
 
@@ -573,7 +573,7 @@ class MapBase<Block<const Matrix<MegBA::JetVector<MegBA_t>, MatrixArgs...>,
    *
    * \sa innerStride(), outerStride()
    */
-  EIGEN_DEVICE_FUNC inline const Scalar *data() const { return m_data; }
+  inline const Scalar *data() const { return m_data; }
 
   /** \copydoc PlainObjectBase::coeff(Index,Index) const */
   EIGEN_DEVICE_FUNC
@@ -657,7 +657,7 @@ class MapBase<Block<const Matrix<MegBA::JetVector<MegBA_t>, MatrixArgs...>,
   EIGEN_DEFAULT_EMPTY_CONSTRUCTOR_AND_DESTRUCTOR(MapBase)
 
   template <typename T>
-  EIGEN_DEVICE_FUNC void checkSanity(
+  void checkSanity(
       typename internal::enable_if<(internal::traits<T>::Alignment > 0),
                                    void *>::type = 0) const {
 #if EIGEN_MAX_ALIGN_BYTES > 0
@@ -676,7 +676,7 @@ class MapBase<Block<const Matrix<MegBA::JetVector<MegBA_t>, MatrixArgs...>,
   }
 
   template <typename T>
-  EIGEN_DEVICE_FUNC void checkSanity(
+  void checkSanity(
       typename internal::enable_if<internal::traits<T>::Alignment == 0,
                                    void *>::type = 0) const {}
 
