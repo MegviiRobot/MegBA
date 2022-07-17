@@ -11,20 +11,6 @@
 #include "wrapper.hpp"
 
 namespace MegBA {
-namespace {
-void CUDART_CB freeCallback(void *ptr) { free(ptr); }
-
-template <typename T>
-__global__ void broadCastCsrColInd(const int *input, const int other_dim,
-                                  const int nItem, int *output) {
- unsigned int tid = threadIdx.x + blockIdx.x * blockDim.x;
- if (tid >= nItem) return;
- for (int i = 0; i < other_dim; ++i) {
-   output[i + tid * other_dim] = i + input[tid] * other_dim;
- }
-}
-}  // namespace
-
 template <typename T>
 void ImplicitSchurLMLinearSystem<T>::allocateResourceCUDA() {
  const auto worldSize = MemoryPool::getWorldSize();
