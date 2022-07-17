@@ -25,6 +25,11 @@ target_link_libraries(edge
 
 target_compile_options(edge PRIVATE $<$<COMPILE_LANGUAGE:CUDA>:--expt-relaxed-constexpr --extended-lambda>)
 
+if(MEGBA_ENABLE_NCCL)
+    target_compile_definitions(edge PRIVATE MEGBA_ENABLE_NCCL)
+    target_link_libraries(edge PRIVATE nccl)
+endif()
+
 install(TARGETS edge
         EXPORT "${EDGE_EXPORT_NAME}"
         LIBRARY DESTINATION "${CMAKE_INSTALL_LIBDIR}"
