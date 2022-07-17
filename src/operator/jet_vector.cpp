@@ -5,9 +5,10 @@
  *
  **/
 
+#include "operator/jet_vector.h"
+
 #include <iostream>
 
-#include "operator/jet_vector.h"
 #include "operator/jet_vector_math_impl.cuh"
 #include "operator/jet_vector_math_impl.h"
 
@@ -19,6 +20,10 @@
       return (f)op(g)._pureScalar;                  \
     }                                               \
   }
+
+#define THROW_UNREACHED_SWITCH \
+  default:                     \
+    throw std::runtime_error("not implemented")
 
 namespace MegBA {
 template <typename T>
@@ -85,6 +90,7 @@ void JetVector<T>::initAs(const JetVector<T> &initTemplate) {
       case Device::CUDA:
         initAsCUDA(initTemplate);
         break;
+        THROW_UNREACHED_SWITCH;
     }  // switch _device
   } else {
     throw std::runtime_error(
@@ -101,6 +107,7 @@ JetVector<T> &JetVector<T>::to(Device device) {
     case Device::CUDA:
       CUDA();
       break;
+      THROW_UNREACHED_SWITCH;
   }
   _device = device;
   return *this;
@@ -109,19 +116,20 @@ JetVector<T> &JetVector<T>::to(Device device) {
 template <typename T>
 JetVector<T> &JetVector<T>::CPU() {
   if (!IsEmpty()) {
+    // save counter
+    auto N = _N;
+    auto nItem = _nItem;
     switch (_device) {
       case Device::CPU:
         break;
       case Device::CUDA:
-        // save counter
-        auto N = _N;
-        auto nItem = _nItem;
         CUDA2CPU(*this);
         clear();
         // reserve counter
         _N = N;
         _nItem = nItem;
         break;
+        THROW_UNREACHED_SWITCH;
     }  // switch _device
   }    // !empty
   _device = Device::CPU;
@@ -162,6 +170,7 @@ void JetVector<T>::clear() {
       case Device::CUDA:
         clearCUDA();
         break;
+        THROW_UNREACHED_SWITCH;
     }
   }
   _N = 0;
@@ -210,6 +219,7 @@ JetVector<T> JetVector<T>::operator+(const JetVector<T> &g) const {
                             return math::impl::vectorAddVectorCUDA(*this, g,
                                                                    out);
                           }};
+      THROW_UNREACHED_SWITCH;
   }  // switch _device
 }
 
@@ -229,6 +239,7 @@ JetVector<T> JetVector<T>::operator-(const JetVector<T> &g) const {
                             return math::impl::vectorSubVectorCUDA(*this, g,
                                                                    out);
                           }};
+      THROW_UNREACHED_SWITCH;
   }  // switch _device
 }
 
@@ -248,6 +259,7 @@ JetVector<T> JetVector<T>::operator*(const JetVector<T> &g) const {
                             return math::impl::vectorMulVectorCUDA(*this, g,
                                                                    out);
                           }};
+      THROW_UNREACHED_SWITCH;
   }  // switch _device
 }
 
@@ -267,6 +279,7 @@ JetVector<T> JetVector<T>::operator/(const JetVector<T> &g) const {
                             return math::impl::vectorDivVectorCUDA(*this, g,
                                                                    out);
                           }};
+      THROW_UNREACHED_SWITCH;
   }  // switch _device
 }
 
@@ -281,6 +294,7 @@ JetVector<T> &JetVector<T>::operator+=(const JetVector<T> &g) {
     case Device::CUDA:
       math::impl::vectorAddVectorCUDA(*this, g, this);
       break;
+      THROW_UNREACHED_SWITCH;
   }  // switch _device
   return *this;
 }
@@ -296,6 +310,7 @@ JetVector<T> &JetVector<T>::operator-=(const JetVector<T> &g) {
     case Device::CUDA:
       math::impl::vectorSubVectorCUDA(*this, g, this);
       break;
+      THROW_UNREACHED_SWITCH;
   }  // switch _device
   return *this;
 }
@@ -311,6 +326,7 @@ JetVector<T> &JetVector<T>::operator*=(const JetVector<T> &g) {
     case Device::CUDA:
       math::impl::vectorMulVectorCUDA(*this, g, this);
       break;
+      THROW_UNREACHED_SWITCH;
   }  // switch _device
   return *this;
 }
@@ -326,6 +342,7 @@ JetVector<T> &JetVector<T>::operator/=(const JetVector<T> &g) {
     case Device::CUDA:
       math::impl::vectorDivVectorCUDA(*this, g, this);
       break;
+      THROW_UNREACHED_SWITCH;
   }  // switch _device
   return *this;
 }
@@ -348,6 +365,7 @@ JetVector<T> JetVector<T>::operator+(T g) const {
                             return math::impl::jetVectorAddScalarCUDA(*this, g,
                                                                       out);
                           }};
+      THROW_UNREACHED_SWITCH;
   }  // switch _device
 }
 
@@ -364,6 +382,7 @@ JetVector<T> JetVector<T>::operator-(T g) const {
                             return math::impl::jetVectorSubScalarCUDA(*this, g,
                                                                       out);
                           }};
+      THROW_UNREACHED_SWITCH;
   }  // switch _device
 }
 
@@ -380,6 +399,7 @@ JetVector<T> JetVector<T>::operator*(T g) const {
                             return math::impl::jetVectorMulScalarCUDA(*this, g,
                                                                       out);
                           }};
+      THROW_UNREACHED_SWITCH;
   }  // switch _device
 }
 
@@ -397,6 +417,7 @@ JetVector<T> &JetVector<T>::operator+=(T g) {
     case Device::CUDA:
       math::impl::jetVectorAddScalarCUDA(*this, g, this);
       break;
+      THROW_UNREACHED_SWITCH;
   }  // switch _device
   return *this;
 }
@@ -410,6 +431,7 @@ JetVector<T> &JetVector<T>::operator-=(T g) {
     case Device::CUDA:
       math::impl::jetVectorSubScalarCUDA(*this, g, this);
       break;
+      THROW_UNREACHED_SWITCH;
   }  // switch _device
   return *this;
 }
@@ -423,6 +445,7 @@ JetVector<T> &JetVector<T>::operator*=(T g) {
     case Device::CUDA:
       math::impl::jetVectorMulScalarCUDA(*this, g, this);
       break;
+      THROW_UNREACHED_SWITCH;
   }  // switch _device
   return *this;
 }
@@ -446,6 +469,7 @@ JetVector<T> JetVector<T>::scalarSubThis(T f) const {
                             return math::impl::scalarSubJetVectorCUDA(f, *this,
                                                                       out);
                           }};
+      THROW_UNREACHED_SWITCH;
   }  // switch _device
 }
 
@@ -462,6 +486,7 @@ JetVector<T> JetVector<T>::scalarDivThis(T f) const {
                             return math::impl::scalarDivJetVectorCUDA(f, *this,
                                                                       out);
                           }};
+      THROW_UNREACHED_SWITCH;
   }  // switch _device
 }
 
@@ -475,7 +500,7 @@ std::ostream &ostreamCUDA(std::ostream &s, const JetVector<T> &z);
 template <typename T>
 std::ostream &operator<<(std::ostream &s, const MegBA::JetVector<T> &z) {
   switch (z.getDevice()) {
-    case MegBA::Device::CPU: {
+    case MegBA::Device::CPU:
       s << "[Res: "
         << "[ ";
       for (auto &data : z.getCPURes()) s << data << ", ";
@@ -488,10 +513,9 @@ std::ostream &operator<<(std::ostream &s, const MegBA::JetVector<T> &z) {
       }
       s << "_device: " << std::to_string(z.getDevice()) << "]";
       break;
-    }
-    case MegBA::Device::CUDA: {
+    case MegBA::Device::CUDA:
       return MegBA::ostreamCUDA(s, z);
-    }
+      THROW_UNREACHED_SWITCH;
   }
   return s;
 }

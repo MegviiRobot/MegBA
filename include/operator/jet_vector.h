@@ -21,6 +21,7 @@
 namespace MegBA {
 template <typename T>
 class JetVector {
+#ifndef CUDA_ARCH
   // cuda functions
   void initAsCUDA(const JetVector<T> &f);
   void CPU2CUDA(const JetVector<T> &f);
@@ -166,6 +167,7 @@ class JetVector {
 
   JetVector<T> scalarSubThis(T g) const;
   JetVector<T> scalarDivThis(T g) const;
+#endif
 };
 }  // namespace MegBA
 
