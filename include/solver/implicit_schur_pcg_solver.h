@@ -16,6 +16,8 @@ struct ImplicitSchurPCGSolver : public PCGSolver<T>, public SchurSolver<T> {
   ImplicitSchurPCGSolver(const ProblemOption &problemOption,
                 const SolverOption &solverOption);
 
+  ComputeKind computeKind() const { return IMPLICIT; }
+
  void solve(const BaseLinearSystem<T> &baseLinearSystem){};
 
  void solve(const BaseLinearSystem<T> &baseLinearSystem, const EdgeVector<T> &edges, const JVD<T> &jetEstimation);

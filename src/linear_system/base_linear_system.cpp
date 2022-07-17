@@ -32,8 +32,18 @@ std::size_t BaseLinearSystem<T>::getHessianShape() const {
 
 template <typename T>
 void BaseLinearSystem<T>::solve() const {
+  assert(computeKind() == solver->computeKind() &&
+         "The computeKind must be the same.");
   solver->solve(*this);
 }
+
+template <typename T>
+void BaseLinearSystem<T>::solve(const EdgeVector<T> &edges, const JVD<T> &jetEstimation) const {
+  assert(computeKind() == solver->computeKind() &&
+         "The computeKind must be the same.");
+  solver->solve(*this, edges, jetEstimation);
+}
+
 
 template <typename T>
 BaseLinearSystem<T>::~BaseLinearSystem() {

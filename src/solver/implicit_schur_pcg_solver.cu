@@ -265,8 +265,8 @@ bool ImplicitSchurPCGSolverDistributedCUDA(
    const auto edgeNum = MemoryPool::getItemNum(i);
    dim3 block(std::min((decltype(edgeNum))32, edgeNum));
    dim3 grid((edgeNum - 1) / block.x + 1);
-   cudaMemset(temp[i], 0, hllRows * sizeof(T));
-   implicitETMulx<<<grid, block>>>(valPtrsDevice[i],
+   cudaMemsetAsync(temp[i], 0, hllRows * sizeof(T), cusparseStream[i]);
+   implicitETMulx<<<grid, block, 0, cusparseStream[i]>>>(valPtrsDevice[i],
                                    d_x[i],
                                    positionContainer.absolutePosition[0],
                                    positionContainer.absolutePosition[1],
@@ -290,19 +290,16 @@ bool ImplicitSchurPCGSolverDistributedCUDA(
    dim3 block(pointDim, std::min(32, pointNum));
    dim3 grid((pointNum - 1) / block.y + 1);
    cudaSetDevice(i);
-   cudaDeviceSynchronize();
-   // borrow pN as temp workspace
    oursGgemvBatched<<<grid, block, block.x * block.y * sizeof(T),
                       cusparseStream[i]>>>(hllInvCsrVal[i], temp[i], pointNum,
                                            temp[i]);
 
-   cudaDeviceSynchronize();
    const auto &positionContainer = edges.getPositionContainers()[i];
    const auto edgeNum = MemoryPool::getItemNum(i);
    dim3 block_(std::min((decltype(edgeNum))32, edgeNum));
    dim3 grid_((edgeNum - 1) / block_.x + 1);
-   cudaMemset(axN[i], 0, hppRows * sizeof(T));
-   implicitEMulx<<<grid_, block_>>>(valPtrsDevice[i],
+   cudaMemsetAsync(axN[i], 0, hppRows * sizeof(T), cusparseStream[i]);
+   implicitEMulx<<<grid_, block_, 0, cusparseStream[i]>>>(valPtrsDevice[i],
                                     temp[i],
                                     positionContainer.absolutePosition[0],
                                     positionContainer.absolutePosition[1],
@@ -401,8 +398,8 @@ bool ImplicitSchurPCGSolverDistributedCUDA(
      const auto edgeNum = MemoryPool::getItemNum(i);
      dim3 block(std::min((decltype(edgeNum))32, edgeNum));
      dim3 grid((edgeNum - 1) / block.x + 1);
-     cudaMemset(temp[i], 0, hllRows * sizeof(T));
-     implicitETMulx<<<grid, block>>>(valPtrsDevice[i],
+     cudaMemsetAsync(temp[i], 0, hllRows * sizeof(T), cusparseStream[i]);
+     implicitETMulx<<<grid, block, 0, cusparseStream[i]>>>(valPtrsDevice[i],
                                      pN[i],
                                      positionContainer.absolutePosition[0],
                                      positionContainer.absolutePosition[1],
@@ -427,7 +424,6 @@ bool ImplicitSchurPCGSolverDistributedCUDA(
      dim3 grid((pointNum - 1) / block.y + 1);
      cudaSetDevice(i);
      // borrow pN as temp workspace
-     cudaDeviceSynchronize();
      oursGgemvBatched<<<grid, block, block.x * block.y * sizeof(T),
                         cusparseStream[i]>>>(hllInvCsrVal[i], temp[i],
                                              pointNum, temp[i]);
@@ -436,8 +432,8 @@ bool ImplicitSchurPCGSolverDistributedCUDA(
      const auto edgeNum = MemoryPool::getItemNum(i);
      dim3 block_(std::min((decltype(edgeNum))32, edgeNum));
      dim3 grid_((edgeNum - 1) / block_.x + 1);
-     cudaMemset(axN[i], 0, hppRows * sizeof(T));
-     implicitEMulx<<<grid_, block_>>>(valPtrsDevice[i],
+     cudaMemsetAsync(axN[i], 0, hppRows * sizeof(T), cusparseStream[i]);
+     implicitEMulx<<<grid_, block_, 0, cusparseStream[i]>>>(valPtrsDevice[i],
                                       temp[i],
                                       positionContainer.absolutePosition[0],
                                       positionContainer.absolutePosition[1],
@@ -546,8 +542,6 @@ void implicitSchurMakeVDistributed(const std::vector<const T **> &valPtrsDevice,
    w[i] = &r[i][hppRows];
    MemoryPool::allocateNormal(reinterpret_cast<void **>(&EMulxVal[i]),
                               hppRows * sizeof(T), i);
-   // TODO: bug
-   cudaDeviceSynchronize();
  }
 
  dim3 blockDim(pointDim, std::min(32, pointNum));
@@ -571,7 +565,7 @@ void implicitSchurMakeVDistributed(const std::vector<const T **> &valPtrsDevice,
    dim3 block_(std::min((decltype(edgeNum))32, edgeNum));
    dim3 grid_((edgeNum - 1) / block_.x + 1);
    // E * C-1 * gpoint = Jc.T * Jp * w, w = C-1 * gpoint
-   implicitEMulx<<<grid_, block_>>>(valPtrsDevice[i],
+   implicitEMulx<<<grid_, block_, 0, cusparseStream[i]>>>(valPtrsDevice[i],
                                     w[i],
                                     positionContainer.absolutePosition[0],
                                     positionContainer.absolutePosition[1],
@@ -582,15 +576,13 @@ void implicitSchurMakeVDistributed(const std::vector<const T **> &valPtrsDevice,
    // v = v - Jc.T * Jp * C-1 * gpoint
    dim3 block(std::min(256, hppRows));
    dim3 grid((hppRows - 1) / block.x + 1);
-   cudaSetDevice(i);
    doubleWeightedPlusKernel<T>
-       <<<grid, block>>>(hppRows, alpha, EMulxVal[i], beta, v[i], v[i]);
+       <<<grid, block, 0, cusparseStream[i]>>>(hppRows, alpha, EMulxVal[i], beta, v[i], v[i]);
 
  }
 
  for (int i = 0; i < worldSize; ++i) {
    cudaSetDevice(i);
-//   cudaDeviceSynchronize();
    cudaStreamSynchronize(cusparseStream[i]);
    MemoryPool::deallocateNormal(EMulxVal[i], i);
  }
@@ -640,8 +632,8 @@ void implicitSchurSolveWDistributed(
    const auto edgeNum = MemoryPool::getItemNum(i);
    dim3 block(std::min((decltype(edgeNum))32, edgeNum));
    dim3 grid((edgeNum - 1) / block.x + 1);
-   cudaMemset(xp[i], 0, hllRows * sizeof(T));
-   implicitETMulx<<<grid, block>>>(valPtrsDevice[i],
+   cudaMemsetAsync(xp[i], 0, hllRows * sizeof(T), cusparseStream[i]);
+   implicitETMulx<<<grid, block, 0, cusparseStream[i]>>>(valPtrsDevice[i],
                                    xc[i],
                                    positionContainer.absolutePosition[0],
                                    positionContainer.absolutePosition[1],
@@ -665,7 +657,6 @@ void implicitSchurSolveWDistributed(
  dim3 gridDim((pointNum - 1) / blockDim.y + 1);
  for (int i = 0; i < worldSize; ++i) {
    cudaSetDevice(i);
-   cudaDeviceSynchronize();
    oursGgemvBatched<T, -1, 1>
        <<<gridDim, blockDim, blockDim.x * blockDim.y * sizeof(T),
           cusparseStream[i]>>>(hllInvCsrVal[i], xp[i], pointNum, w[i]);
@@ -713,7 +704,6 @@ bool ImplicitSchurPCGSolverDistributed(
 
  for (int i = 0; i < worldSize; ++i) {
    cudaSetDevice(i);
-   cudaDeviceSynchronize();
    MemoryPool::deallocateNormal(hllInvCsrVal[i], i);
  }
  return PCG_success;

@@ -8,7 +8,6 @@
 #include "linear_system/schur_LM_linear_system.h"
 #include "solver/schur_pcg_solver.h"
 #include "wrapper.hpp"
-#include "macro.h"
 
 #if __CUDACC_VER_MAJOR__ < 11 || \
     (__CUDACC_VER_MAJOR__ == 11 && __CUDACC_VER_MINOR__ <= 2)

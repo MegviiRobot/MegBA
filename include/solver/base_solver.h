@@ -17,6 +17,8 @@ struct BaseSolver {
 
   virtual SolverKind solverKind() const { return BASE_SOLVER; }
 
+  virtual ComputeKind computeKind() const { return EXPLICIT; }
+
   BaseSolver(const ProblemOption &problemOption,
              const SolverOption &solverOption)
       : problemOption{problemOption}, solverOption{solverOption} {}

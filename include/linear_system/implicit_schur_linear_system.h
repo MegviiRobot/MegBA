@@ -27,8 +27,6 @@ struct ImplicitSchurLinearSystem : virtual public BaseLinearSystem<T> {
 
  std::vector<EquationContainer> implicitEquationContainers;
 
- void solve(const EdgeVector<T> &edges, const JVD<T> &jetEstimation) const;
-
 protected:
  explicit ImplicitSchurLinearSystem(const ProblemOption &option,
                             std::unique_ptr<BaseSolver<T>> solver);

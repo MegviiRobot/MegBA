@@ -13,11 +13,6 @@
 
 namespace MegBA {
 template <typename T>
-void ImplicitSchurLinearSystem<T>::solve(const EdgeVector<T> &edges, const JVD<T> &jetEstimation) const {
-  this->solver->solve(*this, edges, jetEstimation);
-}
-
-template <typename T>
 ImplicitSchurLinearSystem<T>::ImplicitSchurLinearSystem(const ProblemOption& option,
                                         std::unique_ptr<BaseSolver<T>> solver)
     : BaseLinearSystem<T>{option, std::move(solver)},

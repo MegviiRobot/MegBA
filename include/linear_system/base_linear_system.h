@@ -42,7 +42,7 @@ struct BaseLinearSystem {
 
   void solve() const;
 
-  virtual void solve(const EdgeVector<T> &edges, const JVD<T> &jetEstimation) const {};
+  void solve(const EdgeVector<T> &edges, const JVD<T> &jetEstimation) const;
 
   virtual void buildIndex(const BaseProblem<T> &problem) = 0;
 
