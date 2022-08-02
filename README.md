@@ -104,13 +104,11 @@ Contact Information:
 If you find MegBA useful for your project, please consider citing:
 
 ```
-@misc{2021megba,
-  title={MegBA: A High-Performance and Distributed Library for Large-Scale Bundle Adjustment}, 
+@inproceedings{2021megba,
+  title={MegBA: A GPU-Based Distributed Library for Large-Scale Bundle Adjustment}, 
   author={Jie Ren and Wenteng Liang and Ran Yan and Luo Mai and Shiwen Liu and Xiao Liu},
-  year={2021},
-  eprint={2112.01349},
-  archivePrefix={arXiv},
-  primaryClass={cs.CV}
+  booktitle={European Conference on Computer Vision},
+  year={2022}
 }
 
 ```
