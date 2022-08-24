@@ -1,6 +1,7 @@
 .vscode
 .idea
 build*
+!build_linear_system.cu
 install*
 CMakeLists.txt.user
 CMakeCache.txt
