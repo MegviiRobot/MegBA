@@ -98,7 +98,8 @@ int main(int argc, char* argv[]) {
   std::unique_ptr<MegBA::BaseSolver<T>> solver{
       new MegBA::ImplicitSchurPCGSolver<T>{problemOption, solverOption}};
   std::unique_ptr<MegBA::BaseLinearSystem<T>> linearSystem{
-      new MegBA::ImplicitSchurLMLinearSystem<T>{problemOption, std::move(solver)}};
+      new MegBA::ImplicitSchurLMLinearSystem<T>{problemOption,
+                                                std::move(solver)}};
   MegBA::BaseProblem<T> problem{problemOption, std::move(algo),
                                 std::move(linearSystem)};
 
@@ -156,7 +157,7 @@ int main(int argc, char* argv[]) {
     edgePtr->appendVertex(&problem.getVertex(std::get<0>(edge[j])));
     edgePtr->appendVertex(&problem.getVertex(std::get<1>(edge[j])));
     edgePtr->setMeasurement(std::get<2>(std::move(edge[j])));
-//    edgePtr->setInformation(Eigen::Matrix2d::Identity());
+    //    edgePtr->setInformation(Eigen::Matrix2d::Identity());
     problem.appendEdge(*edgePtr);
   }
   problem.solve();

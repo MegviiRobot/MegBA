@@ -95,7 +95,8 @@ int main(int argc, char* argv[]) {
   std::unique_ptr<MegBA::BaseSolver<T>> solver{
       new MegBA::ImplicitSchurPCGSolver<T>{problemOption, solverOption}};
   std::unique_ptr<MegBA::BaseLinearSystem<T>> linearSystem{
-      new MegBA::ImplicitSchurLMLinearSystem<T>{problemOption, std::move(solver)}};
+      new MegBA::ImplicitSchurLMLinearSystem<T>{problemOption,
+                                                std::move(solver)}};
   MegBA::BaseProblem<T> problem{problemOption, std::move(algo),
                                 std::move(linearSystem)};
 
