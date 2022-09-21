@@ -236,6 +236,7 @@ void MemoryPool::destruct() {
   _headPtr.clear();
   _ptr.clear();
   managedRecorder.clear();
+  _poolSize.clear();
 }
 
 std::vector<std::vector<void *>> MemoryPool::_ptr{};
