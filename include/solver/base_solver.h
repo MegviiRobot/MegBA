@@ -17,6 +17,8 @@ struct BaseSolver {
 
   virtual SolverKind solverKind() const { return BASE_SOLVER; }
 
+  virtual ComputeKind computeKind() const { return EXPLICIT; }
+
   BaseSolver(const ProblemOption &problemOption,
              const SolverOption &solverOption)
       : problemOption{problemOption}, solverOption{solverOption} {}
@@ -24,6 +26,10 @@ struct BaseSolver {
   virtual ~BaseSolver() = default;
 
   virtual void solve(const BaseLinearSystem<T> &baseLinearSystem) = 0;
+
+  virtual void solve(const BaseLinearSystem<T> &baseLinearSystem,
+                     const EdgeVector<T> &edges,
+                     const JVD<T> &jetEstimation) {};
 
   const ProblemOption &problemOption;
   const SolverOption &solverOption;

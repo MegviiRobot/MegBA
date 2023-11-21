@@ -20,6 +20,8 @@ enum AlgoKind { BASE_ALGO, LM };
 
 enum LinearSystemKind { BASE_LINEAR_SYSTEM, SCHUR };
 
+enum ComputeKind { EXPLICIT, IMPLICIT };
+
 enum SolverKind { BASE_SOLVER, PCG };
 
 struct SolverOption {

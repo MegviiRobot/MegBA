@@ -7,9 +7,9 @@
 #include "algo/lm_algo.h"
 #include "edge/base_edge.h"
 #include "geo/geo.cuh"
-#include "linear_system/schur_LM_linear_system.h"
+#include "linear_system/implicit_schur_LM_linear_system.h"
 #include "problem/base_problem.h"
-#include "solver/schur_pcg_solver.h"
+#include "solver/implicit_schur_pcg_solver.h"
 #include "vertex/base_vertex.h"
 
 template <typename T>
@@ -96,9 +96,10 @@ int main(int argc, char* argv[]) {
   std::unique_ptr<MegBA::BaseAlgo<T>> algo{
       new MegBA::LMAlgo<T>{problemOption, algoOption}};
   std::unique_ptr<MegBA::BaseSolver<T>> solver{
-      new MegBA::SchurPCGSolver<T>{problemOption, solverOption}};
+      new MegBA::ImplicitSchurPCGSolver<T>{problemOption, solverOption}};
   std::unique_ptr<MegBA::BaseLinearSystem<T>> linearSystem{
-      new MegBA::SchurLMLinearSystem<T>{problemOption, std::move(solver)}};
+      new MegBA::ImplicitSchurLMLinearSystem<T>{problemOption,
+                                                std::move(solver)}};
   MegBA::BaseProblem<T> problem{problemOption, std::move(algo),
                                 std::move(linearSystem)};
 
@@ -156,7 +157,7 @@ int main(int argc, char* argv[]) {
     edgePtr->appendVertex(&problem.getVertex(std::get<0>(edge[j])));
     edgePtr->appendVertex(&problem.getVertex(std::get<1>(edge[j])));
     edgePtr->setMeasurement(std::get<2>(std::move(edge[j])));
-//    edgePtr->setInformation(Eigen::Matrix2d::Identity());
+    //    edgePtr->setInformation(Eigen::Matrix2d::Identity());
     problem.appendEdge(*edgePtr);
   }
   problem.solve();

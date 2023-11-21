@@ -5,8 +5,10 @@ target_sources(linear_system
                PRIVATE 
                base_linear_system.cpp base_linear_system.cu
                schur_linear_system.cpp schur_linear_system.cu
+               implicit_schur_linear_system.cpp implicit_schur_linear_system.cu
                LM_linear_system.cpp LM_linear_system.cu
-               schur_LM_linear_system.cpp schur_LM_linear_system.cu)
+               schur_LM_linear_system.cpp schur_LM_linear_system.cu
+               implicit_schur_LM_linear_system.cpp implicit_schur_LM_linear_system.cu)
 
 target_include_directories(linear_system 
                            PUBLIC 

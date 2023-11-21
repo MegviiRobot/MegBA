@@ -151,6 +151,9 @@ class EdgeVector {
   void buildLinearSystemCUDA(const JVD<T> &jetEstimation,
                              const BaseLinearSystem<T> &linearSystem) const;
 
+  void buildImplicitLinearSystemCUDA(const JVD<T> &jetEstimation,
+                             const BaseLinearSystem<T> &linearSystem) const;
+
   void update(const BaseLinearSystem<T> &linearSystem) const;
 
   void bindCUDAGradPtrs();

@@ -5,8 +5,9 @@
  *
  **/
 
-#include "linear_system/schur_LM_linear_system.h"
-#include "solver/schur_pcg_solver.h"
+#include "linear_system/implicit_schur_LM_linear_system.h"
+#include "macro.h"
+#include "solver/implicit_schur_pcg_solver.h"
 #include "wrapper.hpp"
 
 #if __CUDACC_VER_MAJOR__ < 11 || \
@@ -17,11 +18,91 @@
 namespace MegBA {
 namespace {
 template <typename T>
+__global__ void implicitEMulx(const T *const *const valPtrs,
+                              const T *const xPtrs,
+                              const int *absolutePositionCamera,
+                              const int *absolutePositionPoint,
+                              const int resDim, const int cameraDim,
+                              const int pointDim, const int errorNum,
+                              T *result) {
+  /*
+   * make sure that blockDim.x % 32 == 0, if so, there won't be any thread
+   * divergence within a wrap.
+   */
+  const unsigned int tid = threadIdx.x + blockDim.x * blockIdx.x;
+  if (tid >= errorNum) return;
+
+  const int absolutePositionPointLocal = absolutePositionPoint[tid];
+  const int absolutePositionCameraLocal = absolutePositionCamera[tid];
+
+  for (int i = 0; i < resDim; ++i) {
+    T Sum{0.};
+    T JpX{0.};
+    // Jp * x
+    for (int j = cameraDim; j < cameraDim + pointDim; ++j) {
+      const T valI = valPtrs[i][errorNum * j + tid];
+      JpX +=
+          valI * xPtrs[absolutePositionPointLocal * pointDim + j - cameraDim];
+    }
+    // Jc.T * Jp * x
+    for (int j = 0; j < cameraDim; ++j) {
+      const T valI = valPtrs[i][errorNum * j + tid];
+      Sum = valI * JpX;
+      atomicAdd(&result[absolutePositionCameraLocal * cameraDim + j], Sum);
+    }
+  }
+}
+
+template <typename T>
+__global__ void implicitETMulx(const T *const *const valPtrs,
+                               const T *const xPtrs,
+                               const int *absolutePositionCamera,
+                               const int *absolutePositionPoint,
+                               const int resDim, const int cameraDim,
+                               const int pointDim, const int errorNum,
+                               T *result) {
+  /*
+   * make sure that blockDim.x % 32 == 0, if so, there won't be any thread
+   * divergence within a wrap.
+   */
+  const unsigned int tid = threadIdx.x + blockDim.x * blockIdx.x;
+  if (tid >= errorNum) return;
+
+  const int absolutePositionPointLocal = absolutePositionPoint[tid];
+  const int absolutePositionCameraLocal = absolutePositionCamera[tid];
+
+  for (int i = 0; i < resDim; ++i) {
+    T Sum{0.};
+    T JcX{0.};
+    // Jc * x
+    for (int j = 0; j < cameraDim; ++j) {
+      const T valI = valPtrs[i][errorNum * j + tid];
+      JcX += valI * xPtrs[absolutePositionCameraLocal * cameraDim + j];
+    }
+    // Jp.T * Jc * x
+    for (int j = cameraDim; j < cameraDim + pointDim; ++j) {
+      const T valI = valPtrs[i][errorNum * j + tid];
+      Sum = valI * JcX;
+      atomicAdd(&result[absolutePositionPointLocal * pointDim + j - cameraDim],
+                Sum);
+    }
+  }
+}
+
+template <typename T>
 __global__ void weightedPlusKernel(int nItem, const T *x, const T *y, T weight,
                                    T *z) {
   unsigned int tid = threadIdx.x + blockIdx.x * blockDim.x;
   if (tid >= nItem) return;
   z[tid] = x[tid] + weight * y[tid];
+}
+
+template <typename T>
+__global__ void doubleWeightedPlusKernel(int nItem, T weightx, const T *x,
+                                         T weighty, const T *y, T *z) {
+  unsigned int tid = threadIdx.x + blockIdx.x * blockDim.x;
+  if (tid >= nItem) return;
+  z[tid] = weightx * x[tid] + weighty * y[tid];
 }
 
 template <typename T>
@@ -31,30 +112,6 @@ __global__ void fillPtr(const T *aData, T *ainvData, const int batchSize,
   if (tid >= batchSize) return;
   a[tid] = &aData[tid * hRowsNumPow2];
   ainv[tid] = &ainvData[tid * hRowsNumPow2];
-}
-
-template <typename T>
-void invert(const T *aFlat, int n, const int num, T *cFlat) {
-  cublasHandle_t handle = HandleManager::getCUBLASHandle()[0];
-
-  const T **a;
-  T **ainv;
-  cudaMalloc(&a, num * sizeof(T *));
-  cudaMalloc(&ainv, num * sizeof(T *));
-  dim3 blockDim(std::min(decltype(num)(256), num));
-  dim3 gridDim((num - 1) / blockDim.x + 1);
-
-  fillPtr<<<gridDim, blockDim>>>(aFlat, cFlat, num, n * n, a, ainv);
-
-  int *info;
-  cudaMalloc(&info, num * sizeof(int));
-  Wrapper::cublasGmatinvBatched::call(handle, n, a, n, ainv, n, info, num);
-
-  cudaDeviceSynchronize();
-
-  cudaFree(a);
-  cudaFree(ainv);
-  cudaFree(info);
 }
 
 template <typename T>
@@ -100,8 +157,8 @@ template <typename T, int result_weight = 1, int dest_weight = 0>
 __global__ void oursGgemvBatched(const T *csrVal, const T *r, int batchSize,
                                  T *dx) {
   /*
-blockDim, x-dim: camera or point dim, y-dim: process how many cameras/points in
-this block
+ blockDim, x-dim: camera or point dim, y-dim: process how many cameras/points in
+ this block
    */
   unsigned int tid = threadIdx.y + blockIdx.x * blockDim.y;
   if (tid >= batchSize) return;
@@ -121,15 +178,12 @@ this block
 }
 
 template <typename T>
-bool schurPCGSolverDistributedCUDA(
-    const std::vector<T *> &SpMVbuffer, SolverOption::SolverOptionPCG option,
-    const int cameraNum, const int pointNum, const int cameraDim,
-    const int pointDim, const std::vector<int> &hplNnz, const int hppRows,
+bool ImplicitSchurPCGSolverDistributedCUDA(
+    SolverOption::SolverOptionPCG option,
+    const std::vector<const T **> &valPtrsDevice, const EdgeVector<T> &edges,
+    const int resDim, const int cameraNum, const int pointNum,
+    const int cameraDim, const int pointDim, const int hppRows,
     const int hllRows, const std::vector<T *> &hppCsrVal,
-    const std::vector<T *> &hplCsrVal, const std::vector<int *> &hplCsrColInd,
-    const std::vector<int *> &hplCsrRowPtr, const std::vector<T *> &hlpCsrVal,
-    const std::vector<int *> &hlpCsrColInd,
-    const std::vector<int *> &hlpCsrRowPtr,
     const std::vector<T *> &hllInvCsrVal, const std::vector<T *> &g,
     const std::vector<T *> &d_x) {
 #ifdef MEGBA_ENABLE_NCCL
@@ -144,8 +198,6 @@ bool schurPCGSolverDistributedCUDA(
   T alphaN, alphaNegN, rhoNm1;
   std::vector<T> dot;
   std::vector<T *> hppInvCsrVal, pN, rN, axN, temp, deltaXBackup;
-  std::vector<cusparseSpMatDescr_t> hpl, hlp;
-  std::vector<cusparseDnVecDescr_t> vecx, vecp, vecAx, vectemp;
   cusparseStream.resize(worldSize);
   cublasStream.resize(worldSize);
   dot.resize(worldSize);
@@ -155,12 +207,6 @@ bool schurPCGSolverDistributedCUDA(
   axN.resize(worldSize);
   temp.resize(worldSize);
   deltaXBackup.resize(worldSize);
-  hpl.resize(worldSize);
-  hlp.resize(worldSize);
-  vecx.resize(worldSize);
-  vecp.resize(worldSize);
-  vecAx.resize(worldSize);
-  vectemp.resize(worldSize);
   for (int i = 0; i < worldSize; ++i) {
     cudaSetDevice(i);
     cusparseGetStream(cusparseHandle[i], &cusparseStream[i]);
@@ -180,20 +226,6 @@ bool schurPCGSolverDistributedCUDA(
                                hllRows * sizeof(T), i);
 
     cudaMemcpyAsync(rN[i], g[i], hppRows * sizeof(T), cudaMemcpyDeviceToDevice);
-
-    /* Wrap raw data into cuSPARSE generic API objects */
-    cusparseCreateCsr(&hpl[i], hppRows, hllRows, hplNnz[i], hplCsrRowPtr[i],
-                      hplCsrColInd[i], hplCsrVal[i], CUSPARSE_INDEX_32I,
-                      CUSPARSE_INDEX_32I, CUSPARSE_INDEX_BASE_ZERO,
-                      cudaDataType);
-    cusparseCreateCsr(&hlp[i], hllRows, hppRows, hplNnz[i], hlpCsrRowPtr[i],
-                      hlpCsrColInd[i], hlpCsrVal[i], CUSPARSE_INDEX_32I,
-                      CUSPARSE_INDEX_32I, CUSPARSE_INDEX_BASE_ZERO,
-                      cudaDataType);
-    cusparseCreateDnVec(&vecx[i], hppRows, d_x[i], cudaDataType);
-    cusparseCreateDnVec(&vecp[i], hppRows, pN[i], cudaDataType);
-    cusparseCreateDnVec(&vecAx[i], hppRows, axN[i], cudaDataType);
-    cusparseCreateDnVec(&vectemp[i], hllRows, temp[i], cudaDataType);
   }
 
   invertDistributed(hppCsrVal, cameraDim, cameraNum, hppInvCsrVal);
@@ -203,9 +235,15 @@ bool schurPCGSolverDistributedCUDA(
     cudaSetDevice(i);
     /* Begin CG */
     // x1 = ET*x
-    cusparseSpMV(cusparseHandle[i], CUSPARSE_OPERATION_NON_TRANSPOSE, &one,
-                 hlp[i], vecx[i], &zero, vectemp[i], cudaDataType,
-                 CUSPARSE_SPMV_ALG_DEFAULT, SpMVbuffer[i]);
+    const auto &positionContainer = edges.getPositionContainers()[i];
+    const auto edgeNum = MemoryPool::getItemNum(i);
+    dim3 block(std::min((decltype(edgeNum))32, edgeNum));
+    dim3 grid((edgeNum - 1) / block.x + 1);
+    cudaMemsetAsync(temp[i], 0, hllRows * sizeof(T), cusparseStream[i]);
+    implicitETMulx<<<grid, block, 0, cusparseStream[i]>>>(
+        valPtrsDevice[i], d_x[i], positionContainer.absolutePosition[0],
+        positionContainer.absolutePosition[1], resDim, cameraDim, pointDim,
+        edgeNum, temp[i]);
   }
 
 #ifdef MEGBA_ENABLE_NCCL
@@ -222,14 +260,19 @@ bool schurPCGSolverDistributedCUDA(
     dim3 block(pointDim, std::min(32, pointNum));
     dim3 grid((pointNum - 1) / block.y + 1);
     cudaSetDevice(i);
-    // borrow pN as temp workspace
     oursGgemvBatched<<<grid, block, block.x * block.y * sizeof(T),
                        cusparseStream[i]>>>(hllInvCsrVal[i], temp[i], pointNum,
                                             temp[i]);
 
-    cusparseSpMV(cusparseHandle[i], CUSPARSE_OPERATION_NON_TRANSPOSE, &one,
-                 hpl[i], vectemp[i], &zero, vecAx[i], cudaDataType,
-                 CUSPARSE_SPMV_ALG_DEFAULT, SpMVbuffer[i]);
+    const auto &positionContainer = edges.getPositionContainers()[i];
+    const auto edgeNum = MemoryPool::getItemNum(i);
+    dim3 block_(std::min((decltype(edgeNum))32, edgeNum));
+    dim3 grid_((edgeNum - 1) / block_.x + 1);
+    cudaMemsetAsync(axN[i], 0, hppRows * sizeof(T), cusparseStream[i]);
+    implicitEMulx<<<grid_, block_, 0, cusparseStream[i]>>>(
+        valPtrsDevice[i], temp[i], positionContainer.absolutePosition[0],
+        positionContainer.absolutePosition[1], resDim, cameraDim, pointDim,
+        edgeNum, axN[i]);
   }
 
 #ifdef MEGBA_ENABLE_NCCL
@@ -317,9 +360,15 @@ bool schurPCGSolverDistributedCUDA(
       // x1 = ET*x
       cudaSetDevice(i);
       cudaStreamSynchronize(cublasStream[i]);
-      cusparseSpMV(cusparseHandle[i], CUSPARSE_OPERATION_NON_TRANSPOSE, &one,
-                   hlp[i], vecp[i], &zero, vectemp[i], cudaDataType,
-                   CUSPARSE_SPMV_ALG_DEFAULT, SpMVbuffer[i]);
+      const auto &positionContainer = edges.getPositionContainers()[i];
+      const auto edgeNum = MemoryPool::getItemNum(i);
+      dim3 block(std::min((decltype(edgeNum))32, edgeNum));
+      dim3 grid((edgeNum - 1) / block.x + 1);
+      cudaMemsetAsync(temp[i], 0, hllRows * sizeof(T), cusparseStream[i]);
+      implicitETMulx<<<grid, block, 0, cusparseStream[i]>>>(
+          valPtrsDevice[i], pN[i], positionContainer.absolutePosition[0],
+          positionContainer.absolutePosition[1], resDim, cameraDim, pointDim,
+          edgeNum, temp[i]);
     }
 
 #ifdef MEGBA_ENABLE_NCCL
@@ -341,9 +390,15 @@ bool schurPCGSolverDistributedCUDA(
                          cusparseStream[i]>>>(hllInvCsrVal[i], temp[i],
                                               pointNum, temp[i]);
 
-      cusparseSpMV(cusparseHandle[i], CUSPARSE_OPERATION_NON_TRANSPOSE, &one,
-                   hpl[i], vectemp[i], &zero, vecAx[i], cudaDataType,
-                   CUSPARSE_SPMV_ALG_DEFAULT, SpMVbuffer[i]);
+      const auto &positionContainer = edges.getPositionContainers()[i];
+      const auto edgeNum = MemoryPool::getItemNum(i);
+      dim3 block_(std::min((decltype(edgeNum))32, edgeNum));
+      dim3 grid_((edgeNum - 1) / block_.x + 1);
+      cudaMemsetAsync(axN[i], 0, hppRows * sizeof(T), cusparseStream[i]);
+      implicitEMulx<<<grid_, block_, 0, cusparseStream[i]>>>(
+          valPtrsDevice[i], temp[i], positionContainer.absolutePosition[0],
+          positionContainer.absolutePosition[1], resDim, cameraDim, pointDim,
+          edgeNum, axN[i]);
     }
 
 #ifdef MEGBA_ENABLE_NCCL
@@ -405,17 +460,8 @@ bool schurPCGSolverDistributedCUDA(
     ++n;
     done = std::abs(rhoN) < option.tol;
   } while (!done && n < option.maxIter);
-  // cudaSetDevice(0);
-  // PRINT_DMEMORY_SEGMENT(d_x[0], 0, 2, T);
   for (int i = 0; i < worldSize; ++i) {
     cudaSetDevice(i);
-    cusparseDestroySpMat(hpl[i]);
-    cusparseDestroySpMat(hlp[i]);
-    cusparseDestroyDnVec(vecx[i]);
-    cusparseDestroyDnVec(vecAx[i]);
-    cusparseDestroyDnVec(vecp[i]);
-    cusparseDestroyDnVec(vectemp[i]);
-
     MemoryPool::deallocateNormal(deltaXBackup[i], i);
     MemoryPool::deallocateNormal(temp[i], i);
     MemoryPool::deallocateNormal(axN[i], i);
@@ -427,41 +473,32 @@ bool schurPCGSolverDistributedCUDA(
 }
 
 template <typename T>
-void schurMakeVDistributed(std::vector<T *> &SpMVbuffer, const int pointNum,
-                           const int pointDim, const std::vector<int> &hplNnz,
-                           const int hppRows, const int hllRows,
-                           const std::vector<T *> &hplCsrVal,
-                           const std::vector<int *> &hplCsrColInd,
-                           const std::vector<int *> &hplCsrRowPtr,
-                           const std::vector<T *> &hllInvCsrVal,
-                           const std::vector<T *> &r) {
+void implicitSchurMakeVDistributed(const std::vector<const T **> &valPtrsDevice,
+                                   const int pointNum, const int pointDim,
+                                   const int resDim, const int cameraDim,
+                                   const int hppRows,
+                                   const EdgeVector<T> &edges,
+                                   const std::vector<T *> &hllInvCsrVal,
+                                   const std::vector<T *> &r) {
 #ifdef MEGBA_ENABLE_NCCL
   const auto &comms = HandleManager::getNCCLComm();
 #endif
   const auto worldSize = MemoryPool::getWorldSize();
-  const auto &cusparseHandle = HandleManager::getCUSPARSEHandle();
   constexpr auto cudaDataType = Wrapper::declaredDtype<T>::cudaDtype;
-
+  const auto &cusparseHandle = HandleManager::getCUSPARSEHandle();
   std::vector<T *> v, w;
+  std::vector<T *> EMulxVal;
   std::vector<cudaStream_t> cusparseStream;
-  std::vector<cusparseDnVecDescr_t> vecv, vecw;
-  std::vector<cusparseSpMatDescr_t> hpl;
   v.resize(worldSize);
   w.resize(worldSize);
+  EMulxVal.resize(worldSize);
   cusparseStream.resize(worldSize);
-  vecv.resize(worldSize);
-  vecw.resize(worldSize);
-  hpl.resize(worldSize);
   for (int i = 0; i < worldSize; ++i) {
     cusparseGetStream(cusparseHandle[i], &cusparseStream[i]);
     v[i] = &r[i][0];
     w[i] = &r[i][hppRows];
-    cusparseCreateDnVec(&vecv[i], hppRows, v[i], cudaDataType);
-    cusparseCreateDnVec(&vecw[i], hllRows, w[i], cudaDataType);
-    cusparseCreateCsr(&hpl[i], hppRows, hllRows, hplNnz[i], hplCsrRowPtr[i],
-                      hplCsrColInd[i], hplCsrVal[i], CUSPARSE_INDEX_32I,
-                      CUSPARSE_INDEX_32I, CUSPARSE_INDEX_BASE_ZERO,
-                      cudaDataType);
+    MemoryPool::allocateNormal(reinterpret_cast<void **>(&EMulxVal[i]),
+                               hppRows * sizeof(T), i);
   }
 
   dim3 blockDim(pointDim, std::min(32, pointNum));
@@ -470,6 +507,7 @@ void schurMakeVDistributed(std::vector<T *> &SpMVbuffer, const int pointNum,
     cudaSetDevice(i);
     // notably, w here is changed(w = C^{-1}w),
     // so later w = C^{-1}(w - ETv) = C^{-1}w - C^{-1}ETv -> w = w - C^{-1}ETv
+    // w = C-1 * gpoint
     oursGgemvBatched<<<gridDim, blockDim, blockDim.x * blockDim.y * sizeof(T),
                        cusparseStream[i]>>>(hllInvCsrVal[i], w[i], pointNum,
                                             w[i]);
@@ -477,27 +515,28 @@ void schurMakeVDistributed(std::vector<T *> &SpMVbuffer, const int pointNum,
 
   T alpha{-1.0}, beta = T(1. / worldSize);
 
-  SpMVbuffer.resize(worldSize);
   for (int i = 0; i < worldSize; ++i) {
     cudaSetDevice(i);
-    size_t bufferSize = 0;
-    cusparseSpMV_bufferSize(cusparseHandle[i], CUSPARSE_OPERATION_NON_TRANSPOSE,
-                            &alpha, hpl[i], vecw[i], &beta, vecv[i],
-                            cudaDataType, CUSPARSE_SPMV_ALG_DEFAULT,
-                            &bufferSize);
-    MemoryPool::allocateNormal(reinterpret_cast<void **>(&SpMVbuffer[i]),
-                               bufferSize, i);
-    cusparseSpMV(cusparseHandle[i], CUSPARSE_OPERATION_NON_TRANSPOSE, &alpha,
-                 hpl[i], vecw[i], &beta, vecv[i], cudaDataType,
-                 CUSPARSE_SPMV_ALG_DEFAULT, SpMVbuffer[i]);
+    const auto &positionContainer = edges.getPositionContainers()[i];
+    const auto edgeNum = MemoryPool::getItemNum(i);
+    dim3 block_(std::min((decltype(edgeNum))32, edgeNum));
+    dim3 grid_((edgeNum - 1) / block_.x + 1);
+    // E * C-1 * gpoint = Jc.T * Jp * w, w = C-1 * gpoint
+    implicitEMulx<<<grid_, block_, 0, cusparseStream[i]>>>(
+        valPtrsDevice[i], w[i], positionContainer.absolutePosition[0],
+        positionContainer.absolutePosition[1], resDim, cameraDim, pointDim,
+        edgeNum, EMulxVal[i]);
+    // v = v - Jc.T * Jp * C-1 * gpoint
+    dim3 block(std::min(256, hppRows));
+    dim3 grid((hppRows - 1) / block.x + 1);
+    doubleWeightedPlusKernel<T><<<grid, block, 0, cusparseStream[i]>>>(
+        hppRows, alpha, EMulxVal[i], beta, v[i], v[i]);
   }
 
   for (int i = 0; i < worldSize; ++i) {
     cudaSetDevice(i);
     cudaStreamSynchronize(cusparseStream[i]);
-    cusparseDestroySpMat(hpl[i]);
-    cusparseDestroyDnVec(vecv[i]);
-    cusparseDestroyDnVec(vecw[i]);
+    MemoryPool::deallocateNormal(EMulxVal[i], i);
   }
 #ifdef MEGBA_ENABLE_NCCL
   ncclGroupStart();
@@ -510,11 +549,10 @@ void schurMakeVDistributed(std::vector<T *> &SpMVbuffer, const int pointNum,
 }
 
 template <typename T>
-void schurSolveWDistributed(
-    const std::vector<T *> &SpMVbuffer, const int pointNum, const int pointDim,
-    const std::vector<int> &hplNnz, const int hppRows, const int hllRows,
-    const std::vector<T *> &hlpCsrVal, const std::vector<int *> &hlpCsrColInd,
-    const std::vector<int *> &hlpCsrRowPtr,
+void implicitSchurSolveWDistributed(
+    const std::vector<const T **> &valPtrsDevice, const EdgeVector<T> &edges,
+    const int resDim, const int pointNum, const int pointDim,
+    const int cameraDim, const int hppRows, const int hllRows,
     const std::vector<T *> &hllInvCsrVal, const std::vector<T *> &d_r,
     const std::vector<T *> &d_x) {
 #ifdef MEGBA_ENABLE_NCCL
@@ -532,37 +570,24 @@ void schurSolveWDistributed(
     xp[i] = &d_x[i][hppRows];
     w[i] = &d_r[i][hppRows];
   }
-
   const auto &cusparseHandle = HandleManager::getCUSPARSEHandle();
-
   std::vector<cudaStream_t> cusparseStream;
-  std::vector<cusparseDnVecDescr_t> vecxc, vecxp, vecw;
-  std::vector<cusparseSpMatDescr_t> hlp;
   cusparseStream.resize(worldSize);
-  vecxc.resize(worldSize);
-  vecxp.resize(worldSize);
-  vecw.resize(worldSize);
-  hlp.resize(worldSize);
-
   for (int i = 0; i < worldSize; ++i) {
     cusparseGetStream(cusparseHandle[i], &cusparseStream[i]);
-
-    cusparseCreateDnVec(&vecxc[i], hppRows, xc[i], cudaDataType);
-    cusparseCreateDnVec(&vecxp[i], hllRows, xp[i], cudaDataType);
-    cusparseCreateDnVec(&vecw[i], hllRows, w[i], cudaDataType);
-    cusparseCreateCsr(&hlp[i], hllRows, hppRows, hplNnz[i], hlpCsrRowPtr[i],
-                      hlpCsrColInd[i], hlpCsrVal[i], CUSPARSE_INDEX_32I,
-                      CUSPARSE_INDEX_32I, CUSPARSE_INDEX_BASE_ZERO,
-                      cudaDataType);
   }
-
-  T alpha{1.0}, beta{0.0};
   for (int i = 0; i < worldSize; ++i) {
     cudaSetDevice(i);
-    // x1 = ET*x
-    cusparseSpMV(cusparseHandle[i], CUSPARSE_OPERATION_NON_TRANSPOSE, &alpha,
-                 hlp[i], vecxc[i], &beta, vecxp[i], cudaDataType,
-                 CUSPARSE_SPMV_ALG_DEFAULT, SpMVbuffer[i]);
+    const auto &positionContainer = edges.getPositionContainers()[i];
+    // xp = Jp.T * Jc * xc = E.T * xc
+    const auto edgeNum = MemoryPool::getItemNum(i);
+    dim3 block(std::min((decltype(edgeNum))32, edgeNum));
+    dim3 grid((edgeNum - 1) / block.x + 1);
+    cudaMemsetAsync(xp[i], 0, hllRows * sizeof(T), cusparseStream[i]);
+    implicitETMulx<<<grid, block, 0, cusparseStream[i]>>>(
+        valPtrsDevice[i], xc[i], positionContainer.absolutePosition[0],
+        positionContainer.absolutePosition[1], resDim, cameraDim, pointDim,
+        edgeNum, xp[i]);
   }
 
 #ifdef MEGBA_ENABLE_NCCL
@@ -573,7 +598,8 @@ void schurSolveWDistributed(
   }
   ncclGroupEnd();
 #endif
-
+  // w = w - {C-1} * xp, w = {C-1} * gpoint, xp = ET * deltaXcamera
+  // xp = w
   dim3 blockDim(pointDim, std::min(32, pointNum));
   dim3 gridDim((pointNum - 1) / blockDim.y + 1);
   for (int i = 0; i < worldSize; ++i) {
@@ -588,28 +614,19 @@ void schurSolveWDistributed(
   for (int i = 0; i < worldSize; ++i) {
     cudaSetDevice(i);
     cudaStreamSynchronize(cusparseStream[i]);
-
-    cusparseDestroySpMat(hlp[i]);
-    cusparseDestroyDnVec(vecxc[i]);
-    cusparseDestroyDnVec(vecw[i]);
   }
 }
 
 template <typename T>
-bool SchurPCGSolverDistributed(
+bool ImplicitSchurPCGSolverDistributed(
     const SolverOption::SolverOptionPCG &option,
     const std::vector<T *> &hppCsrVal, const std::vector<T *> &hllCsrVal,
-    const std::vector<T *> &hplCsrVal, const std::vector<int *> &hplCsrColInd,
-    const std::vector<int *> &hplCsrRowPtr, const std::vector<T *> &hlpCsrVal,
-    const std::vector<int *> &hlpCsrColInd,
-    const std::vector<int *> &hlpCsrRowPtr, const std::vector<T *> &g,
-    int cameraDim, int cameraNum, int pointDim, int pointNum,
-    const std::vector<int> &hplNnz, int hppRows, int hllRows,
+    const std::vector<const T **> &valPtrsDevice, const std::vector<T *> &g,
+    const EdgeVector<T> &edges, int resDim, int cameraDim, int cameraNum,
+    int pointDim, int pointNum, int hppRows, int hllRows,
     const std::vector<T *> &deltaX) {
   // hll inverse-----------------------------------------------------------
   const auto worldSize = MemoryPool::getWorldSize();
-
-  std::vector<T *> SpMVbuffer;
 
   std::vector<T *> hllInvCsrVal;
   hllInvCsrVal.resize(worldSize);
@@ -619,20 +636,21 @@ bool SchurPCGSolverDistributed(
   }
   invertDistributed(hllCsrVal, pointDim, pointNum, hllInvCsrVal);
 
-  schurMakeVDistributed(SpMVbuffer, pointNum, pointDim, hplNnz, hppRows,
-                        hllRows, hplCsrVal, hplCsrColInd, hplCsrRowPtr,
-                        hllInvCsrVal, g);
-  bool PCG_success = schurPCGSolverDistributedCUDA(
-      SpMVbuffer, option, cameraNum, pointNum, cameraDim, pointDim, hplNnz,
-      hppRows, hllRows, hppCsrVal, hplCsrVal, hplCsrColInd, hplCsrRowPtr,
-      hlpCsrVal, hlpCsrColInd, hlpCsrRowPtr, hllInvCsrVal, g, deltaX);
-  schurSolveWDistributed(SpMVbuffer, pointNum, pointDim, hplNnz, hppRows,
-                         hllRows, hlpCsrVal, hlpCsrColInd, hlpCsrRowPtr,
-                         hllInvCsrVal, g, deltaX);
+  // v - E * {C-1} * gpoint
+  implicitSchurMakeVDistributed(valPtrsDevice, pointNum, pointDim, resDim,
+                                cameraDim, hppRows, edges, hllInvCsrVal, g);
+  // xc
+  bool PCG_success = ImplicitSchurPCGSolverDistributedCUDA(
+      option, valPtrsDevice, edges, resDim, cameraNum, pointNum, cameraDim,
+      pointDim, hppRows, hllRows, hppCsrVal, hllInvCsrVal, g, deltaX);
+
+  // xp = {C-1} * gpoint - {C-1} * Jp.T * Jc * deltaXcamera
+  implicitSchurSolveWDistributed(valPtrsDevice, edges, resDim, pointNum,
+                                 pointDim, cameraDim, hppRows, hllRows,
+                                 hllInvCsrVal, g, deltaX);
+
   for (int i = 0; i < worldSize; ++i) {
     cudaSetDevice(i);
-    cudaDeviceSynchronize();
-    MemoryPool::deallocateNormal(SpMVbuffer[i], i);
     MemoryPool::deallocateNormal(hllInvCsrVal[i], i);
   }
   return PCG_success;
@@ -640,43 +658,66 @@ bool SchurPCGSolverDistributed(
 }  // namespace
 
 template <typename T>
-void SchurPCGSolver<T>::solve(const BaseLinearSystem<T> &baseLinearSystem) {
+void ImplicitSchurPCGSolver<T>::solve(
+    const BaseLinearSystem<T> &baseLinearSystem, const EdgeVector<T> &edges,
+    const JVD<T> &jetEstimation) {
   const auto &linearSystem =
-      dynamic_cast<const SchurLinearSystem<T> &>(baseLinearSystem);
+      dynamic_cast<const ImplicitSchurLinearSystem<T> &>(baseLinearSystem);
   const std::size_t worldSize = linearSystem.problemOption.deviceUsed.size();
   std::vector<T *> hppCsrVal{worldSize};
   std::vector<T *> hllCsrVal{worldSize};
-  std::vector<T *> hplCsrVal{worldSize};
-  std::vector<T *> hlpCsrVal{worldSize};
-  std::vector<int *> hplCsrColInd{worldSize};
-  std::vector<int *> hlpCsrColInd{worldSize};
-  std::vector<int *> hplCsrRowPtr{worldSize};
-  std::vector<int *> hlpCsrRowPtr{worldSize};
   std::vector<T *> g{worldSize};
-  std::vector<int> hplNnz{};
-  hplNnz.resize(worldSize);
   std::vector<T *> deltaX{worldSize};
 
-  for (int i = 0; i < worldSize; ++i) {
-    hppCsrVal[i] = linearSystem.equationContainers[i].csrVal[2];
-    hllCsrVal[i] = linearSystem.equationContainers[i].csrVal[3];
-    hplCsrVal[i] = linearSystem.equationContainers[i].csrVal[0];
-    hlpCsrVal[i] = linearSystem.equationContainers[i].csrVal[1];
-    hplCsrColInd[i] = linearSystem.equationContainers[i].csrColInd[0];
-    hlpCsrColInd[i] = linearSystem.equationContainers[i].csrColInd[1];
-    hplCsrRowPtr[i] = linearSystem.equationContainers[i].csrRowPtr[0];
-    hlpCsrRowPtr[i] = linearSystem.equationContainers[i].csrRowPtr[1];
-    g[i] = linearSystem.g[i];
-    hplNnz[i] = linearSystem.equationContainers[i].nnz[0];
-    deltaX[i] = linearSystem.deltaXPtr[i];
+  const auto rows = jetEstimation.rows(), cols = jetEstimation.cols();
+  const auto resDim = rows * cols;
+  std::vector<std::unique_ptr<const T *[]>> totalPtrs {};
+  totalPtrs.reserve(worldSize);
+  std::vector<const T **> totalPtrsDevice{worldSize};
+  std::vector<const T **> valPtrs{worldSize};
+  std::vector<const T **> valPtrsDevice{worldSize};
+
+  for (int deviceRank = 0; deviceRank < worldSize; ++deviceRank) {
+    hppCsrVal[deviceRank] =
+        linearSystem.implicitEquationContainers[deviceRank].csrVal[0];
+    hllCsrVal[deviceRank] =
+        linearSystem.implicitEquationContainers[deviceRank].csrVal[1];
+    g[deviceRank] = linearSystem.g[deviceRank];
+    deltaX[deviceRank] = linearSystem.deltaXPtr[deviceRank];
+
+    totalPtrs.emplace_back(new const T *[resDim]);
+    cudaSetDevice(deviceRank);
+    cudaMalloc(&totalPtrsDevice[deviceRank], resDim * sizeof(T *));
+
+    valPtrs[deviceRank] = &totalPtrs[deviceRank][0];
+    valPtrsDevice[deviceRank] = &totalPtrsDevice[deviceRank][0];
+    for (int i = 0; i < rows; ++i)
+      for (int j = 0; j < cols; ++j) {
+        const auto &jetEstimationInner = jetEstimation(i, j);
+        valPtrs[deviceRank][j + i * cols] =
+            jetEstimationInner.getCUDAGradPtr()[deviceRank];
+      }
   }
-  SchurPCGSolverDistributed(
-      this->solverOption.solverOptionPCG, hppCsrVal, hllCsrVal, hplCsrVal,
-      hplCsrColInd, hplCsrRowPtr, hlpCsrVal, hlpCsrColInd, hlpCsrRowPtr, g,
-      linearSystem.dim[0], linearSystem.num[0], linearSystem.dim[1],
-      linearSystem.num[1], hplNnz, linearSystem.dim[0] * linearSystem.num[0],
+  for (int i = 0; i < worldSize; ++i) {
+    cudaMemcpyAsync(totalPtrsDevice[i], totalPtrs[i].get(),
+                    resDim * sizeof(T *), cudaMemcpyHostToDevice);
+    ASSERT_CUDA_NO_ERROR();
+  }
+
+  ImplicitSchurPCGSolverDistributed(
+      this->solverOption.solverOptionPCG, hppCsrVal, hllCsrVal, valPtrsDevice,
+      g, edges, resDim, linearSystem.dim[0], linearSystem.num[0],
+      linearSystem.dim[1], linearSystem.num[1],
+      linearSystem.dim[0] * linearSystem.num[0],
       linearSystem.dim[1] * linearSystem.num[1], deltaX);
+  ASSERT_CUDA_NO_ERROR();
+
+  for (int i = 0; i < worldSize; ++i) {
+    cudaSetDevice(i);
+    cudaStreamSynchronize(nullptr);
+    cudaFree(totalPtrsDevice[i]);
+  }
 }
 
-SPECIALIZE_STRUCT(SchurPCGSolver);
+SPECIALIZE_STRUCT(ImplicitSchurPCGSolver);
 }  // namespace MegBA
