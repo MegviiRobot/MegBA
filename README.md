@@ -29,7 +29,6 @@ Dependencies:
 - C++14
 - CMake (>= 3.15)
 - [CUDA](https://developer.nvidia.com/cuda-downloads) (>= 11.2)
-- [Eigen](https://eigen.tuxfamily.org/) (>= 3.4.0)
 - [gflags](https://github.com/gflags/gflags)
 - NCCL2 (if you need Distributed features) https://developer.nvidia.com/nccl/nccl-download
 
@@ -45,6 +44,7 @@ Demo with BAL dataset:
   If you want to use the distributed feature, use `cmake -DMEGBA_ENABLE_NCCL ..` instead of `cmake ..`.
 
   ```bash
+  git submodule update --init
   mkdir build
   cd build
   cmake ..  # enable nccl by using cmake -DMEGBA_ENABLE_NCCL ..
