@@ -1,6 +1,12 @@
 # CMake 3.15+ for Thrust/Cub support
 cmake_minimum_required(VERSION 3.19 FATAL_ERROR)
+
+set(CMAKE_TOOLCHAIN_FILE ${CMAKE_CURRENT_SOURCE_DIR}/vcpkg/scripts/buildsystems/vcpkg.cmake CACHE STRING "Vcpkg toolchain file")
+
+
 project(MegBA VERSION 1.0.0 LANGUAGES CUDA CXX)
+
+
 
 set(CMAKE_CXX_STANDARD 14)
 set(CUDA_STANDARD 14)
@@ -41,8 +47,7 @@ option(MEGBA_ENABLE_EXAMPLE "BUILD EXAMPLES" TRUE)
 # CUDA
 find_package(CUDAToolkit REQUIRED)
 find_package(OpenMP REQUIRED)
-set(EIGEN_BUILD_TESTING OFF)
-add_subdirectory(third_party/eigen)
+find_package(Eigen3 CONFIG REQUIRED)
 find_package(Threads REQUIRED)
 if (${CMAKE_CUDA_COMPILER_VERSION} GREATER_EQUAL 11.5)
     set(Thrust_DIR /usr/local/cuda/targets/x86_64-linux/lib/cmake/thrust/)
