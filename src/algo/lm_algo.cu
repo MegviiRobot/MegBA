@@ -5,9 +5,11 @@
  *
  **/
 
-#include <thrust/async/reduce.h>
+#include <thrust/reduce.h>
+#include <thrust/functional.h>
 #include <thrust/device_ptr.h>
 #include <thrust/inner_product.h>
+#include <thrust/extrema.h>
 
 #include <chrono>
 #include <iostream>
@@ -83,21 +85,14 @@ double computeRhoDenominator(const JVD<T> &JV,
                              const BaseLinearSystem<T> &linearSystem,
                              const EdgeVector<T> &edges) {
   T rhoDenominator{0};
-  std::vector<std::vector<T *>> Jdx;
-  Jdx.resize(MemoryPool::getWorldSize());
   const int cameraDim = linearSystem.dim[0];
   const int cameraNum = linearSystem.num[0];
   const int pointDim = linearSystem.dim[1];
-
-  std::vector<std::vector<thrust::system::cuda::unique_eager_future<T>>>
-      futures;
-  futures.resize(MemoryPool::getWorldSize());
 
   for (int i = 0; i < MemoryPool::getWorldSize(); ++i) {
     cudaSetDevice(i);
     const auto nItem = MemoryPool::getItemNum(i);
     const auto &positionContainer = edges.getPositionContainers()[i];
-    futures[i].resize(JV.size());
     for (int j = 0; j < JV.size(); ++j) {
       auto &J = JV(j);
       T *ptr;
@@ -110,16 +105,10 @@ double computeRhoDenominator(const JVD<T> &JV,
                              positionContainer.absolutePosition[0],
                              positionContainer.absolutePosition[1], nItem,
                              cameraDim, cameraNum, pointDim, ptr);
-      futures[i][j] = thrust::async::reduce(
+      rhoDenominator += thrust::reduce(
           thrust::cuda::par.on(nullptr), thrust::device_ptr<T>{ptr},
           thrust::device_ptr<T>{ptr} + nItem, T(0.), thrust::plus<T>{});
-      Jdx[i].push_back(ptr);
-    }
-  }
-  for (int i = 0; i < futures.size(); ++i) {
-    for (int j = futures[i].size() - 1; j >= 0; --j) {
-      rhoDenominator += futures[i][j].get();
-      MemoryPool::deallocateNormal(reinterpret_cast<void *>(Jdx[i][j]), i);
+      MemoryPool::deallocateNormal(reinterpret_cast<void *>(ptr), i);
     }
   }
   return rhoDenominator;
