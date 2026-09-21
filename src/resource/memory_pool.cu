@@ -114,7 +114,8 @@ void MemoryPool::deallocateJetVector(std::vector<void *> &ptr) {
 
 void MemoryPool::allocateNormal(void **ptr, std::size_t size, int rank) {
   const auto worldSize = getWorldSize();
-  size += size % 8;
+  // Round up to keep every offset in the pool 8-byte aligned.
+  size = (size + 7) & ~std::size_t{7};
   Ptr ptrHelper{nullptr};
 
   if (memOffsetCounter.empty()) {

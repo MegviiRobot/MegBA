@@ -27,7 +27,7 @@ struct JetVectorMulJetVectorV {
 };
 
 template <typename T>
-struct Inverse : public thrust::unary_function<T, T> {
+struct Inverse {
   __host__ __device__ T operator()(T x) { return T(1.) / x; }
 };
 
@@ -50,58 +50,58 @@ struct ScalarVectorDivJetVectorV {
 };
 
 template <typename T>
-struct ScalarSubJetVector : public thrust::unary_function<T, T> {
+struct ScalarSubJetVector {
   T scalar;
   explicit ScalarSubJetVector(T scalar) : scalar(scalar) {}
   __host__ __device__ T operator()(T x) { return scalar - x; }
 };
 
 template <typename T>
-struct ScalarDivJetVectorA : public thrust::unary_function<T, T> {
+struct ScalarDivJetVectorA {
   T scalar;
   explicit ScalarDivJetVectorA(T scalar) : scalar(scalar) {}
   __host__ __device__ T operator()(T x) { return scalar / x; }
 };
 
 template <typename T>
-struct ScalarDivJetVectorV : public thrust::binary_function<T, T, T> {
+struct ScalarDivJetVectorV {
   T scalar;
   explicit ScalarDivJetVectorV(T scalar) : scalar(scalar) {}
   __host__ __device__ T operator()(T a, T v) { return -v * scalar / (a * a); }
 };
 
 template <typename T>
-struct AbsMask : public thrust::unary_function<T, T> {
+struct AbsMask {
   __host__ __device__ T operator()(T x) { return x > 0. ? T(1.) : T(-1.); }
 };
 
 template <typename T>
-struct Sin : public thrust::unary_function<T, T> {
+struct Sin {
   __host__ __device__ T operator()(T x) { return std::sin(x); }
 };
 
 template <typename T>
-struct NegativeSinMul : public thrust::binary_function<T, T, T> {
+struct NegativeSinMul {
   __host__ __device__ T operator()(T a, T v) { return -std::sin(a) * v; }
 };
 
 template <typename T>
-struct Cos : public thrust::unary_function<T, T> {
+struct Cos {
   __host__ __device__ T operator()(T x) { return std::cos(x); }
 };
 
 template <typename T>
-struct CosMul : public thrust::binary_function<T, T, T> {
+struct CosMul {
   __host__ __device__ T operator()(T a, T v) { return std::cos(a) * v; }
 };
 
 template <typename T>
-struct Sqrt : public thrust::unary_function<T, T> {
+struct Sqrt {
   __host__ __device__ T operator()(T x) { return std::sqrt(x); }
 };
 
 template <typename T>
-struct SqrtJetVectorV : public thrust::binary_function<T, T, T> {
+struct SqrtJetVectorV {
   __host__ __device__ T operator()(T sqrted_a, T v) {
     return T(0.5) * v / sqrted_a;
   }
